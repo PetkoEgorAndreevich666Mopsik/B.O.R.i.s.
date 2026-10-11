@@ -1,0 +1,4 @@
+{
+  "name": "BORis.Runtime",
+  "references": ["Unity.InputSystem", "Unity.ugui"]
+}

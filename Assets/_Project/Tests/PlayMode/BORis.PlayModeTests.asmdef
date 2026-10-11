@@ -1,0 +1,5 @@
+{
+  "name": "BORis.PlayModeTests",
+  "references": ["BORis.Runtime", "Unity.InputSystem", "Unity.InputSystem.TestFramework", "Unity.ugui"],
+  "optionalUnityReferences": ["TestAssemblies"]
+}
