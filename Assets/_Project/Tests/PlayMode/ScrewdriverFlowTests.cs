@@ -27,7 +27,7 @@ public sealed class ScrewdriverFlowTests
         player = Object.FindFirstObjectByType<PlayerController>();
         interaction = player.GetComponent<InteractionController>();
         tool = Object.FindFirstObjectByType<ScrewdriverTool>();
-        screw = Object.FindFirstObjectByType<ScrewFastener>();
+        screw = Object.FindFirstObjectByType<RobotRepair>().Cover.Screws[0];
         var body = player.GetComponent<CharacterController>();
         body.enabled = false;
         player.transform.position = new Vector3(0, 0, -.7f);

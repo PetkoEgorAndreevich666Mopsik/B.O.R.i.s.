@@ -3,7 +3,7 @@ using UnityEngine;
 namespace BORis
 {
     [RequireComponent(typeof(AudioSource))]
-    public sealed class ScrewdriverTool : MonoBehaviour
+    public sealed class ScrewdriverTool : RepairTool
     {
         [SerializeField, Min(1f)] float deadZone = 12f;
         [SerializeField] AudioClip turnSound;
@@ -19,6 +19,7 @@ namespace BORis
 
         public ScrewFastener Target { get; private set; }
         public bool IsTurning => Target != null;
+        public override bool IsActive => IsTurning;
 
         void Awake()
         {
@@ -37,7 +38,7 @@ namespace BORis
             End();
             if (screw == null || !screw.isActiveAndEnabled || camera == null) return false;
             repair = screw.GetComponentInParent<RobotRepair>();
-            if (repair == null) return false;
+            if (repair == null || !repair.CanTurn(screw, out _)) return false;
             Target = screw;
             view = camera;
             foreach (Collider collider in colliders) collider.enabled = false;
@@ -47,7 +48,7 @@ namespace BORis
             return true;
         }
 
-        public void Drag(Vector2 pointer)
+        public override void Drag(Vector2 pointer)
         {
             if (Target == null || !Target.isActiveAndEnabled || repair == null) { End(); return; }
             Vector2 offset = pointer - (Vector2)view.WorldToScreenPoint(Target.transform.position);
@@ -87,7 +88,7 @@ namespace BORis
             transform.SetPositionAndRotation(Target.transform.position, Target.transform.rotation);
         }
 
-        public void End()
+        public override void End()
         {
             Target = null;
             repair = null;

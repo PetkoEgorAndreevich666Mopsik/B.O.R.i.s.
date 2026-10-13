@@ -1040,6 +1040,15 @@
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
+                },
+                {
+                    "name": "Brush",
+                    "type": "Button",
+                    "id": "99aa0f04-19b3-4ff2-9db1-3f4e691dc82d",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
                 }
             ],
             "bindings": [
@@ -1095,6 +1104,17 @@
                     "processors": "",
                     "groups": "Keyboard&Mouse",
                     "action": "Hand",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "c481c2c5-7a5a-47b9-9feb-4c1a45053aa5",
+                    "path": "<Keyboard>/3",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Keyboard&Mouse",
+                    "action": "Brush",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }
