@@ -1757,7 +1757,7 @@ PrefabInstance:
     - target: {fileID: 3974968722891194680, guid: 8035b147d8bde1d46a38c8de22f569d2, type: 3}
       propertyPath: m_Text
       value: "B.O.R.i.S.  /  \u041F\u0420\u041E\u0422\u041E\u0422\u0418\u041F \u2014
-        \u0414\u0415\u041D\u042C 4"
+        \u0414\u0415\u041D\u042C 5"
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

@@ -3518,6 +3518,8 @@ MonoBehaviour:
   - {fileID: 8635318889049867628}
   - {fileID: 2182048753624590373}
   connector: {fileID: 973720198655754603}
+  shoulder: {fileID: 7556003997055273135}
+  testDuration: 1.8
 --- !u!1 &5089781429971209234
 GameObject:
   m_ObjectHideFlags: 0

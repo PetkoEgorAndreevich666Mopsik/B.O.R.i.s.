@@ -1,12 +1,28 @@
+using System.Collections;
 using UnityEngine;
 
 namespace BORis
 {
+    public enum RobotTestResult { NotTested, Faulty, Passed }
+
     public sealed class RobotRepair : MonoBehaviour
     {
         [SerializeField] RepairPart cover;
         [SerializeField] RepairPart[] drives = System.Array.Empty<RepairPart>();
         [SerializeField] RepairConnector connector;
+        [SerializeField] Transform shoulder;
+        [SerializeField, Min(.1f)] float testDuration = 1.8f;
+        Coroutine testRoutine;
+        Quaternion restingShoulder;
+
+        public bool IsTesting => testRoutine != null;
+        public RobotTestResult TestResult { get; private set; }
+        public bool IsFunctional => InstalledDrive != null && !InstalledDrive.Faulty;
+
+        void Awake()
+        {
+            if (shoulder != null) restingShoulder = shoulder.localRotation;
+        }
 
         public RepairPart Cover => cover;
         public RepairConnector Connector => connector;
@@ -25,6 +41,7 @@ namespace BORis
             reason = "";
             if (screw == null || !screw.isActiveAndEnabled || !isActiveAndEnabled || screw.GetComponentInParent<RobotRepair>() != this)
                 reason = "Винт недоступен";
+            else if (IsTesting) reason = "Дождитесь окончания теста руки";
             else
             {
                 RepairPart part = screw.GetComponentInParent<RepairPart>();
@@ -38,7 +55,9 @@ namespace BORis
         public float Turn(ScrewFastener screw, float clockwiseDegrees)
         {
             if (!CanTurn(screw, out _)) return 0f;
-            return screw.Turn(clockwiseDegrees);
+            float applied = screw.Turn(clockwiseDegrees);
+            if (Mathf.Abs(applied) > .0001f) InvalidateTest();
+            return applied;
         }
 
         public bool CanClean(DirtPatch patch, out string reason)
@@ -46,6 +65,7 @@ namespace BORis
             reason = "";
             if (!isActiveAndEnabled || patch == null || !patch.isActiveAndEnabled || patch.GetComponentInParent<RobotRepair>() != this)
                 reason = "Поверхность недоступна";
+            else if (IsTesting) reason = "Дождитесь окончания теста руки";
             else if (patch.RequiresOpenCover && cover != null && cover.IsInstalled)
                 reason = "Сначала снимите крышку";
             return reason.Length == 0;
@@ -60,6 +80,7 @@ namespace BORis
         {
             reason = "";
             if (!Owns(part)) reason = "Деталь недоступна";
+            else if (IsTesting) reason = "Дождитесь окончания теста руки";
             else if (part.Kind == RepairPartKind.Drive && cover.IsInstalled) reason = "Сначала снимите крышку";
             else if (part.Kind == RepairPartKind.Drive && connector.IsConnected) reason = "Сначала отсоедините разъём";
             else if (part.IsInstalled)
@@ -91,6 +112,7 @@ namespace BORis
         public bool TryPlace(RepairPart part, bool inRobot, out string reason)
         {
             if (!CanPlace(part, inRobot, out reason)) return false;
+            if (part.IsInstalled != inRobot) InvalidateTest();
             part.Place(inRobot);
             return true;
         }
@@ -100,13 +122,70 @@ namespace BORis
             reason = "";
             if (!isActiveAndEnabled || target == null || target != connector || !target.isActiveAndEnabled)
                 reason = "Разъём недоступен";
+            else if (IsTesting) reason = "Дождитесь окончания теста руки";
             else if (cover.IsInstalled) reason = "Сначала снимите крышку";
             else if (InstalledDrive == null) reason = "Сначала установите привод";
             else if (!connector.IsConnected && !FullyTightened(InstalledDrive)) reason = "Сначала затяните оба винта привода";
             if (reason.Length > 0) return false;
+            InvalidateTest();
             connector.SetConnected(!connector.IsConnected);
             return true;
         }
+
+        public bool CanRunTest(out string reason)
+        {
+            reason = "";
+            if (!isActiveAndEnabled || shoulder == null || cover == null || connector == null) reason = "Тест недоступен";
+            else if (IsTesting) reason = "Тест руки уже выполняется";
+            else if (InstalledDrive == null) reason = "Сначала установите привод";
+            else if (!FullyTightened(InstalledDrive)) reason = "Сначала затяните оба винта привода";
+            else if (!connector.IsConnected) reason = "Сначала подключите разъём";
+            else if (!cover.IsInstalled) reason = "Сначала установите крышку";
+            else if (!FullyTightened(cover)) reason = "Сначала затяните четыре винта крышки";
+            return reason.Length == 0;
+        }
+
+        public bool RunTest(out string reason)
+        {
+            if (!CanRunTest(out reason)) return false;
+            InvalidateTest();
+            testRoutine = StartCoroutine(TestArm());
+            return true;
+        }
+
+        IEnumerator TestArm()
+        {
+            bool functional = IsFunctional;
+            float elapsed = 0f;
+            while (elapsed < testDuration)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float progress = Mathf.Clamp01(elapsed / testDuration);
+                float angle = functional ? 65f * Mathf.SmoothStep(0f, 1f, progress)
+                    : 7f * Mathf.Sin(elapsed * 32f) * Mathf.Sin(progress * Mathf.PI);
+                shoulder.localRotation = restingShoulder * Quaternion.AngleAxis(angle, Vector3.forward);
+                yield return null;
+            }
+            shoulder.localRotation = restingShoulder * Quaternion.AngleAxis(functional ? 65f : 0f, Vector3.forward);
+            TestResult = functional ? RobotTestResult.Passed : RobotTestResult.Faulty;
+            testRoutine = null;
+        }
+
+        void InvalidateTest()
+        {
+            TestResult = RobotTestResult.NotTested;
+            if (shoulder != null) shoulder.localRotation = restingShoulder;
+        }
+
+        public void CancelTest()
+        {
+            if (!IsTesting) return;
+            StopCoroutine(testRoutine);
+            testRoutine = null;
+            InvalidateTest();
+        }
+
+        void OnDisable() => CancelTest();
 
         public static bool FullyTightened(RepairPart part)
         {
@@ -119,10 +198,13 @@ namespace BORis
         {
             get
             {
+                if (IsTesting) return "Проверка руки… дождитесь результата";
+                if (TestResult == RobotTestResult.Passed) return "РЕМОНТ ЗАВЕРШЁН: рука исправна. Можно начать новый ремонт";
+                if (TestResult == RobotTestResult.Faulty) return "Тест не пройден: рука дёргается. Замените неисправный привод";
                 RepairPart drive = InstalledDrive;
                 if (cover.IsInstalled)
                     return drive != null && !drive.Faulty
-                        ? FullyTightened(cover) ? "Сборка завершена: исправный привод установлен" : "Затяните четыре винта крышки"
+                        ? FullyTightened(cover) ? "Сборка завершена: нажмите кнопку «ТЕСТ РУКИ»" : "Затяните четыре винта крышки"
                         : "Замените неисправный привод: освободите четыре винта и снимите крышку";
                 if (drive == null) return "Перенесите исправный привод из зелёного лотка в робота";
                 if (drive.Faulty) return connector.IsConnected ? "Рукой отсоедините разъём справа от привода"

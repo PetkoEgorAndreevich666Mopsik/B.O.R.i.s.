@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Linq;
 using BORis;
 using NUnit.Framework;
 using UnityEngine;
@@ -130,7 +131,7 @@ public sealed class WorkbenchFlowTests
         yield return null;
         yield return KeyPress(Key.E);
         Assert.That(interaction.IsAtWorkbench, Is.True);
-        var button = Object.FindFirstObjectByType<Button>();
+        var button = Object.FindObjectsByType<Button>(FindObjectsSortMode.None).Single(b => b.name == "ExitBenchButton");
         Vector2 position = RectTransformUtility.WorldToScreenPoint(null, button.transform.position);
         InputSystem.QueueStateEvent(mouse, new MouseState { position = position, buttons = 1 });
         yield return null;

@@ -7,6 +7,7 @@ using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
+using UnityEngine.UI;
 
 public sealed class RepairAssemblyFlowTests
 {
@@ -110,6 +111,15 @@ public sealed class RepairAssemblyFlowTests
     {
         Assert.That(robot.Cover.Screws.Length,Is.EqualTo(4));
         Assert.That(oldDrive.Screws.Length,Is.EqualTo(2));
+        yield return TestButton();
+        Assert.That(robot.TestResult,Is.EqualTo(RobotTestResult.Faulty));
+        var dirt = robot.Cover.GetComponentsInChildren<DirtPatch>().Single(p=>!p.RequiresOpenCover);
+        yield return KeyPress(Key.Digit3);
+        Vector2 DirtPoint(float u) => player.View.WorldToScreenPoint(dirt.transform.TransformPoint(new Vector3(u-.5f,0,0)));
+        yield return Pointer(DirtPoint(.2f),true);
+        yield return Pointer(DirtPoint(.8f),true);
+        yield return Pointer(DirtPoint(.8f),false);
+        Assert.That(dirt.Cleanliness,Is.GreaterThan(0f));
         foreach(var screw in robot.Cover.Screws) yield return Turn(screw,true);
         yield return Move(robot.Cover,false);
         Assert.That(Vector3.Dot(robot.Cover.transform.forward,Vector3.up),Is.GreaterThan(.99f),"Inside face must lie upward.");
@@ -137,6 +147,40 @@ public sealed class RepairAssemblyFlowTests
         yield return KeyPress(Key.E);
         Assert.That(robot.InstalledDrive,Is.SameAs(newDrive));
         Assert.That(robot.Cover.IsInstalled,Is.True);
+        yield return TestButton();
+        Assert.That(robot.TestResult,Is.EqualTo(RobotTestResult.Passed));
+        var restart=Object.FindObjectsByType<Button>(FindObjectsSortMode.None).Single(b=>b.name=="RestartButton");
+        Vector2 resetPoint=RectTransformUtility.WorldToScreenPoint(null,restart.transform.position);
+        yield return Pointer(resetPoint,true);
+        yield return Pointer(resetPoint,false);
+        robot=interaction.Robot;
+        oldDrive=robot.InstalledDrive;
+        newDrive=robot.GetComponentsInChildren<RepairPart>().Single(p=>p.Kind==RepairPartKind.Drive && !p.IsInstalled);
+        Assert.That(oldDrive.Faulty,Is.True);
+        Assert.That(robot.TestResult,Is.EqualTo(RobotTestResult.NotTested));
+        foreach(var screw in robot.Cover.Screws) yield return Turn(screw,true);
+        yield return Move(robot.Cover,false);
+        yield return ToggleConnector();
+        foreach(var screw in oldDrive.Screws) yield return Turn(screw,true);
+        yield return Move(oldDrive,false);
+        yield return Move(newDrive,true);
+        foreach(var screw in newDrive.Screws) yield return Turn(screw,false);
+        yield return ToggleConnector();
+        yield return Move(robot.Cover,true);
+        foreach(var screw in robot.Cover.Screws) yield return Turn(screw,false);
+        yield return TestButton();
+        Assert.That(robot.TestResult,Is.EqualTo(RobotTestResult.Passed),"Second repair must also finish through actual controls.");
+    }
+
+    IEnumerator TestButton()
+    {
+        var button=Object.FindAnyObjectByType<Workbench>().TestButton;
+        yield return Pointer(Screen(button.transform),true);
+        Assert.That(robot.IsTesting,Is.True,"Physical button must start the test.");
+        yield return Pointer(Screen(button.transform),false);
+        float deadline=Time.realtimeSinceStartup+3f;
+        while(robot.IsTesting && Time.realtimeSinceStartup<deadline) yield return null;
+        Assert.That(robot.IsTesting,Is.False);
     }
 
     [UnityTest]

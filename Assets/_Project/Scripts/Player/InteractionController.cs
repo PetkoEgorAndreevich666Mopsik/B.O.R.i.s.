@@ -13,6 +13,7 @@ namespace BORis
         [SerializeField] float reach = 3f;
         [SerializeField] Text hint;
         [SerializeField] Button exitButton;
+        [SerializeField] Button restartButton;
         [SerializeField] RepairHUD repairHUD;
         PlayerController player;
         InputActionAsset actions;
@@ -44,6 +45,7 @@ namespace BORis
         public RepairPart PointedPart { get; private set; }
         public RepairConnector PointedConnector { get; private set; }
         public Transform DropAnchor { get; private set; }
+        public bool PointedTestButton { get; private set; }
         public string Feedback => Time.unscaledTime < feedbackUntil ? feedback : "";
 
         void Awake()
@@ -64,6 +66,7 @@ namespace BORis
             // shortcut: mouse-only look for this PC prototype; calibrate sticks when adding gamepad support.
             look.ApplyBindingOverride(new InputBinding { path = "<Gamepad>/rightStick", overridePath = "" });
             if (exitButton != null) exitButton.onClick.AddListener(ExitWorkbench);
+            if (restartButton != null) restartButton.onClick.AddListener(ResetRepair);
         }
 
         void OnEnable()
@@ -109,10 +112,13 @@ namespace BORis
                 }
             }
             if (exitButton != null) exitButton.gameObject.SetActive(IsAtWorkbench);
+            if (restartButton != null) restartButton.gameObject.SetActive(IsAtWorkbench);
         }
 
         void TickBench()
         {
+            PointedTestButton = false;
+            if (robot != null && robot.IsTesting) return;
             if (selectHand.WasPressedThisFrame())
                 SelectTool(null);
             if (selectScrewdriver.WasPressedThisFrame() && screwdriver != null)
@@ -152,8 +158,15 @@ namespace BORis
             PointedPart = hit.collider.GetComponentInParent<RepairPart>();
             PointedConnector = hit.collider.GetComponentInParent<RepairConnector>();
             PointedDirt = hit.collider.GetComponent<DirtPatch>();
+            PointedTestButton = hit.collider == activeWorkbench.TestButton;
             if (!primary.WasPressedThisFrame()) return;
-            if (hit.collider.GetComponentInParent<ScrewdriverTool>() == screwdriver && screwdriver != null)
+            if (PointedTestButton)
+            {
+                SelectTool(null);
+                if (!robot.RunTest(out string reason)) Say(reason);
+                else Say("");
+            }
+            else if (hit.collider.GetComponentInParent<ScrewdriverTool>() == screwdriver && screwdriver != null)
                 SelectTool(screwdriver);
             else if (hit.collider.GetComponentInParent<BrushTool>() == brush && brush != null)
                 SelectTool(brush);
@@ -244,6 +257,7 @@ namespace BORis
             {
                 if (selectedTool != null) selectedTool.End();
                 CancelPart();
+                if (robot != null) robot.CancelTest();
             }
         }
 
@@ -261,12 +275,14 @@ namespace BORis
         public void ExitWorkbench()
         {
             SelectTool(null);
+            if (robot != null) robot.CancelTest();
             screwdriver = null;
             brush = null;
             PointedScrew = null;
             PointedPart = null;
             PointedConnector = null;
             PointedDirt = null;
+            PointedTestButton = false;
             robot = null;
             Say("");
             if (activeWorkbench != null) activeWorkbench.Exit();
@@ -274,6 +290,21 @@ namespace BORis
             bench.Disable();
             shop.Enable();
             SetCursor(false);
+        }
+
+        public void ResetRepair()
+        {
+            if (!IsAtWorkbench || activeWorkbench == null) return;
+            SelectTool(null);
+            RobotRepair replacement = activeWorkbench.ResetRobot();
+            if (replacement == null) { Say("Повторение недоступно: отсутствует исходный робот"); return; }
+            robot = replacement;
+            PointedScrew = null;
+            PointedPart = null;
+            PointedConnector = null;
+            PointedDirt = null;
+            PointedTestButton = false;
+            Say("Новый ремонт: робот и инструменты готовы");
         }
 
         static void SetCursor(bool atBench)
@@ -293,6 +324,7 @@ namespace BORis
         void OnDestroy()
         {
             if (exitButton != null) exitButton.onClick.RemoveListener(ExitWorkbench);
+            if (restartButton != null) restartButton.onClick.RemoveListener(ResetRepair);
             Destroy(actions);
         }
     }
