@@ -6,6 +6,9 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
+    path: Assets/_Project/Scenes/WorkshopPrototype.unity
+    guid: 58671f49bc8aefd43a558f6356e5043b
+  - enabled: 1
     path: Assets/_Project/Scenes/RepairPrototype.unity
     guid: 44d2f80ed718c304981c90288dc47109
   - enabled: 1

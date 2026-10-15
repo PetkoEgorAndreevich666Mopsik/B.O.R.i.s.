@@ -14,7 +14,8 @@ namespace BORis
         {
             if (hint == null) return;
             if (questPanel != null) questPanel.SetActive(true);
-            if (symptom != null) symptom.text = "Правая рука дёргается\nи не поднимается";
+            if (symptom != null) symptom.text = interaction.ActiveOrder != null
+                ? interaction.ActiveOrder.Symptom : "Правая рука дёргается\nи не поднимается";
             ScrewdriverTool tool = interaction.Screwdriver;
             BrushTool brush = interaction.Brush;
             DirtPatch dirt = brush != null && brush.IsActive ? brush.Target : interaction.PointedDirt;

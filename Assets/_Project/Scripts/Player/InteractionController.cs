@@ -15,6 +15,7 @@ namespace BORis
         [SerializeField] Button exitButton;
         [SerializeField] Button restartButton;
         [SerializeField] RepairHUD repairHUD;
+        [SerializeField] WorkshopSession session;
         PlayerController player;
         InputActionAsset actions;
         InputActionMap shop;
@@ -22,6 +23,7 @@ namespace BORis
         InputAction move, look, interact, cancel;
         InputAction point, primary, scroll, selectScrewdriver, selectHand, selectBrush;
         Workbench activeWorkbench;
+        OrderDesk activeOrderDesk;
         ScrewdriverTool screwdriver;
         BrushTool brush;
         RepairTool selectedTool;
@@ -32,7 +34,10 @@ namespace BORis
         float feedbackUntil;
         readonly List<RaycastResult> uiHits = new();
 
-        public bool IsAtWorkbench => bench != null && bench.enabled;
+        public bool IsAtWorkbench => activeWorkbench != null && bench != null && bench.enabled;
+        public bool IsAtOrderDesk => activeOrderDesk != null;
+        public OrderDefinition ActiveOrder => session != null ? session.ActiveOrder : null;
+        public OrderDesk PointedOrderDesk { get; private set; }
         public Workbench PointedWorkbench { get; private set; }
         public ScrewFastener PointedScrew { get; private set; }
         public bool ScrewdriverSelected => screwdriver != null && selectedTool == screwdriver;
@@ -78,7 +83,12 @@ namespace BORis
 
         void Update()
         {
-            if (IsAtWorkbench)
+            if (IsAtOrderDesk)
+            {
+                if (!activeOrderDesk.IsOpen || cancel.WasPressedThisFrame()) CloseOrderDesk();
+            }
+            else if (bench.enabled && activeWorkbench == null) ExitWorkbench();
+            else if (IsAtWorkbench)
             {
                 if (activeWorkbench == null || !activeWorkbench.isActiveAndEnabled || !activeWorkbench.IsOccupied || cancel.WasPressedThisFrame())
                     ExitWorkbench();
@@ -88,16 +98,29 @@ namespace BORis
             {
                 player.Tick(move.ReadValue<Vector2>(), look.ReadValue<Vector2>());
                 PointedWorkbench = null;
+                PointedOrderDesk = null;
                 if (!PointerOverUI() && Physics.Raycast(player.View.transform.position, player.View.transform.forward,
                     out RaycastHit hit, reach, ~(1 << gameObject.layer), QueryTriggerInteraction.Ignore))
+                {
                     PointedWorkbench = hit.collider.GetComponentInParent<Workbench>();
+                    PointedOrderDesk = hit.collider.GetComponentInParent<OrderDesk>();
+                }
 
-                if (PointedWorkbench != null && interact.WasPressedThisFrame() && PointedWorkbench.Enter(player.View))
+                if (PointedOrderDesk != null && interact.WasPressedThisFrame() && PointedOrderDesk.Open(this))
+                {
+                    activeOrderDesk = PointedOrderDesk;
+                    shop.Disable();
+                    bench.Enable();
+                    SetCursor(true);
+                }
+                else if (PointedWorkbench != null && interact.WasPressedThisFrame() && !PointedWorkbench.HasRobot)
+                    Say("Верстак пуст. Примите заказ на стойке приёма");
+                else if (PointedWorkbench != null && interact.WasPressedThisFrame() && PointedWorkbench.Enter(player.View))
                 {
                     activeWorkbench = PointedWorkbench;
                     screwdriver = activeWorkbench.GetComponentInChildren<ScrewdriverTool>();
                     brush = activeWorkbench.GetComponentInChildren<BrushTool>();
-                    robot = activeWorkbench.GetComponentInChildren<RobotRepair>();
+                    robot = activeWorkbench.Robot;
                     shop.Disable();
                     bench.Enable();
                     SetCursor(true);
@@ -109,7 +132,12 @@ namespace BORis
                 else
                 {
                     if (repairHUD != null) repairHUD.Hide();
-                    hint.text = PointedWorkbench != null ? "E — сесть за верстак" : "WASD — движение  |  Мышь — обзор";
+                    hint.text = IsAtOrderDesk ? "Выберите действие в карточке  |  ESC — закрыть"
+                        : Feedback.Length > 0 ? Feedback
+                        : PointedOrderDesk != null ? "E — стойка приёма заказов"
+                        : PointedWorkbench != null ? PointedWorkbench.HasRobot ? "E — сесть за верстак" : "E — верстак пуст: сначала примите заказ на стойке"
+                        : session != null && session.ActiveOrder == null ? "Примите заказ на стойке слева  |  WASD — движение  |  Мышь — обзор"
+                        : "WASD — движение  |  Мышь — обзор";
                 }
             }
             if (exitButton != null) exitButton.gameObject.SetActive(IsAtWorkbench);
@@ -315,6 +343,16 @@ namespace BORis
             PointedDirt = null;
             PointedTestButton = false;
             Say("Новый ремонт: робот и инструменты готовы");
+            if (ActiveOrder != null) Say("Текущий заказ начат заново");
+        }
+
+        public void CloseOrderDesk()
+        {
+            if (activeOrderDesk != null) activeOrderDesk.Hide();
+            activeOrderDesk = null;
+            bench.Disable();
+            shop.Enable();
+            SetCursor(false);
         }
 
         static void SetCursor(bool atBench)
@@ -325,6 +363,7 @@ namespace BORis
 
         void OnDisable()
         {
+            CloseOrderDesk();
             ExitWorkbench();
             actions.Disable();
             Cursor.lockState = CursorLockMode.None;
