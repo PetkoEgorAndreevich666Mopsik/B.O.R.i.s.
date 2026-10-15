@@ -1012,7 +1012,7 @@
                     "expectedControlType": "Vector2",
                     "processors": "",
                     "interactions": "",
-                    "initialStateCheck": false
+                    "initialStateCheck": true
                 },
                 {
                     "name": "Primary",
@@ -1046,6 +1046,15 @@
                     "type": "Button",
                     "id": "99aa0f04-19b3-4ff2-9db1-3f4e691dc82d",
                     "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Scroll",
+                    "type": "PassThrough",
+                    "id": "58a62fe2-4147-479b-8fa4-4c67dd372c9e",
+                    "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
@@ -1115,6 +1124,17 @@
                     "processors": "",
                     "groups": "Keyboard&Mouse",
                     "action": "Brush",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "2789b3d9-27fa-434e-bd20-46a3b2fc1c8a",
+                    "path": "<Mouse>/scroll",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Scroll",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

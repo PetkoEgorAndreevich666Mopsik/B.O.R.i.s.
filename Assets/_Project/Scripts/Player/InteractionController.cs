@@ -20,7 +20,7 @@ namespace BORis
         InputActionMap shop;
         InputActionMap bench;
         InputAction move, look, interact, cancel;
-        InputAction point, primary, selectScrewdriver, selectHand, selectBrush;
+        InputAction point, primary, scroll, selectScrewdriver, selectHand, selectBrush;
         Workbench activeWorkbench;
         ScrewdriverTool screwdriver;
         BrushTool brush;
@@ -60,6 +60,7 @@ namespace BORis
             cancel = bench.FindAction("Cancel", true);
             point = bench.FindAction("Point", true);
             primary = bench.FindAction("Primary", true);
+            scroll = bench.FindAction("Scroll", true);
             selectScrewdriver = bench.FindAction("Screwdriver", true);
             selectHand = bench.FindAction("Hand", true);
             selectBrush = bench.FindAction("Brush", true);
@@ -131,6 +132,7 @@ namespace BORis
             PointedConnector = null;
             PointedDirt = null;
             bool overUI = PointerOverUI();
+            if (selectedTool != null && !selectedTool.IsActive) selectedTool.FollowPointer(pointer);
             if (HeldPart != null)
             {
                 if (overUI) { CancelPart(); Say("Перенос отменён"); }
@@ -146,7 +148,10 @@ namespace BORis
             if (selectedTool != null && selectedTool.IsActive)
             {
                 if (!primary.IsPressed() || overUI) selectedTool.End();
+                else if (ScrewdriverSelected && scroll.ReadValue<Vector2>().y != 0f)
+                    screwdriver.Scroll(scroll.ReadValue<Vector2>().y, pointer);
                 else selectedTool.Drag(pointer);
+                if (!selectedTool.IsActive) selectedTool.FollowPointer(pointer);
                 return;
             }
             if (overUI) return;
@@ -204,8 +209,13 @@ namespace BORis
         void SelectTool(RepairTool tool)
         {
             CancelPart();
-            if (selectedTool != null) selectedTool.End();
+            if (selectedTool != null) selectedTool.Select(null);
             selectedTool = tool;
+            if (selectedTool != null)
+            {
+                selectedTool.Select(player.View);
+                selectedTool.FollowPointer(point.ReadValue<Vector2>());
+            }
         }
 
         Transform FindDropAnchor(Ray ray)

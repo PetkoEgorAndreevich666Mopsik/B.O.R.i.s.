@@ -37,8 +37,10 @@ namespace BORis
             previousParent = view.parent;
             previousPosition = view.localPosition;
             previousRotation = view.localRotation;
+            float eyeHeight = view.position.y;
             view.SetParent(cameraAnchor, false);
             view.localPosition = Vector3.zero;
+            view.position = new Vector3(view.position.x, eyeHeight, view.position.z);
             view.localRotation = Quaternion.identity;
             return true;
         }

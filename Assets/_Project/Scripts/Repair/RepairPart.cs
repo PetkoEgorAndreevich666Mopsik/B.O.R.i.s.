@@ -12,6 +12,7 @@ namespace BORis
         [SerializeField] bool installed = true;
         [SerializeField] Transform installationAnchor;
         [SerializeField] Transform trayAnchor;
+        [SerializeField] AudioClip releaseSound;
         Collider[] colliders;
         ScrewFastener[] screws;
 
@@ -22,6 +23,7 @@ namespace BORis
         public Transform InstallationAnchor => installationAnchor;
         public Transform TrayAnchor => trayAnchor;
         public ScrewFastener[] Screws => screws;
+        public bool IsReleased { get; private set; }
 
         void Awake()
         {
@@ -38,13 +40,30 @@ namespace BORis
         internal void Place(bool inRobot)
         {
             installed = inRobot;
+            IsReleased = false;
             RestorePose();
+        }
+
+        internal void RefreshRelease()
+        {
+            if (kind != RepairPartKind.Cover || !installed) return;
+            bool released = screws.Length > 0;
+            foreach (ScrewFastener screw in screws) released &= screw.IsLoose;
+            if (released == IsReleased) return;
+            IsReleased = released;
+            RestorePose();
+            if (released && releaseSound != null)
+            {
+                var audio = GetComponent<AudioSource>();
+                if (audio != null) audio.PlayOneShot(releaseSound, .7f);
+            }
         }
 
         public void RestorePose()
         {
             Transform anchor = installed ? installationAnchor : trayAnchor;
-            if (anchor != null) transform.SetPositionAndRotation(anchor.position, anchor.rotation);
+            if (anchor != null) transform.SetPositionAndRotation(
+                anchor.position + (installed && IsReleased ? anchor.rotation * Vector3.back * .035f : Vector3.zero), anchor.rotation);
             SetDragging(false);
         }
     }

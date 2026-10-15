@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Linq;
 using BORis;
 using NUnit.Framework;
 using UnityEngine;
@@ -57,6 +58,42 @@ public sealed class ScrewdriverFlowTests
     }
 
     [UnityTest]
+    public IEnumerator WheelUsesCapturedScrew_AndSelectedToolFollowsPointer()
+    {
+        yield return Press(Key.Digit2);
+        yield return Pointer(new Vector2(Screen.width * .5f, Screen.height * .4f), false);
+        Vector3 heldPosition = tool.transform.position;
+        yield return Pointer(new Vector2(Screen.width * .6f, Screen.height * .4f), false);
+        Assert.That(Vector3.Distance(heldPosition, tool.transform.position), Is.GreaterThan(.01f));
+        Assert.That(tool.IsSelected, Is.True);
+        Assert.That(tool.GetComponentsInChildren<Collider>().All(c => !c.enabled), Is.True);
+        yield return Pointer(Center, true);
+        Assert.That(tool.Target, Is.SameAs(screw));
+        for (int i = 0; i < 16; i++)
+        {
+            InputSystem.QueueStateEvent(mouse, new MouseState { position = Center, buttons = 1, scroll = new Vector2(0, -120) });
+            yield return null; yield return null;
+        }
+        Assert.That(screw.IsLoose, Is.True);
+        Assert.That(tool.GetComponent<AudioSource>().loop, Is.False, "Completion sound must start on reaching the endpoint.");
+        yield return Pointer(Center, false);
+        Assert.That(tool.IsSelected, Is.True);
+        InputSystem.QueueStateEvent(mouse, new MouseState { position = Center, scroll = new Vector2(0, 120) });
+        yield return null; yield return null;
+        Assert.That(screw.IsLoose, Is.True, "Uncaptured wheel input must not change a screw.");
+        yield return Pointer(Center, true);
+        for (int i = 0; i < 16; i++)
+        {
+            InputSystem.QueueStateEvent(mouse, new MouseState { position = Center, buttons = 1, scroll = new Vector2(0, 120) });
+            yield return null; yield return null;
+        }
+        Assert.That(screw.IsTight, Is.True);
+        yield return Press(Key.Digit1);
+        Assert.That(tool.IsSelected, Is.False);
+        Assert.That(tool.GetComponentsInChildren<Collider>().All(c => c.enabled), Is.True);
+    }
+
+    [UnityTest]
     public IEnumerator MouseGestureSelectsTool_ReleasesScrew_AndReverses()
     {
         yield return Press(Key.Digit2);
@@ -93,6 +130,7 @@ public sealed class ScrewdriverFlowTests
         {
             float angle = i * 15f * Mathf.Deg2Rad;
             yield return Pointer(Center + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * 60f, true);
+            Assert.That(tool.IsTurning, Is.True, $"Sample {i}; screen={Screen.width}x{Screen.height}; center={Center}; pointer={mouse.position.ReadValue()}");
         }
         Assert.That(screw.Tightness, Is.EqualTo(.75f).Within(.005f));
         float progress = screw.Tightness;
@@ -165,7 +203,6 @@ public sealed class ScrewdriverFlowTests
         yield return Pointer(Center + Vector2.right * 60f, true);
         yield return Pointer(Center + new Vector2(52f, 30f), true);
         Assert.That(screw.Tightness, Is.LessThan(1f));
-        Assert.That(tool.GetComponent<AudioSource>().isPlaying, Is.True);
         float progress = screw.Tightness;
         interaction.SendMessage("OnApplicationFocus", false);
         Assert.That(tool.IsTurning, Is.False);

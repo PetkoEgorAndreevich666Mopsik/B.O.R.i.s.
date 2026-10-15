@@ -66,9 +66,10 @@ public sealed class RepairAssemblyFlowTests
         {
             float angle = i*15f*Mathf.Deg2Rad*(loosen ? 1 : -1);
             yield return Pointer(Screen(screw.transform)+new Vector2(Mathf.Cos(angle),Mathf.Sin(angle))*45f,true);
+            Assert.That(interaction.Screwdriver.Target, Is.SameAs(screw), $"{screw.name}, sample {i}, screen {UnityEngine.Screen.width}x{UnityEngine.Screen.height}, pointer {mouse.position.ReadValue()}");
         }
         yield return Pointer(Screen(screw.transform),false);
-        Assert.That(screw.Tightness, Is.EqualTo(loosen ? 0f : 1f).Within(.001f));
+        Assert.That(screw.Tightness, Is.EqualTo(loosen ? 0f : 1f).Within(.001f), screw.name);
     }
 
     IEnumerator Move(RepairPart part, bool install)
@@ -104,6 +105,26 @@ public sealed class RepairAssemblyFlowTests
         Release(robot.Cover);
         Assert.That(robot.TryPlace(robot.Cover,false,out string reason),Is.True,reason);
         Physics.SyncTransforms();
+    }
+
+    [UnityTest]
+    public IEnumerator LastScrewReleasesCover_WithSoundAndVisibleGap_AndTighteningSeatsIt()
+    {
+        var cover = robot.Cover;
+        for (int i = 0; i < cover.Screws.Length - 1; i++) robot.Turn(cover.Screws[i], -10000f);
+        Assert.That(cover.IsReleased, Is.False);
+        var last = cover.Screws[cover.Screws.Length - 1];
+        robot.Turn(last, -10000f);
+        Assert.That(cover.IsReleased, Is.True);
+        Assert.That(cover.IsInstalled, Is.True, "Release must not remove the cover automatically.");
+        Assert.That(Vector3.Distance(cover.transform.position, cover.InstallationAnchor.position), Is.EqualTo(.035f).Within(.001f));
+        Assert.That(cover.GetComponent<AudioSource>().isPlaying, Is.True);
+        Assert.That(last.transform.Find("ReleasedBand").gameObject.activeSelf, Is.True);
+        robot.Turn(last, 45f);
+        Assert.That(cover.IsReleased, Is.False);
+        Assert.That(Vector3.Distance(cover.transform.position, cover.InstallationAnchor.position), Is.LessThan(.001f));
+        Assert.That(robot.CanMove(cover, out _), Is.False);
+        yield return null;
     }
 
     [UnityTest]

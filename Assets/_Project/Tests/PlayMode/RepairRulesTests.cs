@@ -63,6 +63,19 @@ public sealed class RepairRulesTests
     }
 
     [Test]
+    public void EndpointToleranceFinishesGesture_AndAllowsImmediateReverse()
+    {
+        repair.Turn(screw, -705f);
+        Assert.That(screw.IsLoose, Is.True);
+        repair.Turn(screw, 5f);
+        Assert.That(screw.Tightness, Is.GreaterThan(0f).And.LessThan(.03f));
+        repair.Turn(screw, 700f);
+        Assert.That(screw.IsTight, Is.True);
+        repair.Turn(screw, -5f);
+        Assert.That(screw.Tightness, Is.LessThan(1f).And.GreaterThan(.97f));
+    }
+
+    [Test]
     public void AnotherRobotAndDisabledScrewCannotBeChanged()
     {
         var other = new GameObject("OtherRobot").AddComponent<RobotRepair>();

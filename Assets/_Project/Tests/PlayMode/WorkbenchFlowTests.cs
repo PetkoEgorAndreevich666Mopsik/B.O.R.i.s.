@@ -58,11 +58,16 @@ public sealed class WorkbenchFlowTests
         Assert.That(Quaternion.Angle(view.localRotation, Quaternion.identity), Is.GreaterThan(.5f));
         Vector3 originalLocal = view.localPosition;
         Quaternion originalRotation = view.localRotation;
+        float eyeHeight = view.position.y;
         yield return KeyPress(Key.E);
         Assert.That(interaction.IsAtWorkbench, Is.True);
         Assert.That(workbench.IsOccupied, Is.True);
         Assert.That(view.parent.name, Is.EqualTo("CameraAnchor"));
         Assert.That(Cursor.visible, Is.True);
+        Assert.That(view.position.y, Is.EqualTo(eyeHeight).Within(.01f));
+        var quest = Object.FindObjectsByType<Image>(FindObjectsSortMode.None).Single(i => i.name == "RepairQuest");
+        Assert.That(quest.rectTransform.anchorMin, Is.EqualTo(new Vector2(0, 1)));
+        Assert.That(quest.raycastTarget, Is.False);
         Vector3 position = player.transform.position;
         Quaternion rotation = player.transform.rotation;
         Quaternion benchView = view.rotation;

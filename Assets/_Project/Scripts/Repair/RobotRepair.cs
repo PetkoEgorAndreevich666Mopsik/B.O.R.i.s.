@@ -56,7 +56,11 @@ namespace BORis
         {
             if (!CanTurn(screw, out _)) return 0f;
             float applied = screw.Turn(clockwiseDegrees);
-            if (Mathf.Abs(applied) > .0001f) InvalidateTest();
+            if (Mathf.Abs(applied) > .0001f)
+            {
+                InvalidateTest();
+                if (cover != null && screw.GetComponentInParent<RepairPart>() == cover) cover.RefreshRelease();
+            }
             return applied;
         }
 
@@ -86,7 +90,7 @@ namespace BORis
             else if (part.IsInstalled)
             {
                 int remaining = 0;
-                foreach (ScrewFastener screw in part.Screws) if (screw.Tightness > .0001f) remaining++;
+                foreach (ScrewFastener screw in part.Screws) if (!screw.IsLoose) remaining++;
                 if (remaining > 0) reason = $"Освободите винты: осталось {remaining}";
             }
             return reason.Length == 0;
@@ -190,7 +194,7 @@ namespace BORis
         public static bool FullyTightened(RepairPart part)
         {
             if (part == null) return false;
-            foreach (ScrewFastener screw in part.Screws) if (screw.Tightness < .9999f) return false;
+            foreach (ScrewFastener screw in part.Screws) if (!screw.IsTight) return false;
             return true;
         }
 
@@ -203,7 +207,8 @@ namespace BORis
                 if (TestResult == RobotTestResult.Faulty) return "Тест не пройден: рука дёргается. Замените неисправный привод";
                 RepairPart drive = InstalledDrive;
                 if (cover.IsInstalled)
-                    return drive != null && !drive.Faulty
+                    return cover.IsReleased ? "Возьмите свободную крышку и перенесите её в левый лоток"
+                        : drive != null && !drive.Faulty
                         ? FullyTightened(cover) ? "Сборка завершена: нажмите кнопку «ТЕСТ РУКИ»" : "Затяните четыре винта крышки"
                         : "Замените неисправный привод: освободите четыре винта и снимите крышку";
                 if (drive == null) return "Перенесите исправный привод из зелёного лотка в робота";

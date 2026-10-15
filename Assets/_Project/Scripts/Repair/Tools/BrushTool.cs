@@ -8,9 +8,6 @@ namespace BORis
         [SerializeField, Min(.001f)] float radius = .035f;
         [SerializeField] AudioClip scrubSound;
         AudioSource audioSource;
-        Collider[] colliders;
-        Vector3 homePosition;
-        Quaternion homeRotation;
         Camera view;
         RobotRepair repair;
         Vector2 previousUV;
@@ -21,11 +18,9 @@ namespace BORis
         public override bool IsActive => Target != null;
         public bool HasContact { get; private set; }
 
-        void Awake()
+        protected override void Awake()
         {
-            homePosition = transform.localPosition;
-            homeRotation = transform.localRotation;
-            colliders = GetComponentsInChildren<Collider>();
+            base.Awake();
             audioSource = GetComponent<AudioSource>();
             audioSource.playOnAwake = false;
             audioSource.loop = true;
@@ -43,7 +38,7 @@ namespace BORis
             view = camera;
             var player = view.GetComponentInParent<PlayerController>();
             queryMask = player != null ? ~(1 << player.gameObject.layer) : ~0;
-            foreach (Collider collider in colliders) collider.enabled = false;
+            SetColliders(false);
             Drag(pointer);
             return true;
         }
@@ -78,10 +73,7 @@ namespace BORis
             repair = null;
             hasPrevious = HasContact = false;
             if (audioSource != null) audioSource.Stop();
-            transform.localPosition = homePosition;
-            transform.localRotation = homeRotation;
-            if (colliders != null)
-                foreach (Collider collider in colliders) if (collider != null) collider.enabled = true;
+            RestorePose();
         }
 
         void OnDisable() => End();
