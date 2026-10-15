@@ -16,6 +16,7 @@ namespace BORis
         [SerializeField] Button restartButton;
         [SerializeField] RepairHUD repairHUD;
         [SerializeField] WorkshopSession session;
+        [SerializeField] Text workshopProgress;
         PlayerController player;
         InputActionAsset actions;
         InputActionMap shop;
@@ -83,6 +84,8 @@ namespace BORis
 
         void Update()
         {
+            if (workshopProgress != null && session != null)
+                workshopProgress.text = $"Баланс: {session.Balance} ед.   |   Заказов выполнено: {session.CompletedOrders}";
             if (IsAtOrderDesk)
             {
                 if (!activeOrderDesk.IsOpen || cancel.WasPressedThisFrame()) CloseOrderDesk();

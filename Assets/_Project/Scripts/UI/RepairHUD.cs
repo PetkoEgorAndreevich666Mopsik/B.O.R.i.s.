@@ -23,6 +23,8 @@ namespace BORis
             if (assemblyState != null)
             {
                 assemblyState.text = interaction.Robot != null ? interaction.Robot.AssemblyHint : "";
+                if (interaction.ActiveOrder != null && interaction.Robot != null && interaction.Robot.TestResult == RobotTestResult.Passed)
+                    assemblyState.text = "Проверка пройдена. Вернитесь к стойке и выдайте робота";
                 assemblyState.color = interaction.Robot != null && interaction.Robot.TestResult == RobotTestResult.Passed
                     ? new Color(.55f, 1f, .65f) : Color.white;
             }

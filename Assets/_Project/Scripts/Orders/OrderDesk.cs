@@ -9,8 +9,13 @@ namespace BORis
         [SerializeField] UnityEngine.UI.Text card;
         [SerializeField] UnityEngine.UI.Text status;
         [SerializeField] UnityEngine.UI.Button acceptButton;
+        [SerializeField] UnityEngine.UI.Button deliverButton;
         [SerializeField] UnityEngine.UI.Button closeButton;
         InteractionController visitor;
+        OrderDefinition displayedOrder;
+        string displayedInstanceId;
+        int displayedReward;
+        bool showingReceipt;
 
         public bool IsOpen => visitor != null && panel != null && panel.activeSelf;
 
@@ -18,6 +23,7 @@ namespace BORis
         {
             if (panel != null) panel.SetActive(false);
             if (acceptButton != null) acceptButton.onClick.AddListener(Accept);
+            if (deliverButton != null) deliverButton.onClick.AddListener(Deliver);
             if (closeButton != null) closeButton.onClick.AddListener(Close);
         }
 
@@ -25,26 +31,58 @@ namespace BORis
         {
             if (!isActiveAndEnabled || interaction == null || session == null || panel == null) return false;
             visitor = interaction;
+            showingReceipt = false;
             panel.SetActive(true);
-            Refresh(session.ActiveOrder != null ? "Заказ принят. Робот ждёт на верстаке" : "Осмотрите карточку и примите заказ");
+            string message = "Осмотрите карточку и примите заказ";
+            if (session.ActiveOrder != null)
+                message = session.CanDeliverOrder(out string reason) ? "Робот готов. Выдайте заказ, чтобы получить оплату" : reason;
+            Refresh(message);
             return true;
         }
 
         void Accept()
         {
             if (!IsOpen) return;
+            if (showingReceipt)
+            {
+                showingReceipt = false;
+                Refresh("Осмотрите следующий заказ. Он ещё не принят");
+                return;
+            }
             bool accepted = session.TryAcceptOrder(out string reason);
             Refresh(accepted ? "Заказ принят. Закройте карточку и подойдите к верстаку" : reason);
         }
 
+        void Deliver()
+        {
+            if (!IsOpen || showingReceipt) return;
+            if (!session.TryDeliverOrder(displayedInstanceId, out string reason)) { Refresh(reason); return; }
+            showingReceipt = true;
+            Refresh("Спасибо за ремонт! Можно посмотреть следующий заказ");
+        }
+
         void Refresh(string message)
         {
-            OrderDefinition order = session.ActiveOrder != null ? session.ActiveOrder : session.OfferedOrder;
+            if (!showingReceipt)
+            {
+                displayedOrder = session.ActiveOrder != null ? session.ActiveOrder : session.OfferedOrder;
+                displayedInstanceId = session.ActiveOrderId;
+                displayedReward = session.ActiveOrder != null ? session.ActiveOrderReward : displayedOrder != null ? displayedOrder.Reward : 0;
+            }
+            OrderDefinition order = displayedOrder;
             if (card != null) card.text = order == null ? "Нет доступных заказов"
-                : $"ЗАКАЗ {order.OrderId}\n\nКлиент: {order.ClientName}\n\n«{order.Symptom}»\n\nНаграда за заказ: {order.Reward} ед.";
+                : showingReceipt ? $"ЗАКАЗ {order.OrderId} ВЫДАН\n\nКлиент: {order.ClientName}\n\nПолучено: +{displayedReward} ед.\nБаланс мастерской: {session.Balance} ед.\n\nВыполнено заказов: {session.CompletedOrders}"
+                : $"ЗАКАЗ {order.OrderId}\n\nКлиент: {order.ClientName}\n\n«{order.Symptom}»\n\nНаграда за заказ: {displayedReward} ед.";
             if (status != null) status.text = message;
-            if (acceptButton != null) acceptButton.interactable = session.ActiveOrder == null
-                && order != null && order.IsValid && !order.RequiresSolderingStation;
+            if (acceptButton != null)
+            {
+                acceptButton.gameObject.SetActive(showingReceipt || session.ActiveOrder == null);
+                acceptButton.interactable = showingReceipt || session.ActiveOrder == null
+                    && order != null && order.IsValid && !order.RequiresSolderingStation;
+                var caption = acceptButton.GetComponentInChildren<UnityEngine.UI.Text>(true);
+                if (caption != null) caption.text = showingReceipt ? "Следующий заказ" : "Принять заказ";
+            }
+            if (deliverButton != null) deliverButton.gameObject.SetActive(!showingReceipt && session.ActiveOrder != null);
         }
 
         void Close()
@@ -63,6 +101,7 @@ namespace BORis
         void OnDestroy()
         {
             if (acceptButton != null) acceptButton.onClick.RemoveListener(Accept);
+            if (deliverButton != null) deliverButton.onClick.RemoveListener(Deliver);
             if (closeButton != null) closeButton.onClick.RemoveListener(Close);
         }
     }
