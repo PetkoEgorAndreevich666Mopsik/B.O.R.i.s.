@@ -49,13 +49,7 @@ namespace BORis
             else if (!robot.CanRunTest(out reason)) return false;
             else if (!robot.IsFunctional) reason = "Неисправность не устранена: проверьте привод";
             else if (robot.TestResult != RobotTestResult.Passed) reason = "Соберите робота и завершите успешный тест руки";
-            else if (ActiveOrder.RequiresCleaning)
-            {
-                DirtPatch[] patches = robot.GetComponentsInChildren<DirtPatch>();
-                if (patches.Length == 0) reason = "Не найдены поверхности для проверки очистки";
-                foreach (DirtPatch patch in patches)
-                    if (!patch.IsClean) { reason = $"Завершите очистку: {patch.DisplayName}"; break; }
-            }
+            else if (ActiveOrder.RequiresCleaning && !robot.CheckCleaning(out reason)) return false;
             return reason.Length == 0;
         }
 

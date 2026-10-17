@@ -23,6 +23,7 @@ namespace BORis
         InputActionMap bench;
         InputAction move, look, interact, cancel;
         InputAction point, primary, scroll, selectScrewdriver, selectHand, selectBrush;
+        InputAction focus, orbit, orbitDelta;
         Workbench activeWorkbench;
         OrderDesk activeOrderDesk;
         ScrewdriverTool screwdriver;
@@ -37,6 +38,8 @@ namespace BORis
 
         public bool IsAtWorkbench => activeWorkbench != null && bench != null && bench.enabled;
         public bool IsAtOrderDesk => activeOrderDesk != null;
+        public bool IsInspecting => IsAtWorkbench && activeWorkbench.IsFocused;
+        public string InspectionName => IsInspecting ? activeWorkbench.InspectionName : "";
         public OrderDefinition ActiveOrder => session != null ? session.ActiveOrder : null;
         public OrderDesk PointedOrderDesk { get; private set; }
         public Workbench PointedWorkbench { get; private set; }
@@ -70,6 +73,9 @@ namespace BORis
             selectScrewdriver = bench.FindAction("Screwdriver", true);
             selectHand = bench.FindAction("Hand", true);
             selectBrush = bench.FindAction("Brush", true);
+            focus = bench.FindAction("Focus", true);
+            orbit = bench.FindAction("Orbit", true);
+            orbitDelta = bench.FindAction("OrbitDelta", true);
             // shortcut: mouse-only look for this PC prototype; calibrate sticks when adding gamepad support.
             look.ApplyBindingOverride(new InputBinding { path = "<Gamepad>/rightStick", overridePath = "" });
             if (exitButton != null) exitButton.onClick.AddListener(ExitWorkbench);
@@ -185,16 +191,31 @@ namespace BORis
                 if (!selectedTool.IsActive) selectedTool.FollowPointer(pointer);
                 return;
             }
-            if (overUI) return;
-            if (!Physics.Raycast(player.View.ScreenPointToRay(pointer), out RaycastHit hit, reach,
-                ~(1 << gameObject.layer), QueryTriggerInteraction.Ignore)) return;
-            // Restrict tools to this table; the closest collider also blocks hidden screws.
-            if (hit.collider.GetComponentInParent<Workbench>() != activeWorkbench) return;
-            PointedScrew = hit.collider.GetComponentInParent<ScrewFastener>();
-            PointedPart = hit.collider.GetComponentInParent<RepairPart>();
-            PointedConnector = hit.collider.GetComponentInParent<RepairConnector>();
-            PointedDirt = hit.collider.GetComponent<DirtPatch>();
-            PointedTestButton = hit.collider == activeWorkbench.TestButton;
+            RaycastHit hit = default;
+            bool hasHit = !overUI && Physics.Raycast(player.View.ScreenPointToRay(pointer), out hit, reach,
+                ~(1 << gameObject.layer), QueryTriggerInteraction.Ignore);
+            // Restrict tools and focus to this table; the closest collider also blocks hidden screws.
+            hasHit &= hit.collider != null && hit.collider.GetComponentInParent<Workbench>() == activeWorkbench;
+            if (hasHit)
+            {
+                PointedScrew = hit.collider.GetComponentInParent<ScrewFastener>();
+                PointedPart = hit.collider.GetComponentInParent<RepairPart>();
+                PointedConnector = hit.collider.GetComponentInParent<RepairConnector>();
+                PointedDirt = hit.collider.GetComponent<DirtPatch>();
+                PointedTestButton = hit.collider == activeWorkbench.TestButton;
+            }
+            bool canMoveView = !overUI && !primary.IsPressed();
+            if (canMoveView && focus.WasPressedThisFrame())
+            {
+                if (IsInspecting) activeWorkbench.ReturnToOverview();
+                else if (hasHit && hit.collider.GetComponentInParent<RobotRepair>() == robot)
+                    activeWorkbench.Focus(PointedPart);
+            }
+            bool orbiting = canMoveView && IsInspecting && orbit.IsPressed();
+            bool viewMoving = activeWorkbench.UpdateView(orbiting ? orbitDelta.ReadValue<Vector2>() : Vector2.zero,
+                canMoveView ? scroll.ReadValue<Vector2>().y : 0f);
+            if (selectedTool != null) selectedTool.FollowPointer(pointer);
+            if (viewMoving || orbiting || overUI || !hasHit) return;
             if (!primary.WasPressedThisFrame()) return;
             if (PointedTestButton)
             {
@@ -281,7 +302,11 @@ namespace BORis
 
         void CancelPart()
         {
-            if (HeldPart != null) HeldPart.RestorePose();
+            if (HeldPart != null)
+            {
+                HeldPart.RestorePose();
+                if (activeWorkbench != null) activeWorkbench.ReturnToOverview();
+            }
             HeldPart = null;
             DropAnchor = null;
         }

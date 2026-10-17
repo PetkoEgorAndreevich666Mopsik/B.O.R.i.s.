@@ -20,6 +20,9 @@ namespace BORis
         public RobotRepair RobotPrefab => robotPrefab;
         public bool RequiresCleaning => requiresCleaning;
         public bool RequiresSolderingStation => requiresSolderingStation;
+        public string Requirements => requiresCleaning
+            ? "Очистить каждый участок не менее чем на 90%.\nСобрать робота и завершить тест руки."
+            : "Устранить неисправность, собрать робота и завершить тест руки.\nОчистка не входит в заказ.";
 
         public bool IsValid => !string.IsNullOrWhiteSpace(orderId)
             && !string.IsNullOrWhiteSpace(clientName) && !string.IsNullOrWhiteSpace(symptom)

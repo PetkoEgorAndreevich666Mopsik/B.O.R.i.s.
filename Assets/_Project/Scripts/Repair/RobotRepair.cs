@@ -18,10 +18,25 @@ namespace BORis
         public bool IsTesting => testRoutine != null;
         public RobotTestResult TestResult { get; private set; }
         public bool IsFunctional => InstalledDrive != null && !InstalledDrive.Faulty;
+        public DirtPatch[] DirtPatches { get; private set; }
 
         void Awake()
         {
             if (shoulder != null) restingShoulder = shoulder.localRotation;
+            DirtPatches = GetComponentsInChildren<DirtPatch>(true);
+        }
+
+        public bool CheckCleaning(out string reason)
+        {
+            reason = "";
+            if (DirtPatches.Length == 0) reason = "Не найдены поверхности для проверки очистки";
+            foreach (DirtPatch patch in DirtPatches)
+                if (patch == null || !patch.isActiveAndEnabled || !patch.IsClean)
+                {
+                    reason = patch != null ? $"Завершите очистку: {patch.DisplayName}" : "Поверхность для очистки недоступна";
+                    break;
+                }
+            return reason.Length == 0;
         }
 
         public RepairPart Cover => cover;

@@ -72,7 +72,7 @@ namespace BORis
             OrderDefinition order = displayedOrder;
             if (card != null) card.text = order == null ? "Нет доступных заказов"
                 : showingReceipt ? $"ЗАКАЗ {order.OrderId} ВЫДАН\n\nКлиент: {order.ClientName}\n\nПолучено: +{displayedReward} ед.\nБаланс мастерской: {session.Balance} ед.\n\nВыполнено заказов: {session.CompletedOrders}"
-                : $"ЗАКАЗ {order.OrderId}\n\nКлиент: {order.ClientName}\n\n«{order.Symptom}»\n\nНаграда за заказ: {displayedReward} ед.";
+                : $"ЗАКАЗ {order.OrderId}\n\nКлиент: {order.ClientName}\n\n«{order.Symptom}»\n\n{order.Requirements}\n\nНаграда за заказ: {displayedReward} ед.";
             if (status != null) status.text = message;
             if (acceptButton != null)
             {

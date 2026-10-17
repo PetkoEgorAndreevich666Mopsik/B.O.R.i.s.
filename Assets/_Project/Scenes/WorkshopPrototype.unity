@@ -312,8 +312,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: BORis.Runtime::BORis.WorkshopSession
   workbench: {fileID: 4429241491536147543}
   orders:
-  - {fileID: 11400000, guid: 26c167646ddf2f7499eba5827bae3920, type: 2}
   - {fileID: 11400000, guid: 326f25931deb67a47b8f20875a637768, type: 2}
+  - {fileID: 11400000, guid: 26c167646ddf2f7499eba5827bae3920, type: 2}
 --- !u!4 &129766048
 Transform:
   m_ObjectHideFlags: 0
@@ -676,8 +676,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: -126}
-  m_SizeDelta: {x: -64, y: -416}
+  m_AnchoredPosition: {x: 0, y: -196}
+  m_SizeDelta: {x: -64, y: -536}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &723723960
 CanvasRenderer:
@@ -1993,7 +1993,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 680, y: 480}
+  m_SizeDelta: {x: 680, y: 600}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1823811484
 MonoBehaviour:
@@ -2596,7 +2596,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 61}
-  m_SizeDelta: {x: -64, y: -174}
+  m_SizeDelta: {x: -64, y: -186}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &2005239560
 CanvasRenderer:
@@ -3533,6 +3533,14 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 1522205658224187739, guid: 8035b147d8bde1d46a38c8de22f569d2, type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 210
+      objectReference: {fileID: 0}
+    - target: {fileID: 1522205658224187739, guid: 8035b147d8bde1d46a38c8de22f569d2, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: -142
+      objectReference: {fileID: 0}
     - target: {fileID: 2686621169707083155, guid: 8035b147d8bde1d46a38c8de22f569d2, type: 3}
       propertyPath: m_Name
       value: Player
@@ -3549,6 +3557,14 @@ PrefabInstance:
       propertyPath: workshopProgress
       value: 
       objectReference: {fileID: 1977752471}
+    - target: {fileID: 8003083195153813325, guid: 8035b147d8bde1d46a38c8de22f569d2, type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 110
+      objectReference: {fileID: 0}
+    - target: {fileID: 8818065855776319482, guid: 8035b147d8bde1d46a38c8de22f569d2, type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 370
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects:

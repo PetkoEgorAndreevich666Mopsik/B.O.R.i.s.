@@ -39,19 +39,24 @@ public sealed class OrderCompletionTests
     static void SetField(object target, string field, object value) => target.GetType()
         .GetField(field, BindingFlags.Instance | BindingFlags.NonPublic).SetValue(target, value);
 
-    void Repair()
+    void Repair(bool cleanRequired = true)
     {
         RobotRepair robot = session.ActiveRobot;
         foreach (var screw in robot.Cover.Screws) robot.Turn(screw, -10000f);
         Assert.That(robot.TryPlace(robot.Cover, false, out _), Is.True);
-        Assert.That(robot.ToggleConnection(robot.Connector, out _), Is.True);
-        RepairPart oldDrive = robot.InstalledDrive;
-        foreach (var screw in oldDrive.Screws) robot.Turn(screw, -10000f);
-        Assert.That(robot.TryPlace(oldDrive, false, out _), Is.True);
-        RepairPart replacement = robot.GetComponentsInChildren<RepairPart>().Single(p => p.Kind == RepairPartKind.Drive && !p.Faulty);
-        Assert.That(robot.TryPlace(replacement, true, out _), Is.True);
-        foreach (var screw in replacement.Screws) robot.Turn(screw, 10000f);
-        Assert.That(robot.ToggleConnection(robot.Connector, out _), Is.True);
+        if (!robot.IsFunctional)
+        {
+            Assert.That(robot.ToggleConnection(robot.Connector, out _), Is.True);
+            RepairPart oldDrive = robot.InstalledDrive;
+            foreach (var screw in oldDrive.Screws) robot.Turn(screw, -10000f);
+            Assert.That(robot.TryPlace(oldDrive, false, out _), Is.True);
+            RepairPart replacement = robot.GetComponentsInChildren<RepairPart>().Single(p => p.Kind == RepairPartKind.Drive && !p.Faulty);
+            Assert.That(robot.TryPlace(replacement, true, out _), Is.True);
+            foreach (var screw in replacement.Screws) robot.Turn(screw, 10000f);
+            Assert.That(robot.ToggleConnection(robot.Connector, out _), Is.True);
+        }
+        if (cleanRequired && session.ActiveOrder.RequiresCleaning)
+            foreach (DirtPatch patch in robot.DirtPatches) patch.CleanStroke(Vector2.zero, Vector2.one, 2f);
         Assert.That(robot.TryPlace(robot.Cover, true, out _), Is.True);
         foreach (var screw in robot.Cover.Screws) robot.Turn(screw, 10000f);
     }
@@ -206,7 +211,7 @@ public sealed class OrderCompletionTests
         Assert.That(session.TryAcceptOrder(out _), Is.True);
         int reward = session.ActiveOrderReward;
         SetField(temporaryOrder, "reward", reward + 1000);
-        Repair();
+        Repair(false);
         yield return TestRobot();
         Assert.That(session.TryDeliverOrder(session.ActiveOrderId, out string reason), Is.False);
         Assert.That(reason, Does.Contain("очистку"));
@@ -230,6 +235,110 @@ public sealed class OrderCompletionTests
         Assert.That(session.ActiveOrderId, Is.EqualTo(id));
         Assert.That(session.ActiveRobot, Is.SameAs(robot));
         Assert.That(session.CompletedOrders, Is.Zero);
+    }
+
+    [UnityTest]
+    public IEnumerator MaintenanceStartsWorkingButEverySurfaceMustBeCleanEvenAfterPassingTest()
+    {
+        Assert.That(session.OfferedOrder.OrderId, Is.EqualTo("A-001"));
+        Assert.That(session.TryAcceptOrder(out _), Is.True);
+        RobotRepair robot = session.ActiveRobot;
+        RepairPart originalDrive = robot.InstalledDrive;
+        Assert.That(session.ActiveOrder.RequiresCleaning, Is.True);
+        Assert.That(robot.IsFunctional, Is.True);
+        Assert.That(originalDrive.Faulty, Is.False);
+        Assert.That(robot.DirtPatches.Length, Is.EqualTo(3));
+        yield return TestRobot();
+        Assert.That(session.CanDeliverOrder(out string reason), Is.False);
+        Assert.That(reason, Does.Contain("очистку"));
+        Assert.That(robot.CanClean(robot.DirtPatches.First(p => p.RequiresOpenCover), out _), Is.False);
+        foreach (var screw in robot.Cover.Screws) robot.Turn(screw, -10000f);
+        Assert.That(robot.TryPlace(robot.Cover, false, out _), Is.True);
+        for (int i = 0; i < robot.DirtPatches.Length; i++)
+        {
+            DirtPatch patch = robot.DirtPatches[i];
+            Assert.That(robot.CanClean(patch, out _), Is.True);
+            patch.CleanStroke(Vector2.zero, Vector2.one, 2f);
+            Assert.That(patch.IsClean, Is.True);
+            Assert.That(robot.CheckCleaning(out _), Is.EqualTo(i == robot.DirtPatches.Length - 1));
+        }
+        Assert.That(robot.TryPlace(robot.Cover, true, out _), Is.True);
+        foreach (var screw in robot.Cover.Screws) robot.Turn(screw, 10000f);
+        Assert.That(session.CanDeliverOrder(out _), Is.False, "Cleaning and reassembly cannot restore the previous test.");
+        yield return TestRobot();
+        Assert.That(robot.InstalledDrive, Is.SameAs(originalDrive), "Maintenance must not require a replacement.");
+        Assert.That(session.TryDeliverOrder(session.ActiveOrderId, out _), Is.True);
+        Assert.That(session.Balance, Is.EqualTo(100));
+    }
+
+    [UnityTest]
+    public IEnumerator DriveOrderNeedsReplacementButNotCleaningAndNextMaintenanceHasFreshDirt()
+    {
+        Assert.That(session.TryAcceptOrder(out _), Is.True);
+        DirtPatch firstPatch = session.ActiveRobot.DirtPatches[0];
+        Texture2D previousMask = firstPatch.Mask;
+        Repair();
+        yield return TestRobot();
+        Assert.That(session.TryDeliverOrder(session.ActiveOrderId, out _), Is.True);
+        Assert.That(session.TryAcceptOrder(out _), Is.True);
+        Assert.That(session.ActiveOrder.OrderId, Is.EqualTo("B-001"));
+        Assert.That(session.ActiveOrder.RequiresCleaning, Is.False);
+        Assert.That(session.ActiveRobot.IsFunctional, Is.False);
+        Assert.That(session.ActiveRobot.InstalledDrive.Faulty, Is.True);
+        Assert.That(session.CanDeliverOrder(out _), Is.False);
+        Repair(false);
+        Assert.That(session.ActiveRobot.DirtPatches.All(p => !p.IsClean), Is.True);
+        yield return TestRobot();
+        Assert.That(session.TryDeliverOrder(session.ActiveOrderId, out _), Is.True);
+        Assert.That(session.Balance, Is.EqualTo(220));
+        Assert.That(session.TryAcceptOrder(out _), Is.True);
+        Assert.That(session.ActiveOrder.OrderId, Is.EqualTo("A-001"));
+        Assert.That(session.ActiveRobot.IsFunctional, Is.True);
+        Assert.That(session.ActiveRobot.DirtPatches.All(p => p.Cleanliness == 0f), Is.True);
+        Assert.That(session.ActiveRobot.DirtPatches[0].Mask, Is.Not.SameAs(previousMask));
+    }
+
+    [UnityTest]
+    public IEnumerator MaintenanceResetKeepsOrderAndRestoresHealthyDriveAndDirtySurfaces()
+    {
+        Assert.That(session.TryAcceptOrder(out _), Is.True);
+        string id = session.ActiveOrderId;
+        RobotRepair previous = session.ActiveRobot;
+        previous.DirtPatches[0].CleanStroke(Vector2.zero, Vector2.one, 2f);
+        workbench.ResetRobot();
+        yield return null;
+        Assert.That(session.ActiveOrderId, Is.EqualTo(id));
+        Assert.That(session.ActiveRobot, Is.Not.SameAs(previous));
+        Assert.That(session.ActiveRobot.IsFunctional, Is.True);
+        Assert.That(session.ActiveRobot.DirtPatches.All(p => p.Cleanliness == 0f), Is.True);
+        Assert.That(session.ActiveRobot.TestResult, Is.EqualTo(RobotTestResult.NotTested));
+        Assert.That(session.Balance, Is.Zero);
+    }
+
+    [UnityTest]
+    public IEnumerator MaintenanceHUDShowsCleaningAfterPassedTestAndProgressSurvivesVisits()
+    {
+        Assert.That(session.TryAcceptOrder(out _), Is.True);
+        yield return TestRobot();
+        var body = player.GetComponent<CharacterController>();
+        body.enabled = false;
+        player.transform.SetPositionAndRotation(new Vector3(0, 0, -.7f), Quaternion.identity);
+        body.enabled = true;
+        Physics.SyncTransforms();
+        yield return Press(Key.E);
+        Assert.That(interaction.IsAtWorkbench, Is.True);
+        var hud = Object.FindAnyObjectByType<RepairHUD>();
+        Text assembly = (Text)typeof(RepairHUD).GetField("assemblyState", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(hud);
+        Assert.That(assembly.text, Does.Contain("ОБЯЗАТЕЛЬНАЯ ОЧИСТКА").And.Contain("90%"));
+        Assert.That(assembly.text, Does.Not.Contain("выдайте робота"));
+        Assert.That(assembly.color, Is.EqualTo(Color.white));
+        DirtPatch outer = session.ActiveRobot.DirtPatches.Single(p => !p.RequiresOpenCover);
+        outer.CleanStroke(new Vector2(.2f, .5f), new Vector2(.8f, .5f), .035f);
+        float progress = outer.Cleanliness;
+        yield return Press(Key.Escape);
+        yield return Press(Key.E);
+        Assert.That(outer.Cleanliness, Is.EqualTo(progress));
+        Assert.That(assembly.text, Does.Contain(outer.DisplayName).And.Contain(progress.ToString("P0")));
     }
 
     [UnityTearDown]
