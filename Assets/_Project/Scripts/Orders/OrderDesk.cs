@@ -73,12 +73,15 @@ namespace BORis
             if (card != null) card.text = order == null ? "Нет доступных заказов"
                 : showingReceipt ? $"ЗАКАЗ {order.OrderId} ВЫДАН\n\nКлиент: {order.ClientName}\n\nПолучено: +{displayedReward} ед.\nБаланс мастерской: {session.Balance} ед.\n\nВыполнено заказов: {session.CompletedOrders}"
                 : $"ЗАКАЗ {order.OrderId}\n\nКлиент: {order.ClientName}\n\n«{order.Symptom}»\n\n{order.Requirements}\n\nНаграда за заказ: {displayedReward} ед.";
-            if (status != null) status.text = message;
+            if (status != null) status.text = message + (session.HasSolderingStation ? ""
+                : session.Balance >= WorkshopSession.SolderingStationPrice
+                    ? "\nХватает на паяльную станцию. Оборудование — справа от верстака"
+                    : $"\nПаяльная станция: осталось накопить {WorkshopSession.SolderingStationPrice - session.Balance} ед.");
             if (acceptButton != null)
             {
                 acceptButton.gameObject.SetActive(showingReceipt || session.ActiveOrder == null);
                 acceptButton.interactable = showingReceipt || session.ActiveOrder == null
-                    && order != null && order.IsValid && !order.RequiresSolderingStation;
+                    && order != null && order.IsValid && (!order.RequiresSolderingStation || session.CanOfferSolderingOrders);
                 var caption = acceptButton.GetComponentInChildren<UnityEngine.UI.Text>(true);
                 if (caption != null) caption.text = showingReceipt ? "Следующий заказ" : "Принять заказ";
             }

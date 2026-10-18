@@ -6,9 +6,26 @@ namespace BORis
     {
         [SerializeField] Workbench workbench;
         [SerializeField] OrderDefinition[] orders = System.Array.Empty<OrderDefinition>();
+        // shortcut: scene-authored readiness; enable only after the soldering tool and its orders are integrated.
+        [SerializeField] bool solderingRepairsReady;
         int nextOrder;
 
-        public OrderDefinition OfferedOrder => orders != null && orders.Length > 0 ? orders[nextOrder % orders.Length] : null;
+        public const int SolderingStationPrice = 180;
+        public bool HasSolderingStation { get; private set; }
+        public bool CanOfferSolderingOrders => HasSolderingStation && solderingRepairsReady;
+        public OrderDefinition OfferedOrder
+        {
+            get
+            {
+                if (orders == null) return null;
+                for (int i = 0; i < orders.Length; i++)
+                {
+                    OrderDefinition order = orders[(nextOrder + i) % orders.Length];
+                    if (order != null && (!order.RequiresSolderingStation || CanOfferSolderingOrders)) return order;
+                }
+                return null;
+            }
+        }
         public OrderDefinition ActiveOrder { get; private set; }
         public string ActiveOrderId { get; private set; }
         public int ActiveOrderReward { get; private set; }
@@ -28,13 +45,25 @@ namespace BORis
             if (ActiveOrder != null) reason = "Уже есть активный заказ. Робот ждёт на верстаке";
             else if (!isActiveAndEnabled || workbench == null || offeredOrder == null || !offeredOrder.IsValid)
                 reason = "Заказ недоступен: проверьте его данные и верстак";
-            else if (offeredOrder.RequiresSolderingStation) reason = "Для заказа нужна паяльная станция";
+            else if (offeredOrder.RequiresSolderingStation && !CanOfferSolderingOrders) reason = "Пайка пока недоступна";
             else if (workbench.LoadRobot(offeredOrder.RobotPrefab) == null)
                 reason = "Освободите верстак перед приёмом заказа";
             if (reason.Length > 0) return false;
             ActiveOrder = offeredOrder;
             ActiveOrderId = System.Guid.NewGuid().ToString("N");
             ActiveOrderReward = offeredOrder.Reward;
+            return true;
+        }
+
+        public bool TryBuySolderingStation(out string reason)
+        {
+            reason = "";
+            if (!isActiveAndEnabled) reason = "Мастерская недоступна";
+            else if (HasSolderingStation) reason = "Паяльная станция уже установлена";
+            else if (Balance < SolderingStationPrice) reason = $"Не хватает {SolderingStationPrice - Balance} ед. Выполняйте заказы на стойке";
+            if (reason.Length > 0) return false;
+            Balance -= SolderingStationPrice;
+            HasSolderingStation = true;
             return true;
         }
 
@@ -71,12 +100,13 @@ namespace BORis
                 reason = "Верстак занят: выдача отменена";
                 return false;
             }
+            int completedIndex = orders != null ? System.Array.IndexOf(orders, ActiveOrder) : -1;
             Balance += ActiveOrderReward;
             CompletedOrders++;
             ActiveOrder = null;
             ActiveOrderId = null;
             ActiveOrderReward = 0;
-            nextOrder = orders != null && orders.Length > 0 ? (nextOrder + 1) % orders.Length : 0;
+            nextOrder = orders != null && orders.Length > 0 ? (completedIndex + 1) % orders.Length : 0;
             return true;
         }
     }
