@@ -34,6 +34,8 @@ namespace BORis
         Vector3 grabOffset;
         string feedback;
         float feedbackUntil;
+        int shownBalance;
+        float balanceNoticeUntil;
         RepairPart inspectionTarget;
         float observationTime;
         const float ObservationDuration = .5f;
@@ -59,6 +61,9 @@ namespace BORis
         public RepairTool PointedTool { get; private set; }
         public Transform DropAnchor { get; private set; }
         public bool PointedTestButton { get; private set; }
+        public Transform PointedObject { get; private set; }
+        public bool IsViewMoving { get; private set; }
+        public Camera View => player.View;
         public string Feedback => Time.unscaledTime < feedbackUntil ? feedback : "";
         public float ObservationProgress => inspectionTarget != null
             ? Mathf.Clamp01(observationTime / ObservationDuration) : 0f;
@@ -97,7 +102,15 @@ namespace BORis
         void Update()
         {
             if (workshopProgress != null && session != null)
+            {
+                if (shownBalance != session.Balance)
+                {
+                    shownBalance = session.Balance;
+                    balanceNoticeUntil = Time.unscaledTime + 3f;
+                }
+                workshopProgress.gameObject.SetActive(IsAtOrderDesk || Time.unscaledTime < balanceNoticeUntil);
                 workshopProgress.text = $"Баланс: {session.Balance} ед.   |   Заказов выполнено: {session.CompletedOrders}";
+            }
             if (IsAtOrderDesk)
             {
                 if (!activeOrderDesk.IsOpen || cancel.WasPressedThisFrame()) CloseOrderDesk();
@@ -146,13 +159,14 @@ namespace BORis
                 if (IsAtWorkbench && repairHUD != null) repairHUD.Show(this);
                 else
                 {
-                    if (repairHUD != null) repairHUD.Hide();
-                    hint.text = IsAtOrderDesk ? "Выберите действие в карточке  |  ESC — закрыть"
+                    string message = IsAtOrderDesk ? ""
                         : Feedback.Length > 0 ? Feedback
                         : PointedOrderDesk != null ? "E — стойка приёма заказов"
-                        : PointedWorkbench != null ? PointedWorkbench.HasRobot ? "E — сесть за верстак" : "E — верстак пуст: сначала примите заказ на стойке"
-                        : session != null && session.ActiveOrder == null ? "Примите заказ на стойке слева  |  WASD — движение  |  Мышь — обзор"
-                        : "WASD — движение  |  Мышь — обзор";
+                        : PointedWorkbench != null ? PointedWorkbench.HasRobot ? "E — сесть за верстак" : "Верстак пуст · получите заказ на стойке"
+                        : session != null && session.ActiveOrder == null ? "Примите заказ на стойке слева"
+                        : "";
+                    if (repairHUD != null) repairHUD.ShowShop(message);
+                    else hint.text = message;
                 }
             }
             if (exitButton != null) exitButton.gameObject.SetActive(IsAtWorkbench);
@@ -161,6 +175,8 @@ namespace BORis
 
         void TickBench()
         {
+            IsViewMoving = false;
+            PointedObject = null;
             PointedTestButton = false;
             if (robot != null && robot.IsTesting) { ClearObservation(); return; }
             if (selectHand.WasPressedThisFrame())
@@ -207,6 +223,7 @@ namespace BORis
             hasHit &= hit.collider != null && hit.collider.GetComponentInParent<Workbench>() == activeWorkbench;
             if (hasHit)
             {
+                PointedObject = hit.transform;
                 PointedScrew = hit.collider.GetComponentInParent<ScrewFastener>();
                 PointedPart = hit.collider.GetComponentInParent<RepairPart>();
                 PointedConnector = hit.collider.GetComponentInParent<RepairConnector>();
@@ -224,6 +241,7 @@ namespace BORis
             bool orbiting = canMoveView && IsInspecting && orbit.IsPressed();
             bool viewMoving = activeWorkbench.UpdateView(orbiting ? orbitDelta.ReadValue<Vector2>() : Vector2.zero,
                 canMoveView ? scroll.ReadValue<Vector2>().y : 0f);
+            IsViewMoving = viewMoving || orbiting;
             if (selectedTool != null) selectedTool.FollowPointer(pointer);
             ObserveDrive(hasHit && !viewMoving && !orbiting && !primary.IsPressed() ? PointedPart : null);
             if (viewMoving || orbiting || overUI || !hasHit) return;
@@ -300,6 +318,12 @@ namespace BORis
             }
         }
 
+        public void SelectToolShortcut(int slot)
+        {
+            if (!IsAtWorkbench || robot == null || robot.IsTesting || slot < 0 || slot > 2) return;
+            SelectTool(slot == 1 ? screwdriver : slot == 2 ? brush : null);
+        }
+
         Transform FindDropAnchor(Ray ray)
         {
             // The lid and drive sockets overlap; query only the held part's compatible destinations.
@@ -371,6 +395,8 @@ namespace BORis
 
         public void ExitWorkbench()
         {
+            PointedObject = null;
+            IsViewMoving = false;
             ClearObservation();
             SelectTool(null);
             if (robot != null) robot.CancelTest();

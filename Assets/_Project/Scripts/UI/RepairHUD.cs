@@ -9,12 +9,29 @@ namespace BORis
         [SerializeField] UnityEngine.UI.Text symptom;
         [SerializeField] UnityEngine.UI.Text controls;
         [SerializeField] GameObject questPanel;
+        [SerializeField] ContextHintView context;
+        [SerializeField] GameObject toolsPanel;
+        [SerializeField] UnityEngine.UI.Image[] toolSlots;
+        [SerializeField] UnityEngine.UI.Text cameraHints;
+        [SerializeField] UnityEngine.UI.Button collapseButton;
+        [SerializeField] UnityEngine.UI.Text collapseLabel;
+        [SerializeField] GameObject helpPanel;
         RectTransform questRect;
+        CanvasGroup toolsGroup;
         Vector2 questSize, symptomSize, assemblySize, assemblyPosition;
+        bool compactNow, showHelp, driverLearned, brushLearned;
+        bool? collapsedOverride;
+        string previousFeedback;
+        Transform feedbackTarget;
+        RobotRepair previousRobot;
+        bool faultWasFound;
+        float findingUntil;
         const string Accent = "#A6E3CD";
 
         void Awake()
         {
+            if (collapseButton != null) collapseButton.onClick.AddListener(ToggleDetails);
+            if (toolsPanel != null) toolsGroup = toolsPanel.GetComponent<CanvasGroup>();
             questRect = questPanel != null ? questPanel.GetComponent<RectTransform>() : null;
             if (questRect != null) questSize = questRect.sizeDelta;
             if (symptom != null) symptomSize = symptom.rectTransform.sizeDelta;
@@ -38,18 +55,37 @@ namespace BORis
         {
             if (questPanel != null) questPanel.SetActive(true);
             if (controls != null) controls.gameObject.SetActive(true);
-            SetCompact(interaction.IsInspecting);
+            bool compact = collapsedOverride ?? interaction.IsInspecting;
+            compactNow = compact;
+            SetCompact(compact);
+            if (toolsPanel != null) toolsPanel.SetActive(true);
+            if (UnityEngine.InputSystem.Keyboard.current?.f1Key.wasPressedThisFrame == true) showHelp = !showHelp;
+            if (helpPanel != null) helpPanel.SetActive(showHelp);
+            if (collapseLabel != null) collapseLabel.text = compact ? "+" : "−";
             RobotRepair robot = interaction.Robot;
+            if (previousRobot != robot)
+            {
+                previousRobot = robot;
+                faultWasFound = robot != null && robot.DriveFaultFound;
+                findingUntil = 0f;
+            }
+            else if (robot != null && robot.DriveFaultFound && !faultWasFound)
+            {
+                faultWasFound = true;
+                findingUntil = Time.unscaledTime + 1.4f;
+            }
             OrderDefinition order = interaction.ActiveOrder;
             bool cleaning = order != null && order.RequiresCleaning;
             bool clean = !cleaning || robot != null && robot.CheckCleaning(out _);
             bool ready = robot != null && robot.TestResult == RobotTestResult.Passed && clean;
+            if (toolsGroup != null) toolsGroup.alpha = robot != null && robot.IsTesting ? .4f : 1f;
 
             if (symptom != null)
             {
                 string heading = order != null ? $"ЗАКАЗ {order.OrderId} · {order.ClientName}" : "РЕМОНТ РОБОТА";
                 symptom.text = interaction.IsInspecting
                     ? $"<size=13>ОСМОТР</size>\n<b>{interaction.InspectionName}</b>"
+                    : compact ? $"<size=13>{heading}</size>\n<b>{(cleaning ? "Обслуживание" : "Ремонт руки")}</b>"
                     : $"<size=13>{heading}</size>\n«{(order != null ? order.Symptom : "Осмотрите и проверьте робота")}»";
             }
 
@@ -63,11 +99,11 @@ namespace BORis
                     int completed = 0;
                     foreach (DirtPatch patch in robot.DirtPatches) if (patch != null && patch.IsClean) completed++;
                     progress = $"\n<color={Accent}>Очистка ≥90%: {completed} / {robot.DirtPatches.Length} участков</color>";
-                    if (!interaction.IsInspecting)
+                    if (!compact)
                         foreach (DirtPatch patch in robot.DirtPatches)
                             if (patch != null) progress += $"\n{patch.DisplayName}: {(patch.IsClean ? "готово" : patch.Cleanliness.ToString("P0"))}";
                 }
-                assemblyState.text = interaction.IsInspecting
+                assemblyState.text = compact
                     ? (robot != null && robot.DriveFaultFound ? $"<color={Accent}><b>НАЙДЕНО</b> · привод повреждён</color>\n" : "")
                         + $"<b>СЕЙЧАС</b>\n{goal}{progress}"
                     : $"{finding}{progress}\n\n<b>{(ready ? "ГОТОВ К ВЫДАЧЕ" : "СЕЙЧАС")}</b>\n{goal}";
@@ -76,18 +112,64 @@ namespace BORis
 
             if (hint != null)
             {
-                string context = ContextHint(interaction);
-                hint.text = interaction.Feedback.Length > 0
-                    ? $"<color=#FFD599>{interaction.Feedback}</color>\n{context}" : context;
+                string contextText = ContextHint(interaction);
+                if (interaction.Screwdriver != null && interaction.Screwdriver.IsTurning) driverLearned = true;
+                if (interaction.Brush != null && interaction.Brush.IsActive) brushLearned = true;
+                Transform target = ContextTarget(interaction);
+                if (previousFeedback != interaction.Feedback)
+                {
+                    previousFeedback = interaction.Feedback;
+                    feedbackTarget = target;
+                }
+                bool feedback = interaction.Feedback.Length > 0 && feedbackTarget == target;
+                if (feedback) contextText = $"<color=#FFD599>{interaction.Feedback}</color>";
+                else if (Time.unscaledTime < findingUntil)
+                    contextText = $"<color={Accent}><b>НАЙДЕНО</b> · повреждён привод</color>";
+                bool working = robot != null && robot.IsTesting || interaction.HeldPart != null
+                    || interaction.Screwdriver != null && interaction.Screwdriver.IsTurning
+                    || interaction.Brush != null && interaction.Brush.IsActive;
+                if (context != null)
+                {
+                    if (interaction.IsViewMoving || showHelp) context.Hide();
+                    else context.Present(contextText, interaction.View, working ? null : target,
+                        interaction.ObservationProgress > 0f ? interaction.ObservationProgress : -1f,
+                        working || feedback);
+                }
+                else hint.text = contextText;
             }
             if (controls != null)
             {
                 string hand = ToolLabel("1  Рука", !interaction.BrushSelected && !interaction.ScrewdriverSelected);
                 string driver = ToolLabel("2  Отвёртка", interaction.ScrewdriverSelected);
                 string brush = ToolLabel("3  Щётка", interaction.BrushSelected);
-                controls.text = $"{hand}     {driver}     {brush}     ·     " + (interaction.IsInspecting
-                    ? "F  Общий вид   ·   ПКМ  Обзор   ·   Колесо  Масштаб" : "F  Осмотр") + "     ·     ESC  Вернуться";
+                int selected = interaction.ScrewdriverSelected ? 1 : interaction.BrushSelected ? 2 : 0;
+                controls.text = selected == 0 ? hand : selected == 1 ? driver : brush;
+                if (toolSlots != null)
+                    for (int i = 0; i < toolSlots.Length; i++)
+                        if (toolSlots[i] != null)
+                        {
+                            var button = toolSlots[i].GetComponent<UnityEngine.UI.Button>();
+                            if (button != null) button.interactable = robot == null || !robot.IsTesting;
+                            toolSlots[i].color = i == selected ? new Color(.24f, .49f, .44f, .96f)
+                                : new Color(.055f, .105f, .13f, .94f);
+                        }
             }
+            if (cameraHints != null)
+            {
+                cameraHints.gameObject.SetActive(true);
+                cameraHints.text = interaction.IsInspecting ? "F  Общий вид · ПКМ  Ракурс\nКолесо  Масштаб · F1  Справка" : "F  Осмотр · F1  Справка";
+            }
+        }
+
+        void ToggleDetails() => collapsedOverride = !compactNow;
+
+        static Transform ContextTarget(InteractionController interaction)
+        {
+            if (interaction.PointedScrew != null) return interaction.PointedScrew.transform;
+            if (interaction.PointedDirt != null) return interaction.PointedDirt.transform;
+            if (interaction.PointedConnector != null) return interaction.PointedConnector.transform;
+            if (interaction.PointedPart != null) return interaction.PointedPart.transform;
+            return interaction.PointedObject;
         }
 
         static string ToolLabel(string label, bool selected) => selected
@@ -123,13 +205,13 @@ namespace BORis
             return robot.AssemblyHint;
         }
 
-        static string ContextHint(InteractionController interaction)
+        string ContextHint(InteractionController interaction)
         {
             RobotRepair robot = interaction.Robot;
             if (robot != null && robot.IsTesting) return "<b>ПРОВЕРКА РУКИ</b> · дождитесь результата";
             if (interaction.HeldPart != null)
                 return $"<b>{robot.PartLabel(interaction.HeldPart)}</b>\nОтпустите ЛКМ — " + (interaction.DropAnchor == null
-                    ? "вернуть на исходное место" : "установить в выделенное место");
+                    ? "вернуть назад" : "установить");
             var driver = interaction.Screwdriver;
             var brush = interaction.Brush;
             ScrewFastener screw = driver != null && driver.IsTurning ? driver.Target : interaction.PointedScrew;
@@ -140,13 +222,16 @@ namespace BORis
                 string name = owner != null && owner.Kind == RepairPartKind.Cover ? "ВИНТ КРЫШКИ" : "ВИНТ ПРИВОДА";
                 string state = screw.IsLoose ? "освобождён" : screw.IsTight ? "затянут" : "в резьбе";
                 string action = interaction.ScrewdriverSelected
-                    ? "ЛКМ + круговой жест или колесо: ↓ выкрутить, ↑ затянуть"
-                    : "2 — отвёртка · затем удерживайте ЛКМ на винте";
+                    ? driver != null && driver.IsTurning ? "↓ Выкрутить · ↑ Затянуть"
+                    : driverLearned && !showHelp ? "ЛКМ — удерживать и вращать" : "ЛКМ + круговой жест или колесо"
+                    : "2 — отвёртка · ЛКМ — удерживать";
                 return $"<b>{name}</b> · {state}\n{action}";
             }
             if (patch != null && (interaction.BrushSelected || interaction.PointedPart == null))
                 return $"<b>{patch.DisplayName}</b> · {(patch.IsClean ? "чисто" : patch.Cleanliness.ToString("P0"))}\n" +
-                    (interaction.BrushSelected ? "Удерживайте ЛКМ и ведите щёткой по поверхности" : "3 — щётка: провести по грязи");
+                    (interaction.BrushSelected ? brush != null && brush.IsActive ? "Ведите щёткой по загрязнению"
+                    : brushLearned && !showHelp ? "ЛКМ — удерживать и чистить" : "ЛКМ + движение — очистить"
+                    : "3 — щётка: провести по грязи");
             if (interaction.PointedTestButton)
             {
                 string reason = "Примите заказ";
@@ -165,13 +250,21 @@ namespace BORis
                 if (interaction.ObservationProgress > 0f)
                     return $"<b>ОСМОТР ПРИВОДА</b> · {interaction.ObservationProgress:P0}\nЗадержите указатель на детали";
                 if (interaction.BrushSelected || interaction.ScrewdriverSelected)
-                    return $"<b>{robot.PartLabel(part)}</b>\n1 — рука для переноса · F — приблизить";
+                    return $"<b>{robot.PartLabel(part)}</b>\n1 — рука · "
+                        + (interaction.IsInspecting ? "F — общий вид" : "F — приблизить");
                 if (robot != null && !robot.CanMove(part, out string reason))
                     return $"<b>{robot.PartLabel(part)}</b>\n{reason}";
                 return $"<b>{robot.PartLabel(part)}</b>\nУдерживайте ЛКМ — перенести деталь";
             }
-            return interaction.IsInspecting ? "Наведите указатель на деталь · ПКМ — повернуть ракурс"
-                : "Наведите указатель на предмет · F — приблизить робота или снятую деталь";
+            return interaction.PointedObject != null
+                && interaction.PointedObject.GetComponentInParent<RobotRepair>() == robot ? "F — осмотреть робота" : "";
+        }
+
+        public void ShowShop(string message)
+        {
+            Hide();
+            if (context != null) context.Present(message);
+            else if (hint != null) hint.text = message;
         }
 
         public void Hide()
@@ -179,10 +272,23 @@ namespace BORis
             SetCompact(false);
             if (questPanel != null) questPanel.SetActive(false);
             if (controls != null) controls.gameObject.SetActive(false);
+            if (toolsPanel != null) toolsPanel.SetActive(false);
+            if (cameraHints != null) cameraHints.gameObject.SetActive(false);
+            if (helpPanel != null) helpPanel.SetActive(false);
+            showHelp = false;
             if (assemblyState != null) assemblyState.text = "";
             if (symptom != null) symptom.text = "";
         }
 
-        void OnDisable() => Hide();
+        void OnDisable()
+        {
+            Hide();
+            if (context != null) context.Hide();
+        }
+
+        void OnDestroy()
+        {
+            if (collapseButton != null) collapseButton.onClick.RemoveListener(ToggleDetails);
+        }
     }
 }
