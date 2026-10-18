@@ -19,6 +19,22 @@ namespace BORis
         public RobotTestResult TestResult { get; private set; }
         public bool IsFunctional => InstalledDrive != null && !InstalledDrive.Faulty;
         public DirtPatch[] DirtPatches { get; private set; }
+        public RepairPart InspectedDrive { get; private set; }
+        public bool HasInspectedDrive => InspectedDrive != null;
+        public bool DriveFaultFound { get; private set; }
+
+        public string PartLabel(RepairPart part) => part != null
+            ? part.Kind == RepairPartKind.Drive && part.Faulty && !DriveFaultFound ? "Привод руки" : part.DisplayName
+            : "";
+
+        public bool InspectDrive(RepairPart part)
+        {
+            if (!Owns(part) || IsTesting || cover == null || cover.IsInstalled
+                || part.Kind != RepairPartKind.Drive || !part.IsInstalled) return false;
+            InspectedDrive = part;
+            DriveFaultFound |= part.Faulty;
+            return true;
+        }
 
         void Awake()
         {
@@ -219,14 +235,17 @@ namespace BORis
             {
                 if (IsTesting) return "Проверка руки… дождитесь результата";
                 if (TestResult == RobotTestResult.Passed) return "РЕМОНТ ЗАВЕРШЁН: рука исправна. Можно начать новый ремонт";
-                if (TestResult == RobotTestResult.Faulty) return "Тест не пройден: рука дёргается. Замените неисправный привод";
+                if (TestResult == RobotTestResult.Faulty && !DriveFaultFound)
+                    return "Тест не пройден. Снимите крышку и осмотрите привод";
                 RepairPart drive = InstalledDrive;
                 if (cover.IsInstalled)
                     return cover.IsReleased ? "Возьмите свободную крышку и перенесите её в левый лоток"
                         : drive != null && !drive.Faulty
                         ? FullyTightened(cover) ? "Сборка завершена: нажмите кнопку «ТЕСТ РУКИ»" : "Затяните четыре винта крышки"
-                        : "Замените неисправный привод: освободите четыре винта и снимите крышку";
+                        : "Освободите винты сервисной крышки, чтобы осмотреть узел";
                 if (drive == null) return "Перенесите исправный привод из зелёного лотка в робота";
+                if (drive.Faulty && !DriveFaultFound)
+                    return "Задержите указатель на открытом приводе для осмотра";
                 if (drive.Faulty) return connector.IsConnected ? "Рукой отсоедините разъём справа от привода"
                     : "Освободите оба винта привода и перенесите его в красный лоток";
                 if (!FullyTightened(drive)) return "Затяните оба винта исправного привода";

@@ -285,9 +285,18 @@ public sealed class OrderCompletionTests
         Assert.That(session.ActiveOrder.RequiresCleaning, Is.False);
         Assert.That(session.ActiveRobot.IsFunctional, Is.False);
         Assert.That(session.ActiveRobot.InstalledDrive.Faulty, Is.True);
+        Assert.That(session.ActiveRobot.DirtPatches, Is.Empty);
+        Assert.That(session.ActiveRobot.GetComponentsInChildren<DirtPatch>(true), Is.Empty,
+            "The drive order must contain no dirt surfaces, including hidden ones.");
+        var originalRobot = session.ActiveRobot;
+        workbench.ResetRobot();
+        yield return null;
+        Assert.That(session.ActiveRobot, Is.Not.SameAs(originalRobot));
+        Assert.That(session.ActiveRobot.GetComponentsInChildren<DirtPatch>(true), Is.Empty,
+            "Restarting B must keep the clean robot configuration.");
         Assert.That(session.CanDeliverOrder(out _), Is.False);
         Repair(false);
-        Assert.That(session.ActiveRobot.DirtPatches.All(p => !p.IsClean), Is.True);
+        Assert.That(session.ActiveRobot.DirtPatches, Is.Empty);
         yield return TestRobot();
         Assert.That(session.TryDeliverOrder(session.ActiveOrderId, out _), Is.True);
         Assert.That(session.Balance, Is.EqualTo(220));
@@ -329,9 +338,9 @@ public sealed class OrderCompletionTests
         Assert.That(interaction.IsAtWorkbench, Is.True);
         var hud = Object.FindAnyObjectByType<RepairHUD>();
         Text assembly = (Text)typeof(RepairHUD).GetField("assemblyState", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(hud);
-        Assert.That(assembly.text, Does.Contain("ОБЯЗАТЕЛЬНАЯ ОЧИСТКА").And.Contain("90%"));
+        Assert.That(assembly.text, Does.Contain("Очистка ≥90%").And.Contain("0 / 3"));
         Assert.That(assembly.text, Does.Not.Contain("выдайте робота"));
-        Assert.That(assembly.color, Is.EqualTo(Color.white));
+        Assert.That(assembly.text, Does.Contain("СЕЙЧАС"));
         DirtPatch outer = session.ActiveRobot.DirtPatches.Single(p => !p.RequiresOpenCover);
         outer.CleanStroke(new Vector2(.2f, .5f), new Vector2(.8f, .5f), .035f);
         float progress = outer.Cleanliness;

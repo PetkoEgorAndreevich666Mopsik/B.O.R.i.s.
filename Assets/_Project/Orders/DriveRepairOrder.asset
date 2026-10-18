@@ -19,6 +19,6 @@ MonoBehaviour:
     \u041F\u043E\u043C\u043E\u0433\u0438\u0442\u0435 \u0432\u0435\u0440\u043D\u0443\u0442\u044C
     \u0435\u0451 \u0432 \u0441\u0442\u0440\u043E\u0439."
   reward: 120
-  robotPrefab: {fileID: 8821392132348913897, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
+  robotPrefab: {fileID: 2214171903105751362, guid: c15bde2433c890b4fab822b3e3345f39, type: 3}
   requiresCleaning: 0
   requiresSolderingStation: 0

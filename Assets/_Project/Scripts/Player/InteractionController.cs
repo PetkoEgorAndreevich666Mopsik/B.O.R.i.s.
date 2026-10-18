@@ -34,6 +34,9 @@ namespace BORis
         Vector3 grabOffset;
         string feedback;
         float feedbackUntil;
+        RepairPart inspectionTarget;
+        float observationTime;
+        const float ObservationDuration = .5f;
         readonly List<RaycastResult> uiHits = new();
 
         public bool IsAtWorkbench => activeWorkbench != null && bench != null && bench.enabled;
@@ -53,9 +56,12 @@ namespace BORis
         public RepairPart HeldPart { get; private set; }
         public RepairPart PointedPart { get; private set; }
         public RepairConnector PointedConnector { get; private set; }
+        public RepairTool PointedTool { get; private set; }
         public Transform DropAnchor { get; private set; }
         public bool PointedTestButton { get; private set; }
         public string Feedback => Time.unscaledTime < feedbackUntil ? feedback : "";
+        public float ObservationProgress => inspectionTarget != null
+            ? Mathf.Clamp01(observationTime / ObservationDuration) : 0f;
 
         void Awake()
         {
@@ -156,7 +162,7 @@ namespace BORis
         void TickBench()
         {
             PointedTestButton = false;
-            if (robot != null && robot.IsTesting) return;
+            if (robot != null && robot.IsTesting) { ClearObservation(); return; }
             if (selectHand.WasPressedThisFrame())
                 SelectTool(null);
             if (selectScrewdriver.WasPressedThisFrame() && screwdriver != null)
@@ -169,9 +175,11 @@ namespace BORis
             PointedConnector = null;
             PointedDirt = null;
             bool overUI = PointerOverUI();
+            PointedTool = null;
             if (selectedTool != null && !selectedTool.IsActive) selectedTool.FollowPointer(pointer);
             if (HeldPart != null)
             {
+                ClearObservation();
                 if (overUI) { CancelPart(); Say("Перенос отменён"); }
                 else
                 {
@@ -184,6 +192,7 @@ namespace BORis
             }
             if (selectedTool != null && selectedTool.IsActive)
             {
+                ClearObservation();
                 if (!primary.IsPressed() || overUI) selectedTool.End();
                 else if (ScrewdriverSelected && scroll.ReadValue<Vector2>().y != 0f)
                     screwdriver.Scroll(scroll.ReadValue<Vector2>().y, pointer);
@@ -203,6 +212,7 @@ namespace BORis
                 PointedConnector = hit.collider.GetComponentInParent<RepairConnector>();
                 PointedDirt = hit.collider.GetComponent<DirtPatch>();
                 PointedTestButton = hit.collider == activeWorkbench.TestButton;
+                PointedTool = hit.collider.GetComponentInParent<RepairTool>();
             }
             bool canMoveView = !overUI && !primary.IsPressed();
             if (canMoveView && focus.WasPressedThisFrame())
@@ -215,6 +225,7 @@ namespace BORis
             bool viewMoving = activeWorkbench.UpdateView(orbiting ? orbitDelta.ReadValue<Vector2>() : Vector2.zero,
                 canMoveView ? scroll.ReadValue<Vector2>().y : 0f);
             if (selectedTool != null) selectedTool.FollowPointer(pointer);
+            ObserveDrive(hasHit && !viewMoving && !orbiting && !primary.IsPressed() ? PointedPart : null);
             if (viewMoving || orbiting || overUI || !hasHit) return;
             if (!primary.WasPressedThisFrame()) return;
             if (PointedTestButton)
@@ -256,6 +267,25 @@ namespace BORis
                     Say("");
                 }
             }
+        }
+
+        void ObserveDrive(RepairPart part)
+        {
+            if (robot == null || part == null || part.Kind != RepairPartKind.Drive
+                || !part.IsInstalled || robot.Cover.IsInstalled || robot.InspectedDrive == part)
+            {
+                ClearObservation();
+                return;
+            }
+            if (inspectionTarget != part) { inspectionTarget = part; observationTime = 0f; }
+            observationTime += Time.unscaledDeltaTime;
+            if (observationTime >= ObservationDuration) robot.InspectDrive(part);
+        }
+
+        void ClearObservation()
+        {
+            inspectionTarget = null;
+            observationTime = 0f;
         }
 
         void SelectTool(RepairTool tool)
@@ -321,6 +351,7 @@ namespace BORis
         {
             if (!focused)
             {
+                ClearObservation();
                 if (selectedTool != null) selectedTool.End();
                 CancelPart();
                 if (robot != null) robot.CancelTest();
@@ -340,6 +371,7 @@ namespace BORis
 
         public void ExitWorkbench()
         {
+            ClearObservation();
             SelectTool(null);
             if (robot != null) robot.CancelTest();
             screwdriver = null;
@@ -350,6 +382,7 @@ namespace BORis
             PointedDirt = null;
             PointedTestButton = false;
             robot = null;
+            PointedTool = null;
             Say("");
             if (activeWorkbench != null) activeWorkbench.Exit();
             activeWorkbench = null;
@@ -361,6 +394,7 @@ namespace BORis
         public void ResetRepair()
         {
             if (!IsAtWorkbench || activeWorkbench == null) return;
+            ClearObservation();
             SelectTool(null);
             RobotRepair replacement = activeWorkbench.ResetRobot();
             if (replacement == null) { Say("Повторение недоступно: отсутствует исходный робот"); return; }
@@ -371,6 +405,7 @@ namespace BORis
             PointedDirt = null;
             PointedTestButton = false;
             Say("Новый ремонт: робот и инструменты готовы");
+            PointedTool = null;
             if (ActiveOrder != null) Say("Текущий заказ начат заново");
         }
 

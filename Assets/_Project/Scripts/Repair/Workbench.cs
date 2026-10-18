@@ -25,7 +25,7 @@ namespace BORis
 
         public bool IsFocused { get; private set; }
         public RepairPart FocusedPart { get; private set; }
-        public string InspectionName => FocusedPart != null ? FocusedPart.DisplayName : "Робот";
+        public string InspectionName => FocusedPart != null && robot != null ? robot.PartLabel(FocusedPart) : "Робот";
 
         public bool IsOccupied => view != null;
         public Collider TestButton => testButton;
