@@ -22,13 +22,14 @@ namespace BORis
         InputActionMap shop;
         InputActionMap bench;
         InputAction move, look, interact, cancel;
-        InputAction point, primary, scroll, selectScrewdriver, selectHand, selectBrush;
+        InputAction point, primary, scroll, selectScrewdriver, selectHand, selectBrush, selectSoldering;
         InputAction focus, orbit, orbitDelta;
         Workbench activeWorkbench;
         OrderDesk activeOrderDesk;
         EquipmentShop activeEquipmentShop;
         ScrewdriverTool screwdriver;
         BrushTool brush;
+        SolderingTool soldering;
         RepairTool selectedTool;
         RobotRepair robot;
         Plane dragPlane;
@@ -36,6 +37,7 @@ namespace BORis
         string feedback;
         float feedbackUntil;
         RepairPart inspectionTarget;
+        SolderJoint jointInspectionTarget;
         float observationTime;
         const float ObservationDuration = .5f;
         readonly List<RaycastResult> uiHits = new();
@@ -46,6 +48,7 @@ namespace BORis
         public bool IsInspecting => IsAtWorkbench && activeWorkbench.IsFocused;
         public string InspectionName => IsInspecting ? activeWorkbench.InspectionName : "";
         public OrderDefinition ActiveOrder => session != null ? session.ActiveOrder : null;
+        public WorkshopSession Session => session;
         public OrderDesk PointedOrderDesk { get; private set; }
         public EquipmentShop PointedEquipmentShop { get; private set; }
         public Workbench PointedWorkbench { get; private set; }
@@ -53,6 +56,10 @@ namespace BORis
         public bool ScrewdriverSelected => screwdriver != null && selectedTool == screwdriver;
         public ScrewdriverTool Screwdriver => screwdriver;
         public BrushTool Brush => brush;
+        public SolderingTool Soldering => soldering;
+        public bool SolderingAvailable => soldering != null && soldering.IsAvailable;
+        public bool SolderingSelected => soldering != null && selectedTool == soldering;
+        public SolderJoint PointedJoint { get; private set; }
         public bool BrushSelected => brush != null && selectedTool == brush;
         public DirtPatch PointedDirt { get; private set; }
         public RobotRepair Robot => robot;
@@ -66,7 +73,7 @@ namespace BORis
         public bool IsViewMoving { get; private set; }
         public Camera View => player.View;
         public string Feedback => Time.unscaledTime < feedbackUntil ? feedback : "";
-        public float ObservationProgress => inspectionTarget != null
+        public float ObservationProgress => inspectionTarget != null || jointInspectionTarget != null
             ? Mathf.Clamp01(observationTime / ObservationDuration) : 0f;
 
         void Awake()
@@ -85,6 +92,7 @@ namespace BORis
             selectScrewdriver = bench.FindAction("Screwdriver", true);
             selectHand = bench.FindAction("Hand", true);
             selectBrush = bench.FindAction("Brush", true);
+            selectSoldering = bench.FindAction("Soldering");
             focus = bench.FindAction("Focus", true);
             orbit = bench.FindAction("Orbit", true);
             orbitDelta = bench.FindAction("OrbitDelta", true);
@@ -160,6 +168,7 @@ namespace BORis
                     activeWorkbench = PointedWorkbench;
                     screwdriver = activeWorkbench.GetComponentInChildren<ScrewdriverTool>();
                     brush = activeWorkbench.GetComponentInChildren<BrushTool>();
+                    soldering = activeWorkbench.GetComponentInChildren<SolderingTool>(true);
                     robot = activeWorkbench.Robot;
                     shop.Disable();
                     bench.Enable();
@@ -198,11 +207,14 @@ namespace BORis
                 SelectTool(screwdriver);
             if (selectBrush.WasPressedThisFrame() && brush != null)
                 SelectTool(brush);
+            if (selectSoldering != null && selectSoldering.WasPressedThisFrame())
+                SelectToolShortcut(3);
             Vector2 pointer = point.ReadValue<Vector2>();
             PointedScrew = null;
             PointedPart = null;
             PointedConnector = null;
             PointedDirt = null;
+            PointedJoint = null;
             bool overUI = PointerOverUI();
             PointedTool = null;
             if (selectedTool != null && !selectedTool.IsActive) selectedTool.FollowPointer(pointer);
@@ -241,6 +253,7 @@ namespace BORis
                 PointedPart = hit.collider.GetComponentInParent<RepairPart>();
                 PointedConnector = hit.collider.GetComponentInParent<RepairConnector>();
                 PointedDirt = hit.collider.GetComponent<DirtPatch>();
+                PointedJoint = hit.collider.GetComponent<SolderJoint>();
                 PointedTestButton = hit.collider == activeWorkbench.TestButton;
                 PointedTool = hit.collider.GetComponentInParent<RepairTool>();
             }
@@ -256,7 +269,8 @@ namespace BORis
                 canMoveView ? scroll.ReadValue<Vector2>().y : 0f);
             IsViewMoving = viewMoving || orbiting;
             if (selectedTool != null) selectedTool.FollowPointer(pointer);
-            ObserveDrive(hasHit && !viewMoving && !orbiting && !primary.IsPressed() ? PointedPart : null);
+            bool canObserve = hasHit && !viewMoving && !orbiting && !primary.IsPressed();
+            ObserveDrive(canObserve ? PointedPart : null, canObserve ? PointedJoint : null);
             if (viewMoving || orbiting || overUI || !hasHit) return;
             if (!primary.WasPressedThisFrame()) return;
             if (PointedTestButton)
@@ -269,6 +283,13 @@ namespace BORis
                 SelectTool(screwdriver);
             else if (hit.collider.GetComponentInParent<BrushTool>() == brush && brush != null)
                 SelectTool(brush);
+            else if (hit.collider.GetComponentInParent<SolderingTool>() == soldering && SolderingAvailable)
+                SelectTool(soldering);
+            else if (SolderingSelected && PointedJoint != null)
+            {
+                if (robot.CanSolder(PointedJoint, session, out string reason)) soldering.Begin(PointedJoint, player.View, pointer);
+                else Say(reason);
+            }
             else if (BrushSelected && PointedDirt != null)
             {
                 if (robot.CanClean(PointedDirt, out string reason)) brush.Begin(PointedDirt, player.View, pointer);
@@ -300,8 +321,15 @@ namespace BORis
             }
         }
 
-        void ObserveDrive(RepairPart part)
+        void ObserveDrive(RepairPart part, SolderJoint joint)
         {
+            if (robot != null && joint != null && !robot.JointFaultFound && !robot.Cover.IsInstalled && !joint.IsRepaired)
+            {
+                if (jointInspectionTarget != joint) { ClearObservation(); jointInspectionTarget = joint; }
+                observationTime += Time.unscaledDeltaTime;
+                if (observationTime >= ObservationDuration) robot.InspectJoint(joint);
+                return;
+            }
             if (robot == null || part == null || part.Kind != RepairPartKind.Drive
                 || !part.IsInstalled || robot.Cover.IsInstalled || robot.InspectedDrive == part)
             {
@@ -316,6 +344,7 @@ namespace BORis
         void ClearObservation()
         {
             inspectionTarget = null;
+            jointInspectionTarget = null;
             observationTime = 0f;
         }
 
@@ -333,8 +362,9 @@ namespace BORis
 
         public void SelectToolShortcut(int slot)
         {
-            if (!IsAtWorkbench || robot == null || robot.IsTesting || slot < 0 || slot > 2) return;
-            SelectTool(slot == 1 ? screwdriver : slot == 2 ? brush : null);
+            if (!IsAtWorkbench || robot == null || robot.IsTesting || slot < 0 || slot > 3) return;
+            if (slot == 3 && !SolderingAvailable) { Say("Сначала приобретите паяльную станцию"); return; }
+            SelectTool(slot == 1 ? screwdriver : slot == 2 ? brush : slot == 3 ? soldering : null);
         }
 
         Transform FindDropAnchor(Ray ray)
@@ -415,10 +445,12 @@ namespace BORis
             if (robot != null) robot.CancelTest();
             screwdriver = null;
             brush = null;
+            soldering = null;
             PointedScrew = null;
             PointedPart = null;
             PointedConnector = null;
             PointedDirt = null;
+            PointedJoint = null;
             PointedTestButton = false;
             robot = null;
             PointedTool = null;
@@ -442,6 +474,7 @@ namespace BORis
             PointedPart = null;
             PointedConnector = null;
             PointedDirt = null;
+            PointedJoint = null;
             PointedTestButton = false;
             Say("Новый ремонт: робот и инструменты готовы");
             PointedTool = null;

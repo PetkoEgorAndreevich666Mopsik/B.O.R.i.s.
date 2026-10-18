@@ -111,13 +111,13 @@ public sealed class WorkshopProgressTests
         yield return Press(Key.E);
         Assert.That(interaction.IsAtEquipmentShop, Is.True);
         var card = Object.FindObjectsByType<Text>(FindObjectsSortMode.None).Single(t => t.name == "EquipmentDescription");
-        Assert.That(card.text, Does.Contain("180").And.Contain("40").And.Contain("пока недоступны"));
+        Assert.That(card.text, Does.Contain("180").And.Contain("40").And.Contain("откроет паяльник"));
         yield return Click("BuyStationButton");
         Assert.That(session.HasSolderingStation, Is.True);
         Assert.That(session.Balance, Is.EqualTo(40));
         Assert.That(GameObject.Find("SolderingStationInstalled"), Is.Not.Null);
         Assert.That(GameObject.Find("SolderingStationPreview"), Is.Null);
-        Assert.That(session.CanOfferSolderingOrders, Is.False);
+        Assert.That(session.CanOfferSolderingOrders, Is.True);
         Assert.That(session.ActiveRobot, Is.SameAs(robot));
         Assert.That(session.ActiveOrderId, Is.EqualTo(orderId));
         Assert.That(screw.Tightness, Is.EqualTo(tightness));

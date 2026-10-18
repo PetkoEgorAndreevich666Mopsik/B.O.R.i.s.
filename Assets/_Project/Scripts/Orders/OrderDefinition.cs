@@ -22,6 +22,7 @@ namespace BORis
         public bool RequiresSolderingStation => requiresSolderingStation;
         public string Requirements => requiresCleaning
             ? "Очистить каждый участок не менее чем на 90%.\nСобрать робота и завершить тест руки."
+            : requiresSolderingStation ? "Восстановить контакт, собрать робота и завершить тест руки.\nОчистка не входит в заказ."
             : "Устранить неисправность, собрать робота и завершить тест руки.\nОчистка не входит в заказ.";
 
         public bool IsValid => !string.IsNullOrWhiteSpace(orderId)

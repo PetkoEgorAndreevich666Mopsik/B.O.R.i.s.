@@ -28,7 +28,8 @@ namespace BORis
 
         void Update()
         {
-            if (IsOpen) Refresh();
+            if (IsOpen || session != null && installedStation != null && installedStation.activeSelf != session.HasSolderingStation)
+                Refresh();
         }
 
         public bool Open(InteractionController interaction)
@@ -62,6 +63,7 @@ namespace BORis
                     + $"Баланс мастерской: {session.Balance} ед.\n"
                     + (owned ? "" : missing > 0 ? $"До покупки осталось: {missing} ед.\n" : $"После покупки останется: {session.Balance - WorkshopSession.SolderingStationPrice} ед.\n")
                     + (session.CanOfferSolderingOrders ? "\nДоступны заказы на восстановление контактов."
+                        : session.SolderingRepairsReady ? "\nПокупка откроет паяльник и заказ C:\nвосстановление контакта · награда 180 ед."
                         : "\nПайка и новые заказы пока недоступны.\nВ этой версии покупка устанавливает станцию.")
                     + "\n\nПрогресс действует до выхода из игры.";
             if (status != null) status.text = feedback.Length > 0 ? feedback : owned ? "Станция ваша. Можно вернуться к заказам"

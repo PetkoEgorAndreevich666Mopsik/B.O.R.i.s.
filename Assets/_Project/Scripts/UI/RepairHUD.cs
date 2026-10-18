@@ -66,10 +66,10 @@ namespace BORis
             if (previousRobot != robot)
             {
                 previousRobot = robot;
-                faultWasFound = robot != null && robot.DriveFaultFound;
+                faultWasFound = robot != null && (robot.DriveFaultFound || robot.JointFaultFound);
                 findingUntil = 0f;
             }
-            else if (robot != null && robot.DriveFaultFound && !faultWasFound)
+            else if (robot != null && (robot.DriveFaultFound || robot.JointFaultFound) && !faultWasFound)
             {
                 faultWasFound = true;
                 findingUntil = Time.unscaledTime + 1.4f;
@@ -103,8 +103,10 @@ namespace BORis
                         foreach (DirtPatch patch in robot.DirtPatches)
                             if (patch != null) progress += $"\n{patch.DisplayName}: {(patch.IsClean ? "готово" : patch.Cleanliness.ToString("P0"))}";
                 }
+                if (robot != null && robot.JointFaultFound && robot.SolderJoint != null)
+                    progress += $"\n<color={Accent}>Контакт: {(robot.SolderJoint.IsRepaired ? "восстановлен" : robot.SolderJoint.Progress.ToString("P0"))}</color>";
                 assemblyState.text = compact
-                    ? (robot != null && robot.DriveFaultFound ? $"<color={Accent}><b>НАЙДЕНО</b> · привод повреждён</color>\n" : "")
+                    ? (robot != null && (robot.DriveFaultFound || robot.JointFaultFound) ? FindingText(robot, cleaning) + "\n" : "")
                         + $"<b>СЕЙЧАС</b>\n{goal}{progress}"
                     : $"{finding}{progress}\n\n<b>{(ready ? "ГОТОВ К ВЫДАЧЕ" : "СЕЙЧАС")}</b>\n{goal}";
                 assemblyState.color = ready ? new Color(.65f, .89f, .8f) : new Color(.89f, .93f, .94f);
@@ -124,32 +126,35 @@ namespace BORis
                 bool feedback = interaction.Feedback.Length > 0 && feedbackTarget == target;
                 if (feedback) contextText = $"<color=#FFD599>{interaction.Feedback}</color>";
                 else if (Time.unscaledTime < findingUntil)
-                    contextText = $"<color={Accent}><b>НАЙДЕНО</b> · повреждён привод</color>";
+                    contextText = FindingText(robot, cleaning);
                 bool working = robot != null && robot.IsTesting || interaction.HeldPart != null
                     || interaction.Screwdriver != null && interaction.Screwdriver.IsTurning
-                    || interaction.Brush != null && interaction.Brush.IsActive;
+                    || interaction.Brush != null && interaction.Brush.IsActive
+                    || interaction.Soldering != null && interaction.Soldering.IsActive;
                 if (context != null)
                 {
                     if (interaction.IsViewMoving || showHelp) context.Hide();
                     else context.Present(contextText, interaction.View, working ? null : target,
-                        interaction.ObservationProgress > 0f ? interaction.ObservationProgress : -1f,
+                        interaction.SolderingSelected && interaction.Soldering.IsActive ? interaction.Soldering.Target.Progress
+                            : interaction.ObservationProgress > 0f ? interaction.ObservationProgress : -1f,
                         working || feedback);
                 }
                 else hint.text = contextText;
             }
             if (controls != null)
             {
-                string hand = ToolLabel("1  Рука", !interaction.BrushSelected && !interaction.ScrewdriverSelected);
+                string hand = ToolLabel("1  Рука", !interaction.BrushSelected && !interaction.ScrewdriverSelected && !interaction.SolderingSelected);
                 string driver = ToolLabel("2  Отвёртка", interaction.ScrewdriverSelected);
                 string brush = ToolLabel("3  Щётка", interaction.BrushSelected);
-                int selected = interaction.ScrewdriverSelected ? 1 : interaction.BrushSelected ? 2 : 0;
-                controls.text = selected == 0 ? hand : selected == 1 ? driver : brush;
+                int selected = interaction.ScrewdriverSelected ? 1 : interaction.BrushSelected ? 2 : interaction.SolderingSelected ? 3 : 0;
+                controls.text = selected == 0 ? hand : selected == 1 ? driver : selected == 2 ? brush : ToolLabel("4  Паяльник", true);
                 if (toolSlots != null)
                     for (int i = 0; i < toolSlots.Length; i++)
                         if (toolSlots[i] != null)
                         {
                             var button = toolSlots[i].GetComponent<UnityEngine.UI.Button>();
-                            if (button != null) button.interactable = robot == null || !robot.IsTesting;
+                            if (button != null) button.interactable = (robot == null || !robot.IsTesting) && (i != 3 || interaction.SolderingAvailable);
+                            toolSlots[i].gameObject.SetActive(i != 3 || interaction.SolderingAvailable);
                             toolSlots[i].color = i == selected ? new Color(.24f, .49f, .44f, .96f)
                                 : new Color(.055f, .105f, .13f, .94f);
                         }
@@ -166,6 +171,7 @@ namespace BORis
         static Transform ContextTarget(InteractionController interaction)
         {
             if (interaction.PointedScrew != null) return interaction.PointedScrew.transform;
+            if (interaction.PointedJoint != null) return interaction.PointedJoint.transform;
             if (interaction.PointedDirt != null) return interaction.PointedDirt.transform;
             if (interaction.PointedConnector != null) return interaction.PointedConnector.transform;
             if (interaction.PointedPart != null) return interaction.PointedPart.transform;
@@ -177,6 +183,9 @@ namespace BORis
 
         static string FindingText(RobotRepair robot, bool cleaning)
         {
+            if (robot != null && robot.JointFaultFound && robot.SolderJoint != null)
+                return robot.SolderJoint.IsRepaired ? $"<color={Accent}><b>КОНТАКТ ВОССТАНОВЛЕН</b></color>"
+                    : $"<color={Accent}><b>НАЙДЕНО</b> · разрыв дорожки контакта</color>";
             if (robot != null && robot.DriveFaultFound)
                 return $"<color={Accent}><b>НАЙДЕНО</b> · повреждён привод руки</color>";
             if (cleaning) return "Обслуживание · замена привода не требуется";
@@ -214,6 +223,20 @@ namespace BORis
                     ? "вернуть назад" : "установить");
             var driver = interaction.Screwdriver;
             var brush = interaction.Brush;
+            var soldering = interaction.Soldering;
+            SolderJoint joint = soldering != null && soldering.IsActive ? soldering.Target : interaction.PointedJoint;
+            if (joint != null)
+            {
+                if (interaction.ObservationProgress > 0f)
+                    return "<b>ОСМОТР КОНТАКТА</b>\nЗадержите указатель на дорожке";
+                string state = joint.IsRepaired ? "восстановлен" : joint.Progress.ToString("P0");
+                string action = joint.IsRepaired ? "Подключите разъём, соберите и проверьте робота"
+                    : !interaction.SolderingSelected ? "4 — паяльник · ЛКМ + движение по дорожке"
+                    : !robot.CanSolder(joint, interaction.Session, out string reason) ? reason
+                    : soldering.IsActive && !soldering.HasContact ? "Нет контакта · вернитесь жалом на дорожку"
+                    : "ЛКМ + движение по дорожке · пройденный участок станет серебристым";
+                return $"<b>КОНТАКТ</b> · {state}\n{action}";
+            }
             ScrewFastener screw = driver != null && driver.IsTurning ? driver.Target : interaction.PointedScrew;
             DirtPatch patch = brush != null && brush.IsActive ? brush.Target : interaction.PointedDirt;
             if (screw != null)
@@ -240,16 +263,17 @@ namespace BORis
             }
             if (interaction.PointedTool != null)
                 return interaction.PointedTool is ScrewdriverTool ? "<b>ОТВЁРТКА</b>\nЛКМ или 2 — взять инструмент"
+                    : interaction.PointedTool is SolderingTool ? "<b>ПАЯЛЬНИК</b>\nЛКМ или 4 — взять инструмент"
                     : "<b>ЩЁТКА</b>\nЛКМ или 3 — взять инструмент";
             if (interaction.PointedConnector != null)
                 return "<b>РАЗЪЁМ</b> · " + (interaction.PointedConnector.IsConnected ? "подключён" : "отключён") + "\n" +
-                    (!interaction.BrushSelected && !interaction.ScrewdriverSelected ? "ЛКМ — подключить / отключить" : "1 — рука: работать с разъёмом");
+                    (!interaction.BrushSelected && !interaction.ScrewdriverSelected && !interaction.SolderingSelected ? "ЛКМ — подключить / отключить" : "1 — рука: работать с разъёмом");
             RepairPart part = interaction.PointedPart;
             if (part != null)
             {
                 if (interaction.ObservationProgress > 0f)
                     return $"<b>ОСМОТР ПРИВОДА</b> · {interaction.ObservationProgress:P0}\nЗадержите указатель на детали";
-                if (interaction.BrushSelected || interaction.ScrewdriverSelected)
+                if (interaction.BrushSelected || interaction.ScrewdriverSelected || interaction.SolderingSelected)
                     return $"<b>{robot.PartLabel(part)}</b>\n1 — рука · "
                         + (interaction.IsInspecting ? "F — общий вид" : "F — приблизить");
                 if (robot != null && !robot.CanMove(part, out string reason))

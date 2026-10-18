@@ -11,13 +11,17 @@ namespace BORis
         [SerializeField] RepairPart[] drives = System.Array.Empty<RepairPart>();
         [SerializeField] RepairConnector connector;
         [SerializeField] Transform shoulder;
+        [SerializeField] SolderJoint solderJoint;
         [SerializeField, Min(.1f)] float testDuration = 1.8f;
         Coroutine testRoutine;
         Quaternion restingShoulder;
 
         public bool IsTesting => testRoutine != null;
         public RobotTestResult TestResult { get; private set; }
-        public bool IsFunctional => InstalledDrive != null && !InstalledDrive.Faulty;
+        public bool IsFunctional => InstalledDrive != null && !InstalledDrive.Faulty
+            && (solderJoint == null || solderJoint.IsRepaired);
+        public SolderJoint SolderJoint => solderJoint;
+        public bool JointFaultFound { get; private set; }
         public DirtPatch[] DirtPatches { get; private set; }
         public RepairPart InspectedDrive { get; private set; }
         public bool HasInspectedDrive => InspectedDrive != null;
@@ -33,6 +37,14 @@ namespace BORis
                 || part.Kind != RepairPartKind.Drive || !part.IsInstalled) return false;
             InspectedDrive = part;
             DriveFaultFound |= part.Faulty;
+            return true;
+        }
+
+        public bool InspectJoint(SolderJoint joint)
+        {
+            if (joint == null || joint != solderJoint || !joint.isActiveAndEnabled || !isActiveAndEnabled
+                || IsTesting || cover == null || cover.IsInstalled) return false;
+            JointFaultFound |= !joint.IsRepaired;
             return true;
         }
 
@@ -104,6 +116,29 @@ namespace BORis
             else if (patch.RequiresOpenCover && cover != null && cover.IsInstalled)
                 reason = "Сначала снимите крышку";
             return reason.Length == 0;
+        }
+
+        public bool CanSolder(SolderJoint joint, WorkshopSession session, out string reason)
+        {
+            reason = "";
+            if (!isActiveAndEnabled || joint == null || joint != solderJoint || !joint.isActiveAndEnabled
+                || joint.GetComponentInParent<RobotRepair>() != this) reason = "Контакт недоступен";
+            else if (session == null || !session.isActiveAndEnabled || !session.CanOfferSolderingOrders)
+                reason = "Сначала приобретите паяльную станцию";
+            else if (session.ActiveOrder == null || session.ActiveRobot != this) reason = "Этот робот не относится к текущему заказу";
+            else if (IsTesting) reason = "Дождитесь окончания теста руки";
+            else if (cover == null || cover.IsInstalled) reason = "Сначала снимите крышку";
+            else if (connector == null || connector.IsConnected) reason = "Перед пайкой отсоедините разъём";
+            else if (joint.IsRepaired) reason = "Контакт уже восстановлен";
+            return reason.Length == 0;
+        }
+
+        public int SolderStroke(SolderJoint joint, WorkshopSession session, float from, float to)
+        {
+            if (!CanSolder(joint, session, out _)) return 0;
+            int added = joint.ApplyStroke(from, to);
+            if (added > 0) { JointFaultFound = true; InvalidateTest(); }
+            return added;
         }
 
         bool Owns(RepairPart part) => part != null && part.isActiveAndEnabled && isActiveAndEnabled
@@ -235,12 +270,12 @@ namespace BORis
             {
                 if (IsTesting) return "Проверка руки… дождитесь результата";
                 if (TestResult == RobotTestResult.Passed) return "РЕМОНТ ЗАВЕРШЁН: рука исправна. Можно начать новый ремонт";
-                if (TestResult == RobotTestResult.Faulty && !DriveFaultFound)
-                    return "Тест не пройден. Снимите крышку и осмотрите привод";
+                if (TestResult == RobotTestResult.Faulty && !DriveFaultFound && !JointFaultFound)
+                    return "Тест не пройден. Снимите крышку и осмотрите узел";
                 RepairPart drive = InstalledDrive;
                 if (cover.IsInstalled)
                     return cover.IsReleased ? "Возьмите свободную крышку и перенесите её в левый лоток"
-                        : drive != null && !drive.Faulty
+                        : drive != null && !drive.Faulty && (solderJoint == null || solderJoint.IsRepaired)
                         ? FullyTightened(cover) ? "Сборка завершена: нажмите кнопку «ТЕСТ РУКИ»" : "Затяните четыре винта крышки"
                         : "Освободите винты сервисной крышки, чтобы осмотреть узел";
                 if (drive == null) return "Перенесите исправный привод из зелёного лотка в робота";
@@ -248,6 +283,10 @@ namespace BORis
                     return "Задержите указатель на открытом приводе для осмотра";
                 if (drive.Faulty) return connector.IsConnected ? "Рукой отсоедините разъём справа от привода"
                     : "Освободите оба винта привода и перенесите его в красный лоток";
+                if (solderJoint != null && !solderJoint.IsRepaired)
+                    return !JointFaultFound ? "Осмотрите открытый узел: привод и дорожку контакта под ним"
+                        : connector.IsConnected ? "1 — рука: отсоедините разъём перед пайкой"
+                        : "4 — паяльник: удерживайте ЛКМ и проведите по всей дорожке";
                 if (!FullyTightened(drive)) return "Затяните оба винта исправного привода";
                 return connector.IsConnected ? "Верните крышку из левого лотка на робота" : "Рукой подключите разъём";
             }

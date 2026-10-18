@@ -1085,6 +1085,15 @@
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
+                },
+                {
+                    "name": "Soldering",
+                    "type": "Button",
+                    "id": "697d81a4-ff10-459c-a182-aa7e23f6f4e9",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
                 }
             ],
             "bindings": [
@@ -1195,6 +1204,17 @@
                     "processors": "",
                     "groups": "Keyboard&Mouse",
                     "action": "OrbitDelta",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "21515ea9-2ac9-4d32-b624-237ef36637f3",
+                    "path": "<Keyboard>/4",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Soldering",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

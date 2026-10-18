@@ -12,6 +12,7 @@ namespace BORis
 
         public const int SolderingStationPrice = 180;
         public bool HasSolderingStation { get; private set; }
+        public bool SolderingRepairsReady => solderingRepairsReady;
         public bool CanOfferSolderingOrders => HasSolderingStation && solderingRepairsReady;
         public OrderDefinition OfferedOrder
         {
@@ -76,7 +77,7 @@ namespace BORis
                 reason = "Робот недоступен для выдачи";
             else if (workbench.IsOccupied) reason = "Сначала выйдите из режима верстака и вернитесь на стойку";
             else if (!robot.CanRunTest(out reason)) return false;
-            else if (!robot.IsFunctional) reason = "Неисправность не устранена: проверьте привод";
+            else if (!robot.IsFunctional) reason = "Неисправность не устранена: проверьте привод и контакты";
             else if (robot.TestResult != RobotTestResult.Passed) reason = "Соберите робота и завершите успешный тест руки";
             else if (ActiveOrder.RequiresCleaning && !robot.CheckCleaning(out reason)) return false;
             return reason.Length == 0;
