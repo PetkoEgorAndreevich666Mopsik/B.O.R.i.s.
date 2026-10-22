@@ -82,7 +82,7 @@ public sealed class RepairCompletionTests
     [UnityTest]
     public IEnumerator PhysicalButtonShowsFaultAndBlocksRepairDuringTest()
     {
-        Quaternion resting = robot.transform.Find("ShoulderPivot").localRotation;
+        Quaternion resting = robot.InspectionPivot.Find("ShoulderPivot").localRotation;
         yield return Pointer(player.View.WorldToScreenPoint(workbench.TestButton.transform.position), true);
         Assert.That(robot.IsTesting, Is.True, "Real click must reach the physical test button.");
         yield return Pointer(Vector2.zero, false);
@@ -93,11 +93,11 @@ public sealed class RepairCompletionTests
         Assert.That(robot.ToggleConnection(robot.Connector, out _), Is.False);
         Assert.That(robot.RunTest(out _), Is.False);
         yield return new WaitForSecondsRealtime(.25f);
-        Assert.That(Quaternion.Angle(resting, robot.transform.Find("ShoulderPivot").localRotation), Is.GreaterThan(.05f));
+        Assert.That(Quaternion.Angle(resting, robot.InspectionPivot.Find("ShoulderPivot").localRotation), Is.GreaterThan(.05f));
         yield return WaitForTest();
         Assert.That(robot.TestResult, Is.EqualTo(RobotTestResult.Faulty));
         Assert.That(robot.AssemblyHint, Does.Contain("не пройден"));
-        Assert.That(Quaternion.Angle(resting, robot.transform.Find("ShoulderPivot").localRotation), Is.LessThan(.01f));
+        Assert.That(Quaternion.Angle(resting, robot.InspectionPivot.Find("ShoulderPivot").localRotation), Is.LessThan(.01f));
     }
 
     [UnityTest]
@@ -132,7 +132,7 @@ public sealed class RepairCompletionTests
         Assert.That(robot.AssemblyHint, Does.Not.Contain("РЕМОНТ ЗАВЕРШЁН"));
         yield return WaitForTest();
         Assert.That(robot.TestResult, Is.EqualTo(RobotTestResult.Passed));
-        Assert.That(Quaternion.Angle(Quaternion.identity, robot.transform.Find("ShoulderPivot").localRotation), Is.EqualTo(65f).Within(.1f));
+        Assert.That(Quaternion.Angle(Quaternion.identity, robot.InspectionPivot.Find("ShoulderPivot").localRotation), Is.EqualTo(65f).Within(.1f));
         Assert.That(robot.Turn(robot.Cover.Screws[0], 20f), Is.Zero);
         Assert.That(robot.TestResult, Is.EqualTo(RobotTestResult.Passed), "An end-stop is not a repair change.");
         yield return Press(Key.Escape);

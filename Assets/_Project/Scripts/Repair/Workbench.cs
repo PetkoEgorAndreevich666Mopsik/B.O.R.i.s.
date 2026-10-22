@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace BORis
@@ -18,9 +19,15 @@ namespace BORis
         Quaternion robotRotation;
         Vector3 robotScale;
         Camera inspectionCamera;
-        Vector3 overviewPosition, inspectionPivot;
-        Quaternion overviewRotation;
+        Vector3 overviewPosition, inspectionPivot, framingCenter;
+        Quaternion overviewRotation, objectRotation, initialObjectRotation;
         float yaw, pitch, inspectionDistance, minimumDistance;
+        float initialDistance, maximumDistance;
+        Transform[] inspectionRoots;
+        Vector3[] sourcePositions;
+        Quaternion[] sourceRotations;
+        Collider[] inspectionColliders;
+        bool[] colliderStates;
         int cameraMask;
 
         public bool IsFocused { get; private set; }
@@ -106,51 +113,129 @@ namespace BORis
 
         public void Focus(RepairPart part)
         {
-            if (!IsOccupied || !HasRobot) return;
+            if (!IsOccupied || !HasRobot || robot.IsTesting || IsFocused) return;
+            if (part != null && (!part.isActiveAndEnabled || part.GetComponentInParent<RobotRepair>() != robot)) return;
+            foreach (RepairTool tool in GetComponentsInChildren<RepairTool>())
+                if (tool.IsActive) return;
             FocusedPart = part != null && !part.IsInstalled ? part : null;
-            Bounds bounds;
-            if (FocusedPart != null)
-            {
-                bounds = new Bounds(part.transform.position, Vector3.zero);
-                foreach (Renderer renderer in part.GetComponentsInChildren<Renderer>())
-                    if (renderer.enabled) bounds.Encapsulate(renderer.bounds);
-            }
+            var roots = new List<Transform>();
+            if (FocusedPart != null) roots.Add(FocusedPart.transform);
             else
             {
-                // The robot owns its trays too; frame the repair socket instead of their combined bounds.
-                Collider socket = robot.Cover.InstallationAnchor.GetComponent<Collider>();
-                bounds = socket.bounds;
+                if (robot.InspectionPivot == null) return;
+                roots.Add(robot.InspectionPivot);
+                foreach (RepairPart installed in robot.GetComponentsInChildren<RepairPart>())
+                    if (installed.IsInstalled) roots.Add(installed.transform);
             }
-            inspectionPivot = bounds.center;
-            minimumDistance = Mathf.Max(.35f, bounds.extents.magnitude + .12f);
+
+            inspectionRoots = roots.ToArray();
+            sourcePositions = new Vector3[roots.Count];
+            sourceRotations = new Quaternion[roots.Count];
+            var colliders = new List<Collider>();
+            Bounds bounds = new(roots[0].position, Vector3.zero);
+            for (int i = 0; i < roots.Count; i++)
+            {
+                sourcePositions[i] = roots[i].position;
+                sourceRotations[i] = roots[i].rotation;
+                foreach (Renderer renderer in roots[i].GetComponentsInChildren<Renderer>())
+                    if (renderer.enabled) bounds.Encapsulate(renderer.bounds);
+                colliders.AddRange(roots[i].GetComponentsInChildren<Collider>(true));
+            }
+            inspectionColliders = colliders.ToArray();
+            colliderStates = new bool[inspectionColliders.Length];
+            for (int i = 0; i < inspectionColliders.Length; i++)
+            {
+                colliderStates[i] = inspectionColliders[i].enabled;
+                inspectionColliders[i].enabled = false;
+            }
+
+            inspectionPivot = FocusedPart != null ? bounds.center : robot.InspectionPivot.position;
+            framingCenter = bounds.center;
             float halfFov = Mathf.Atan(Mathf.Tan(inspectionCamera.fieldOfView * Mathf.Deg2Rad * .5f)
                 * Mathf.Min(1f, inspectionCamera.aspect));
-            inspectionDistance = Mathf.Clamp(bounds.extents.magnitude / Mathf.Sin(halfFov) * 1.15f,
-                minimumDistance, 2.5f);
-            yaw = cameraAnchor.eulerAngles.y;
-            pitch = FocusedPart != null && Mathf.Abs(Vector3.Dot(part.transform.forward, Vector3.up)) > .6f ? 60f : 20f;
+            initialDistance = Mathf.Max(.35f, bounds.extents.magnitude / Mathf.Sin(halfFov) * 1.1f);
+            minimumDistance = Mathf.Max(bounds.extents.magnitude + inspectionCamera.nearClipPlane + .05f, initialDistance * .75f);
+            maximumDistance = initialDistance * 1.8f;
+            initialDistance = Mathf.Max(initialDistance, minimumDistance);
+            inspectionDistance = initialDistance;
+            yaw = pitch = 0f;
+            initialObjectRotation = FocusedPart != null
+                ? Quaternion.FromToRotation(part.transform.forward, -(overviewRotation * Vector3.forward))
+                : Quaternion.identity;
+            objectRotation = initialObjectRotation;
             IsFocused = true;
+            ApplyInspectionPose();
         }
 
         public void ReturnToOverview()
         {
+            if (inspectionRoots != null)
+                for (int i = 0; i < inspectionRoots.Length; i++)
+                    if (inspectionRoots[i] != null)
+                        inspectionRoots[i].SetPositionAndRotation(sourcePositions[i], sourceRotations[i]);
+            if (inspectionColliders != null)
+                for (int i = 0; i < inspectionColliders.Length; i++)
+                    if (inspectionColliders[i] != null) inspectionColliders[i].enabled = colliderStates[i];
+            inspectionRoots = null;
+            sourcePositions = null;
+            sourceRotations = null;
+            inspectionColliders = null;
+            colliderStates = null;
             IsFocused = false;
             FocusedPart = null;
+        }
+
+        public void AlignInspection()
+        {
+            if (!IsFocused) return;
+            yaw = pitch = 0f;
+            inspectionDistance = initialDistance;
+            objectRotation = initialObjectRotation;
+            ApplyInspectionPose();
+        }
+
+        void ApplyInspectionPose()
+        {
+            Vector3 translation = FocusedPart != null
+                ? overviewPosition + overviewRotation * new Vector3(.12f, .04f, inspectionDistance) - inspectionPivot
+                : Vector3.zero;
+            // Keep every part under RobotRepair: ownership and repair anchors depend on that hierarchy.
+            for (int i = 0; i < inspectionRoots.Length; i++)
+                if (inspectionRoots[i] != null)
+                    inspectionRoots[i].SetPositionAndRotation(inspectionPivot + translation
+                        + objectRotation * (sourcePositions[i] - inspectionPivot), objectRotation * sourceRotations[i]);
         }
 
         public bool UpdateView(Vector2 orbitDelta, float zoom)
         {
             if (view == null) return false;
+            if (IsFocused && (!HasRobot || inspectionRoots[0] == null || !inspectionRoots[0].gameObject.activeInHierarchy))
+                ReturnToOverview();
+            bool objectMoved = false;
             if (IsFocused)
             {
-                yaw = Mathf.Clamp(yaw + orbitDelta.x * .2f, cameraAnchor.eulerAngles.y - 85f, cameraAnchor.eulerAngles.y + 85f);
-                pitch = Mathf.Clamp(pitch - orbitDelta.y * .2f, 10f, 80f);
-                if (zoom != 0f) inspectionDistance = Mathf.Clamp(inspectionDistance * Mathf.Exp(-Mathf.Sign(zoom) * .15f), minimumDistance, 2.5f);
+                if (FocusedPart != null)
+                    objectRotation = Quaternion.AngleAxis(-orbitDelta.x * .25f, overviewRotation * Vector3.up)
+                        * Quaternion.AngleAxis(orbitDelta.y * .25f, overviewRotation * Vector3.right) * objectRotation;
+                else
+                {
+                    yaw = Mathf.Repeat(yaw - orbitDelta.x * .25f, 360f);
+                    pitch = Mathf.Clamp(pitch + orbitDelta.y * .25f, -12f, 12f);
+                    objectRotation = Quaternion.AngleAxis(pitch, overviewRotation * Vector3.right) * Quaternion.AngleAxis(yaw, Vector3.up);
+                }
+                if (zoom != 0f) inspectionDistance = Mathf.Clamp(inspectionDistance * Mathf.Exp(-Mathf.Sign(zoom) * .15f), minimumDistance, maximumDistance);
+                ApplyInspectionPose();
+                objectMoved = orbitDelta.sqrMagnitude > 0f || zoom != 0f;
             }
-            Quaternion rotation = IsFocused ? Quaternion.Euler(pitch, yaw, 0f) : overviewRotation;
-            Vector3 position = IsFocused ? inspectionPivot - rotation * Vector3.forward * inspectionDistance : overviewPosition;
+            Quaternion rotation = overviewRotation;
+            Vector3 position = IsFocused && FocusedPart == null
+                ? framingCenter - overviewRotation * Vector3.forward * inspectionDistance : overviewPosition;
             bool moving = Vector3.Distance(view.position, position) > .001f || Quaternion.Angle(view.rotation, rotation) > .1f;
-            if (!moving) return false;
+            if (!moving)
+            {
+                view.SetPositionAndRotation(position, rotation);
+                return objectMoved;
+            }
             float blend = 1f - Mathf.Exp(-16f * Time.unscaledDeltaTime);
             position = Vector3.Lerp(view.position, position, blend);
             Vector3 travel = position - view.position;
@@ -161,19 +246,19 @@ namespace BORis
             rotation = Quaternion.Slerp(view.rotation, rotation, blend);
             bool changed = Vector3.Distance(view.position, position) > .00001f || Quaternion.Angle(view.rotation, rotation) > .01f;
             view.SetPositionAndRotation(position, rotation);
-            return changed;
+            return changed || objectMoved;
         }
 
         public void Exit()
         {
             if (robot != null) robot.CancelTest();
+            ReturnToOverview();
             if (view == null) return;
             view.SetParent(previousParent, false);
             view.localPosition = previousPosition;
             view.localRotation = previousRotation;
             view = null;
             inspectionCamera = null;
-            ReturnToOverview();
         }
 
         void OnDisable() => Exit();

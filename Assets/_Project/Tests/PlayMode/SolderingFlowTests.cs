@@ -81,6 +81,31 @@ public sealed class SolderingFlowTests
         Assert.That(joint, Is.Not.Null);
     }
 
+    [UnityTest]
+    public IEnumerator InspectionRotatesBoardWithAssemblyAndReturnsBeforeSoldering()
+    {
+        yield return EnterC();
+        var workbench = Object.FindFirstObjectByType<Workbench>();
+        Vector3 position = joint.transform.position;
+        Quaternion rotation = joint.transform.rotation;
+        yield return Pointer(interaction.View.WorldToScreenPoint(robot.Cover.transform.position));
+        yield return Press(Key.F);
+        Assert.That(workbench.IsFocused, Is.True);
+        InputSystem.QueueStateEvent(mouse, new MouseState { position = new Vector2(Screen.width * .5f, Screen.height * .5f),
+            buttons = 2, delta = new Vector2(300, 80) });
+        yield return null; yield return null;
+        Assert.That(Quaternion.Angle(rotation, joint.transform.rotation), Is.GreaterThan(20f));
+        Assert.That(joint.Progress, Is.Zero);
+        yield return Pointer(new Vector2(Screen.width * .5f, Screen.height * .5f));
+        yield return Press(Key.Escape);
+        Assert.That(interaction.IsAtWorkbench, Is.True);
+        Assert.That(interaction.IsInspecting, Is.False);
+        Assert.That(Vector3.Distance(joint.transform.position, position), Is.LessThan(.0001f));
+        Assert.That(Quaternion.Angle(joint.transform.rotation, rotation), Is.LessThan(.01f));
+        PrepareSeam();
+        Assert.That(robot.CanSolder(joint, session, out string reason), Is.True, reason);
+    }
+
     void OpenCover()
     {
         foreach (var screw in robot.Cover.Screws) robot.Turn(screw, -10000f);

@@ -14,16 +14,18 @@ namespace BORis
         [SerializeField] Text hint;
         [SerializeField] Button exitButton;
         [SerializeField] Button restartButton;
+        [SerializeField] Button alignInspectionButton;
         [SerializeField] RepairHUD repairHUD;
         [SerializeField] WorkshopSession session;
         [SerializeField] Text workshopProgress;
+        [SerializeField] Text saveStatus;
         PlayerController player;
         InputActionAsset actions;
         InputActionMap shop;
         InputActionMap bench;
         InputAction move, look, interact, cancel;
         InputAction point, primary, scroll, selectScrewdriver, selectHand, selectBrush, selectSoldering;
-        InputAction focus, orbit, orbitDelta;
+        InputAction focus, orbit, orbitDelta, alignInspection;
         Workbench activeWorkbench;
         OrderDesk activeOrderDesk;
         EquipmentShop activeEquipmentShop;
@@ -96,10 +98,12 @@ namespace BORis
             focus = bench.FindAction("Focus", true);
             orbit = bench.FindAction("Orbit", true);
             orbitDelta = bench.FindAction("OrbitDelta", true);
+            alignInspection = bench.FindAction("AlignInspection", true);
             // shortcut: mouse-only look for this PC prototype; calibrate sticks when adding gamepad support.
             look.ApplyBindingOverride(new InputBinding { path = "<Gamepad>/rightStick", overridePath = "" });
             if (exitButton != null) exitButton.onClick.AddListener(ExitWorkbench);
             if (restartButton != null) restartButton.onClick.AddListener(ResetRepair);
+            if (alignInspectionButton != null) alignInspectionButton.onClick.AddListener(AlignInspection);
         }
 
         void OnEnable()
@@ -110,6 +114,11 @@ namespace BORis
 
         void Update()
         {
+            if (saveStatus != null && session != null)
+            {
+                saveStatus.gameObject.SetActive(!IsAtWorkbench && !IsAtOrderDesk && !IsAtEquipmentShop);
+                saveStatus.text = session.SaveStatus;
+            }
             if (workshopProgress != null && session != null)
             {
                 workshopProgress.gameObject.SetActive(!IsAtWorkbench);
@@ -129,8 +138,13 @@ namespace BORis
             else if (bench.enabled && activeWorkbench == null) ExitWorkbench();
             else if (IsAtWorkbench)
             {
-                if (activeWorkbench == null || !activeWorkbench.isActiveAndEnabled || !activeWorkbench.IsOccupied || cancel.WasPressedThisFrame())
+                if (!activeWorkbench.isActiveAndEnabled || !activeWorkbench.IsOccupied)
                     ExitWorkbench();
+                else if (cancel.WasPressedThisFrame())
+                {
+                    if (IsInspecting) activeWorkbench.ReturnToOverview();
+                    else ExitWorkbench();
+                }
                 else TickBench();
             }
             else
@@ -186,6 +200,7 @@ namespace BORis
                         : PointedOrderDesk != null ? "E — стойка приёма заказов"
                         : PointedWorkbench != null ? PointedWorkbench.HasRobot ? "E — сесть за верстак" : "Верстак пуст · получите заказ на стойке"
                         : session != null && session.ActiveOrder == null ? "Примите заказ на стойке слева"
+                        : session != null && session.ActiveOrder != null ? $"Заказ {session.ActiveOrder.OrderId} ждёт на верстаке впереди · E — начать ремонт"
                         : "";
                     if (repairHUD != null) repairHUD.ShowShop(message);
                     else hint.text = message;
@@ -193,6 +208,7 @@ namespace BORis
             }
             if (exitButton != null) exitButton.gameObject.SetActive(IsAtWorkbench);
             if (restartButton != null) restartButton.gameObject.SetActive(IsAtWorkbench);
+            if (alignInspectionButton != null) alignInspectionButton.gameObject.SetActive(IsInspecting);
         }
 
         void TickBench()
@@ -217,6 +233,20 @@ namespace BORis
             PointedJoint = null;
             bool overUI = PointerOverUI();
             PointedTool = null;
+            if (IsInspecting)
+            {
+                ClearObservation();
+                bool canInspect = !overUI && !primary.IsPressed();
+                if (canInspect && focus.WasPressedThisFrame()) activeWorkbench.ReturnToOverview();
+                else
+                {
+                    if (canInspect && alignInspection.WasPressedThisFrame()) AlignInspection();
+                    bool rotating = canInspect && orbit.IsPressed();
+                    IsViewMoving = activeWorkbench.UpdateView(rotating ? orbitDelta.ReadValue<Vector2>() : Vector2.zero,
+                        canInspect ? scroll.ReadValue<Vector2>().y : 0f) || rotating;
+                }
+                return;
+            }
             if (selectedTool != null && !selectedTool.IsActive) selectedTool.FollowPointer(pointer);
             if (HeldPart != null)
             {
@@ -260,18 +290,20 @@ namespace BORis
             bool canMoveView = !overUI && !primary.IsPressed();
             if (canMoveView && focus.WasPressedThisFrame())
             {
-                if (IsInspecting) activeWorkbench.ReturnToOverview();
-                else if (hasHit && hit.collider.GetComponentInParent<RobotRepair>() == robot)
+                if (hasHit && hit.collider.GetComponentInParent<RobotRepair>() == robot)
+                {
+                    SelectTool(null);
                     activeWorkbench.Focus(PointedPart);
+                    ClearObservation();
+                    return;
+                }
             }
-            bool orbiting = canMoveView && IsInspecting && orbit.IsPressed();
-            bool viewMoving = activeWorkbench.UpdateView(orbiting ? orbitDelta.ReadValue<Vector2>() : Vector2.zero,
-                canMoveView ? scroll.ReadValue<Vector2>().y : 0f);
-            IsViewMoving = viewMoving || orbiting;
+            bool viewMoving = activeWorkbench.UpdateView(Vector2.zero, 0f);
+            IsViewMoving = viewMoving;
             if (selectedTool != null) selectedTool.FollowPointer(pointer);
-            bool canObserve = hasHit && !viewMoving && !orbiting && !primary.IsPressed();
+            bool canObserve = hasHit && !viewMoving && !primary.IsPressed();
             ObserveDrive(canObserve ? PointedPart : null, canObserve ? PointedJoint : null);
-            if (viewMoving || orbiting || overUI || !hasHit) return;
+            if (viewMoving || overUI || !hasHit) return;
             if (!primary.WasPressedThisFrame()) return;
             if (PointedTestButton)
             {
@@ -351,6 +383,7 @@ namespace BORis
         void SelectTool(RepairTool tool)
         {
             CancelPart();
+            if (activeWorkbench != null) activeWorkbench.ReturnToOverview();
             if (selectedTool != null) selectedTool.Select(null);
             selectedTool = tool;
             if (selectedTool != null)
@@ -365,6 +398,11 @@ namespace BORis
             if (!IsAtWorkbench || robot == null || robot.IsTesting || slot < 0 || slot > 3) return;
             if (slot == 3 && !SolderingAvailable) { Say("Сначала приобретите паяльную станцию"); return; }
             SelectTool(slot == 1 ? screwdriver : slot == 2 ? brush : slot == 3 ? soldering : null);
+        }
+
+        public void AlignInspection()
+        {
+            if (IsInspecting) activeWorkbench.AlignInspection();
         }
 
         Transform FindDropAnchor(Ray ray)
@@ -421,6 +459,7 @@ namespace BORis
                 ClearObservation();
                 if (selectedTool != null) selectedTool.End();
                 CancelPart();
+                if (activeWorkbench != null) activeWorkbench.ReturnToOverview();
                 if (robot != null) robot.CancelTest();
             }
         }
@@ -519,6 +558,7 @@ namespace BORis
         {
             if (exitButton != null) exitButton.onClick.RemoveListener(ExitWorkbench);
             if (restartButton != null) restartButton.onClick.RemoveListener(ResetRepair);
+            if (alignInspectionButton != null) alignInspectionButton.onClick.RemoveListener(AlignInspection);
             Destroy(actions);
         }
     }

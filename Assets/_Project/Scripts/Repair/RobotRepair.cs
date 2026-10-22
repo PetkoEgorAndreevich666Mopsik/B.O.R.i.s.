@@ -11,6 +11,7 @@ namespace BORis
         [SerializeField] RepairPart[] drives = System.Array.Empty<RepairPart>();
         [SerializeField] RepairConnector connector;
         [SerializeField] Transform shoulder;
+        [SerializeField] Transform inspectionPivot;
         [SerializeField] SolderJoint solderJoint;
         [SerializeField, Min(.1f)] float testDuration = 1.8f;
         Coroutine testRoutine;
@@ -21,6 +22,7 @@ namespace BORis
         public bool IsFunctional => InstalledDrive != null && !InstalledDrive.Faulty
             && (solderJoint == null || solderJoint.IsRepaired);
         public SolderJoint SolderJoint => solderJoint;
+        public Transform InspectionPivot => inspectionPivot;
         public bool JointFaultFound { get; private set; }
         public DirtPatch[] DirtPatches { get; private set; }
         public RepairPart InspectedDrive { get; private set; }

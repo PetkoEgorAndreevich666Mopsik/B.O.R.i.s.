@@ -1087,6 +1087,15 @@
                     "initialStateCheck": false
                 },
                 {
+                    "name": "AlignInspection",
+                    "type": "Button",
+                    "id": "683ed942-2019-4c95-acb4-0b75d59023dd",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
                     "name": "Soldering",
                     "type": "Button",
                     "id": "697d81a4-ff10-459c-a182-aa7e23f6f4e9",
@@ -1204,6 +1213,17 @@
                     "processors": "",
                     "groups": "Keyboard&Mouse",
                     "action": "OrbitDelta",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "cc149e16-1bb1-48d3-ac3a-31d14591a588",
+                    "path": "<Keyboard>/r",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Keyboard&Mouse",
+                    "action": "AlignInspection",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },

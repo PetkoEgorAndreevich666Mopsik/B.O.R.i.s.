@@ -291,7 +291,11 @@ public sealed class RepairDiagnosisTests
         yield return Press(Key.F);
         yield return new WaitForSeconds(.7f);
         yield return Point(player.View.WorldToScreenPoint(robot.Cover.transform.position));
-        Assert.That(TextNamed("Hint").text, Does.Contain("общий вид"));
+        Assert.That(TextNamed("CameraHints").text, Does.Contain("Повернуть предмет"));
+        Assert.That(TextNamed("CameraHints").text, Does.Contain("Выровнять"));
+        Assert.That(TextNamed("Hint").text, Is.Empty, "Inspection must not cover the object with a duplicate tooltip.");
+        Assert.That(TextNamed("Hint").GetComponentInParent<CanvasGroup>().alpha, Is.Zero);
+        Assert.That(TextNamed("ToolShortcuts").text, Does.Contain("[1  Рука]"));
         Assert.That(TextNamed("AssemblyState").gameObject.activeSelf, Is.True);
         Assert.That(TextNamed("AssemblyState").preferredHeight,
             Is.LessThanOrEqualTo(TextNamed("AssemblyState").rectTransform.rect.height + 1f));

@@ -65,13 +65,13 @@ namespace BORis
                     + (session.CanOfferSolderingOrders ? "\nДоступны заказы на восстановление контактов."
                         : session.SolderingRepairsReady ? "\nПокупка откроет паяльник и заказ C:\nвосстановление контакта · награда 180 ед."
                         : "\nПайка и новые заказы пока недоступны.\nВ этой версии покупка устанавливает станцию.")
-                    + "\n\nПрогресс действует до выхода из игры.";
+                    + "\n\nДеньги и покупка сохраняются автоматически.\nНезавершённый ремонт после запуска начинается заново.";
             if (status != null) status.text = feedback.Length > 0 ? feedback : owned ? "Станция ваша. Можно вернуться к заказам"
                 : missing > 0 ? "Выполняйте доступные заказы на стойке приёма и копите на оборудование"
                 : "Средств достаточно. Одно нажатие установит станцию и спишет указанную сумму";
             if (buyButton != null)
             {
-                buyButton.interactable = session.isActiveAndEnabled && !owned && missing == 0;
+                buyButton.interactable = session.isActiveAndEnabled && session.IsProgressReady && !owned && missing == 0;
                 var caption = buyButton.GetComponentInChildren<UnityEngine.UI.Text>(true);
                 if (caption != null) caption.text = owned ? "Установлена" : missing > 0 ? $"Нужно ещё {missing} ед." : $"Установить · {WorkshopSession.SolderingStationPrice} ед.";
             }

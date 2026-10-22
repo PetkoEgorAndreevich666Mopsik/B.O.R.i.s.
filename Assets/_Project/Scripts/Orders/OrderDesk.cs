@@ -43,6 +43,12 @@ namespace BORis
         void Accept()
         {
             if (!IsOpen) return;
+            if (!session.IsProgressReady)
+            {
+                bool restored = session.TryReloadProgress(out string error);
+                Refresh(restored ? "Прогресс загружен. " + WorkshopSession.SaveRule : error);
+                return;
+            }
             if (showingReceipt)
             {
                 showingReceipt = false;
@@ -50,7 +56,7 @@ namespace BORis
                 return;
             }
             bool accepted = session.TryAcceptOrder(out string reason);
-            Refresh(accepted ? "Заказ принят. Закройте карточку и подойдите к верстаку" : reason);
+            Refresh(accepted ? "Заказ принят и сохранён. К верстаку впереди.\nПосле запуска незавершённый ремонт начнётся заново." : reason);
         }
 
         void Deliver()
@@ -58,7 +64,7 @@ namespace BORis
             if (!IsOpen || showingReceipt) return;
             if (!session.TryDeliverOrder(displayedInstanceId, out string reason)) { Refresh(reason); return; }
             showingReceipt = true;
-            Refresh("Спасибо за ремонт! Можно посмотреть следующий заказ");
+            Refresh("Оплата сохранена. Можно посмотреть следующий заказ");
         }
 
         void Refresh(string message)
@@ -72,20 +78,22 @@ namespace BORis
             OrderDefinition order = displayedOrder;
             if (card != null) card.text = order == null ? "Нет доступных заказов"
                 : showingReceipt ? $"ЗАКАЗ {order.OrderId} ВЫДАН\n\nКлиент: {order.ClientName}\n\nПолучено: +{displayedReward} ед.\nБаланс мастерской: {session.Balance} ед.\n\nВыполнено заказов: {session.CompletedOrders}"
+                    + (order.RequiresSolderingStation ? "\n\nОчистка, замена и пайка освоены.\nМастерская продолжает работу!" : "")
                 : $"ЗАКАЗ {order.OrderId}\n\nКлиент: {order.ClientName}\n\n«{order.Symptom}»\n\n{order.Requirements}\n\nНаграда за заказ: {displayedReward} ед.";
-            if (status != null) status.text = message + (session.HasSolderingStation ? ""
+            if (!session.IsProgressReady) message = session.SaveStatus;
+            if (status != null) status.text = message + (!session.IsProgressReady || session.HasSolderingStation ? ""
                 : session.Balance >= WorkshopSession.SolderingStationPrice
                     ? "\nХватает на паяльную станцию. Оборудование — справа от верстака"
                     : $"\nПаяльная станция: осталось накопить {WorkshopSession.SolderingStationPrice - session.Balance} ед.");
             if (acceptButton != null)
             {
-                acceptButton.gameObject.SetActive(showingReceipt || session.ActiveOrder == null);
-                acceptButton.interactable = showingReceipt || session.ActiveOrder == null
+                acceptButton.gameObject.SetActive(!session.IsProgressReady || showingReceipt || session.ActiveOrder == null);
+                acceptButton.interactable = !session.IsProgressReady || showingReceipt || session.ActiveOrder == null
                     && order != null && order.IsValid && (!order.RequiresSolderingStation || session.CanOfferSolderingOrders);
                 var caption = acceptButton.GetComponentInChildren<UnityEngine.UI.Text>(true);
-                if (caption != null) caption.text = showingReceipt ? "Следующий заказ" : "Принять заказ";
+                if (caption != null) caption.text = !session.IsProgressReady ? "Повторить загрузку" : showingReceipt ? "Следующий заказ" : "Принять заказ";
             }
-            if (deliverButton != null) deliverButton.gameObject.SetActive(!showingReceipt && session.ActiveOrder != null);
+            if (deliverButton != null) deliverButton.gameObject.SetActive(session.IsProgressReady && !showingReceipt && session.ActiveOrder != null);
         }
 
         void Close()
