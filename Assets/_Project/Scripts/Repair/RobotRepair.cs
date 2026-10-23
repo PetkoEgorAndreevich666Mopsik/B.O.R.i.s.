@@ -4,6 +4,7 @@ using UnityEngine;
 namespace BORis
 {
     public enum RobotTestResult { NotTested, Faulty, Passed }
+    public enum ArmObservation { NotTested, NoMovement, Stuttering, FullMovement }
 
     public sealed class RobotRepair : MonoBehaviour
     {
@@ -18,6 +19,12 @@ namespace BORis
         Quaternion restingShoulder;
 
         public bool IsTesting => testRoutine != null;
+        public DriveTestStand ActiveDriveStand { get; internal set; }
+        public bool IsOnDriveStand => ActiveDriveStand != null;
+        public ArmObservation LastArmObservation { get; private set; }
+        public string ArmObservationText => LastArmObservation == ArmObservation.NoMovement ? "Рука не начинает движение"
+            : LastArmObservation == ArmObservation.Stuttering ? "Рука дёргается, полный жест не выполнен"
+            : LastArmObservation == ArmObservation.FullMovement ? "Рука плавно выполняет полный жест" : "Рука ещё не проверена";
         public RobotTestResult TestResult { get; private set; }
         public bool IsFunctional => InstalledDrive != null && !InstalledDrive.Faulty
             && (solderJoint == null || solderJoint.IsRepaired);
@@ -27,25 +34,54 @@ namespace BORis
         public DirtPatch[] DirtPatches { get; private set; }
         public RepairPart InspectedDrive { get; private set; }
         public bool HasInspectedDrive => InspectedDrive != null;
-        public bool DriveFaultFound { get; private set; }
+        public bool DriveFaultFound => System.Array.Exists(drives, d => d != null && d.StandResult == DriveTestResult.Interrupted);
+
+        public string Findings
+        {
+            get
+            {
+                string facts = LastArmObservation != ArmObservation.NotTested ? ArmObservationText : "";
+                foreach (RepairPart drive in drives)
+                    if (drive != null && drive.StandResult != DriveTestResult.NotTested)
+                        facts += $"\n{drive.DriveIdentity}: {drive.StandObservation}";
+                if (InspectedDrive != null && InspectedDrive == InstalledDrive && InspectedDrive.StandResult == DriveTestResult.NotTested)
+                    facts += $"\n{InspectedDrive.DriveIdentity}: видимых повреждений нет";
+                if (JointFaultFound && solderJoint != null)
+                    facts += solderJoint.IsRepaired ? "\nКонтакт восстановлен" : "\nНа дорожке контакта виден разрыв";
+                return facts.Length > 0 ? facts.TrimStart('\n') : "Причина пока неизвестна.";
+            }
+        }
+
+        public string DiagnosisHelp(int level)
+        {
+            if (level <= 0) return "Помощь открывается только по вашему запросу.";
+            if (level == 1) return "Куда смотреть: сравните движение руки и состояние цепи от платы к мотору. Для осмотра внутренних узлов откройте крышку.";
+            if (level == 2) return "Что проверить: стенд питает снятый привод независимо от платы. Ровное вращение исключает заедание этого привода. Осмотрите доступную дорожку контакта.";
+            if (InstalledDrive == null)
+                return "Решение: установите запасной привод и закрепите его винтами. Если на дорожке контакта есть разрыв, восстановите его паяльником при отключённом разъёме. Подключите разъём, соберите корпус и повторите тест руки.";
+            if (InstalledDrive != null && InstalledDrive.Faulty)
+                return "Решение: отключите разъём, снимите привод и установите запасной. Закрепите его, подключите разъём, соберите корпус и повторите тест руки.";
+            if (solderJoint != null && !solderJoint.IsRepaired)
+                return "Решение: отключите разъём и проведите паяльником по всей дорожке контакта. Подключите разъём, соберите корпус и повторите тест руки.";
+            return "Соберите робота и выполните тест руки. Если заказ требует очистки, очистите все указанные участки до 90%.";
+        }
 
         public string PartLabel(RepairPart part) => part != null
-            ? part.Kind == RepairPartKind.Drive && part.Faulty && !DriveFaultFound ? "Привод руки" : part.DisplayName
+            ? part.Kind == RepairPartKind.Drive ? part.DriveIdentity : part.DisplayName
             : "";
 
         public bool InspectDrive(RepairPart part)
         {
-            if (!Owns(part) || IsTesting || cover == null || cover.IsInstalled
+            if (!Owns(part) || IsTesting || IsOnDriveStand || cover == null || cover.IsInstalled
                 || part.Kind != RepairPartKind.Drive || !part.IsInstalled) return false;
             InspectedDrive = part;
-            DriveFaultFound |= part.Faulty;
             return true;
         }
 
         public bool InspectJoint(SolderJoint joint)
         {
             if (joint == null || joint != solderJoint || !joint.isActiveAndEnabled || !isActiveAndEnabled
-                || IsTesting || cover == null || cover.IsInstalled) return false;
+                || IsTesting || IsOnDriveStand || cover == null || cover.IsInstalled) return false;
             JointFaultFound |= !joint.IsRepaired;
             return true;
         }
@@ -87,6 +123,7 @@ namespace BORis
             if (screw == null || !screw.isActiveAndEnabled || !isActiveAndEnabled || screw.GetComponentInParent<RobotRepair>() != this)
                 reason = "Винт недоступен";
             else if (IsTesting) reason = "Дождитесь окончания теста руки";
+            else if (IsOnDriveStand) reason = "Сначала верните привод со стенда · ESC";
             else
             {
                 RepairPart part = screw.GetComponentInParent<RepairPart>();
@@ -115,6 +152,7 @@ namespace BORis
             if (!isActiveAndEnabled || patch == null || !patch.isActiveAndEnabled || patch.GetComponentInParent<RobotRepair>() != this)
                 reason = "Поверхность недоступна";
             else if (IsTesting) reason = "Дождитесь окончания теста руки";
+            else if (IsOnDriveStand) reason = "Сначала верните привод со стенда · ESC";
             else if (patch.RequiresOpenCover && cover != null && cover.IsInstalled)
                 reason = "Сначала снимите крышку";
             return reason.Length == 0;
@@ -129,6 +167,7 @@ namespace BORis
                 reason = "Сначала приобретите паяльную станцию";
             else if (session.ActiveOrder == null || session.ActiveRobot != this) reason = "Этот робот не относится к текущему заказу";
             else if (IsTesting) reason = "Дождитесь окончания теста руки";
+            else if (IsOnDriveStand) reason = "Сначала верните привод со стенда · ESC";
             else if (cover == null || cover.IsInstalled) reason = "Сначала снимите крышку";
             else if (connector == null || connector.IsConnected) reason = "Перед пайкой отсоедините разъём";
             else if (joint.IsRepaired) reason = "Контакт уже восстановлен";
@@ -143,7 +182,7 @@ namespace BORis
             return added;
         }
 
-        bool Owns(RepairPart part) => part != null && part.isActiveAndEnabled && isActiveAndEnabled
+        internal bool Owns(RepairPart part) => part != null && part.isActiveAndEnabled && isActiveAndEnabled
             && part.GetComponentInParent<RobotRepair>() == this
             && (part == cover || System.Array.IndexOf(drives, part) >= 0)
             && part.InstallationAnchor != null && part.TrayAnchor != null;
@@ -153,6 +192,7 @@ namespace BORis
             reason = "";
             if (!Owns(part)) reason = "Деталь недоступна";
             else if (IsTesting) reason = "Дождитесь окончания теста руки";
+            else if (IsOnDriveStand) reason = "Сначала верните привод со стенда · ESC";
             else if (part.Kind == RepairPartKind.Drive && cover.IsInstalled) reason = "Сначала снимите крышку";
             else if (part.Kind == RepairPartKind.Drive && connector.IsConnected) reason = "Сначала отсоедините разъём";
             else if (part.IsInstalled)
@@ -195,6 +235,7 @@ namespace BORis
             if (!isActiveAndEnabled || target == null || target != connector || !target.isActiveAndEnabled)
                 reason = "Разъём недоступен";
             else if (IsTesting) reason = "Дождитесь окончания теста руки";
+            else if (IsOnDriveStand) reason = "Сначала верните привод со стенда · ESC";
             else if (cover.IsInstalled) reason = "Сначала снимите крышку";
             else if (InstalledDrive == null) reason = "Сначала установите привод";
             else if (!connector.IsConnected && !FullyTightened(InstalledDrive)) reason = "Сначала затяните оба винта привода";
@@ -209,6 +250,7 @@ namespace BORis
             reason = "";
             if (!isActiveAndEnabled || shoulder == null || cover == null || connector == null) reason = "Тест недоступен";
             else if (IsTesting) reason = "Тест руки уже выполняется";
+            else if (IsOnDriveStand) reason = "Сначала верните привод со стенда · ESC";
             else if (InstalledDrive == null) reason = "Сначала установите привод";
             else if (!FullyTightened(InstalledDrive)) reason = "Сначала затяните оба винта привода";
             else if (!connector.IsConnected) reason = "Сначала подключите разъём";
@@ -228,24 +270,27 @@ namespace BORis
         IEnumerator TestArm()
         {
             bool functional = IsFunctional;
+            bool powered = solderJoint == null || solderJoint.IsRepaired;
             float elapsed = 0f;
             while (elapsed < testDuration)
             {
                 elapsed += Time.unscaledDeltaTime;
                 float progress = Mathf.Clamp01(elapsed / testDuration);
                 float angle = functional ? 65f * Mathf.SmoothStep(0f, 1f, progress)
-                    : 7f * Mathf.Sin(elapsed * 32f) * Mathf.Sin(progress * Mathf.PI);
+                    : powered ? 7f * Mathf.Sin(elapsed * 32f) * Mathf.Sin(progress * Mathf.PI) : 0f;
                 shoulder.localRotation = restingShoulder * Quaternion.AngleAxis(angle, Vector3.forward);
                 yield return null;
             }
             shoulder.localRotation = restingShoulder * Quaternion.AngleAxis(functional ? 65f : 0f, Vector3.forward);
             TestResult = functional ? RobotTestResult.Passed : RobotTestResult.Faulty;
+            LastArmObservation = functional ? ArmObservation.FullMovement : powered ? ArmObservation.Stuttering : ArmObservation.NoMovement;
             testRoutine = null;
         }
 
         void InvalidateTest()
         {
             TestResult = RobotTestResult.NotTested;
+            LastArmObservation = ArmObservation.NotTested;
             if (shoulder != null) shoulder.localRotation = restingShoulder;
         }
 
@@ -257,7 +302,11 @@ namespace BORis
             InvalidateTest();
         }
 
-        void OnDisable() => CancelTest();
+        void OnDisable()
+        {
+            if (ActiveDriveStand != null) ActiveDriveStand.Cancel();
+            CancelTest();
+        }
 
         public static bool FullyTightened(RepairPart part)
         {
@@ -271,6 +320,7 @@ namespace BORis
             get
             {
                 if (IsTesting) return "Проверка руки… дождитесь результата";
+                if (IsOnDriveStand) return ActiveDriveStand.Status;
                 if (TestResult == RobotTestResult.Passed) return "РЕМОНТ ЗАВЕРШЁН: рука исправна. Можно начать новый ремонт";
                 if (TestResult == RobotTestResult.Faulty && !DriveFaultFound && !JointFaultFound)
                     return "Тест не пройден. Снимите крышку и осмотрите узел";
@@ -281,8 +331,8 @@ namespace BORis
                         ? FullyTightened(cover) ? "Сборка завершена: нажмите кнопку «ТЕСТ РУКИ»" : "Затяните четыре винта крышки"
                         : "Освободите винты сервисной крышки, чтобы осмотреть узел";
                 if (drive == null) return "Перенесите исправный привод из зелёного лотка в робота";
-                if (drive.Faulty && !DriveFaultFound)
-                    return "Задержите указатель на открытом приводе для осмотра";
+                if (drive.Faulty && drive.StandResult == DriveTestResult.NotTested)
+                    return "Проверьте снятый привод на стенде: отключите разъём и освободите оба винта";
                 if (drive.Faulty) return connector.IsConnected ? "Рукой отсоедините разъём справа от привода"
                     : "Освободите оба винта привода и перенесите его в красный лоток";
                 if (solderJoint != null && !solderJoint.IsRepaired)

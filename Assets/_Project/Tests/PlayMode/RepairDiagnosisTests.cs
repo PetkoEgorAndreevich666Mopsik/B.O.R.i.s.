@@ -19,6 +19,7 @@ public sealed class RepairDiagnosisTests
     PlayerController player;
     InteractionController interaction;
     RobotRepair robot;
+    OrderDefinition independentOrder;
 
     Text TextNamed(string name) => Object.FindObjectsByType<Text>(FindObjectsInactive.Include,
         FindObjectsSortMode.None).Single(t => t.name == name);
@@ -36,11 +37,24 @@ public sealed class RepairDiagnosisTests
         yield return null;
     }
 
-    IEnumerator EnterOrder(bool cleaning = false)
+    IEnumerator EnterOrder(bool cleaning = false, bool independent = false, bool contact = false)
     {
         var orders = (OrderDefinition[])typeof(WorkshopSession).GetField("orders",
             BindingFlags.Instance | BindingFlags.NonPublic).GetValue(session);
-        int repairIndex = System.Array.FindIndex(orders, o => o.RequiresCleaning == cleaning);
+        int repairIndex = System.Array.FindIndex(orders, o => o.RequiresCleaning == cleaning && o.RequiresSolderingStation == contact);
+        if (contact)
+        {
+            typeof(WorkshopSession).GetField("<Balance>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(session, WorkshopSession.SolderingStationPrice);
+            Assert.That(session.TryBuySolderingStation(out _), Is.True);
+        }
+        if (independent)
+        {
+            orders = (OrderDefinition[])orders.Clone();
+            independentOrder = Object.Instantiate(orders[repairIndex]);
+            typeof(OrderDefinition).GetField("independentDiagnosis", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(independentOrder, true);
+            orders[repairIndex] = independentOrder;
+            typeof(WorkshopSession).GetField("orders", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(session, orders);
+        }
         typeof(WorkshopSession).GetField("nextOrder", BindingFlags.Instance | BindingFlags.NonPublic)
             .SetValue(session, repairIndex);
         Assert.That(session.TryAcceptOrder(out _), Is.True);
@@ -113,7 +127,7 @@ public sealed class RepairDiagnosisTests
     }
 
     [UnityTest]
-    public IEnumerator FindingRequiresAnExposedObservedDriveAndPersistsUntilRestart()
+    public IEnumerator LookingAtDriveRecordsExteriorWithoutRevealingInternalFault()
     {
         yield return EnterOrder();
         yield return Point(player.View.WorldToScreenPoint(robot.InstalledDrive.transform.position));
@@ -124,11 +138,12 @@ public sealed class RepairDiagnosisTests
         Assert.That(TextNamed("AssemblyState").text, Does.Not.Contain("НАЙДЕНО"),
             "A fleeting cursor crossing is not an inspection.");
         yield return new WaitForSeconds(.7f);
-        Assert.That(TextNamed("AssemblyState").text, Does.Contain("НАЙДЕНО"));
-        Assert.That(TextNamed("AssemblyState").text, Does.Contain("повреждён"));
+        Assert.That(robot.HasInspectedDrive, Is.True);
+        Assert.That(robot.DriveFaultFound, Is.False, "Hover cannot reveal an internal mechanical defect.");
+        Assert.That(TextNamed("AssemblyState").text, Does.Contain("видимых повреждений"));
         yield return Press(Key.Escape);
         yield return Press(Key.E);
-        Assert.That(TextNamed("AssemblyState").text, Does.Contain("НАЙДЕНО"));
+        Assert.That(TextNamed("AssemblyState").text, Does.Contain("видимых повреждений"));
         interaction.ResetRepair();
         yield return null;
         Assert.That(TextNamed("AssemblyState").text, Does.Not.Contain("НАЙДЕНО"));
@@ -152,7 +167,8 @@ public sealed class RepairDiagnosisTests
         Object.Destroy(overlay);
         yield return Point(point);
         yield return new WaitForSeconds(.7f);
-        Assert.That(TextNamed("AssemblyState").text, Does.Contain("НАЙДЕНО"));
+        Assert.That(robot.HasInspectedDrive, Is.True);
+        Assert.That(robot.DriveFaultFound, Is.False);
     }
 
     [UnityTest]
@@ -224,8 +240,8 @@ public sealed class RepairDiagnosisTests
         Physics.SyncTransforms();
         yield return Point(MotorPoint());
         yield return new WaitForSeconds(.7f);
-        Assert.That(robot.DriveFaultFound, Is.True);
-        Assert.That(TextNamed("AssemblyState").text, Does.Contain("НАЙДЕНО"));
+        Assert.That(robot.DriveFaultFound, Is.False);
+        Assert.That(TextNamed("AssemblyState").text, Does.Contain("видимых повреждений"));
     }
 
     [UnityTest]
@@ -302,6 +318,66 @@ public sealed class RepairDiagnosisTests
         Assert.That(TextNamed("ToolShortcuts").raycastTarget, Is.False);
     }
 
+    [UnityTest]
+    public IEnumerator IndependentDiagnosisNeverRevealsRecipeWithoutThreeExplicitRequests()
+    {
+        yield return EnterOrder(independent: true);
+        Assert.That(session.ActiveOrder.Requirements, Does.Not.Contain("контакт"));
+        OpenCover();
+        yield return Point(MotorPoint());
+        yield return new WaitForSeconds(.7f);
+        string goal = TextNamed("AssemblyState").text;
+        Assert.That(goal, Does.Contain("Найдите причину"));
+        Assert.That(goal, Does.Not.Contain("освободите оба винта"));
+        Assert.That(goal, Does.Not.Contain("повреждён привод"));
+        Assert.That(TextNamed("Symptom").text, Does.Not.Contain(session.ActiveOrder.OrderId));
+        yield return Press(Key.H);
+        Assert.That(TextNamed("DiagnosisText").gameObject.activeInHierarchy, Is.True);
+        Assert.That(TextNamed("DiagnosisText").text, Does.Contain("Плата → контакт питания"));
+        Assert.That(TextNamed("DiagnosisText").text, Does.Not.Contain("Решение:"));
+        yield return ClickButton("DiagnosisHelpButton");
+        Assert.That(TextNamed("DiagnosisText").text, Does.Contain("Куда смотреть:"));
+        yield return ClickButton("DiagnosisHelpButton");
+        Assert.That(TextNamed("DiagnosisText").text, Does.Contain("Что проверить:"));
+        Assert.That(TextNamed("DiagnosisText").text, Does.Not.Contain("Решение:"));
+        yield return Press(Key.Escape);
+        Assert.That(interaction.IsAtWorkbench, Is.True);
+        Assert.That(TextNamed("DiagnosisText").gameObject.activeInHierarchy, Is.False);
+        yield return Press(Key.H);
+        yield return ClickButton("DiagnosisHelpButton");
+        Assert.That(TextNamed("DiagnosisText").text, Does.Contain("Решение:"));
+        Assert.That(TextNamed("DiagnosisText").text, Does.Contain("установите запасной"));
+        Assert.That(TextNamed("DiagnosisText").preferredHeight,
+            Is.LessThanOrEqualTo(TextNamed("DiagnosisText").rectTransform.rect.height + 1f));
+        yield return Press(Key.H);
+        interaction.ResetRepair();
+        yield return null;
+        yield return Press(Key.H);
+        Assert.That(TextNamed("DiagnosisText").text, Does.Not.Contain("Решение:"));
+    }
+
+    [UnityTest]
+    public IEnumerator IndependentContactObservationDoesNotChooseSolderingToolForPlayer()
+    {
+        yield return EnterOrder(independent: true, contact: true);
+        Assert.That(session.ActiveOrder.Requirements, Does.Not.Contain("Восстановить контакт"));
+        OpenCover();
+        yield return Point(player.View.WorldToScreenPoint(robot.SolderJoint.PointOnSeam(.5f)));
+        yield return new WaitForSeconds(2.4f);
+        Assert.That(robot.JointFaultFound, Is.True, "The visible seam must still yield a fact.");
+        Assert.That(TextNamed("AssemblyState").text, Does.Contain("виден разрыв"));
+        Assert.That(TextNamed("AssemblyState").text, Does.Not.Contain("паяльник"));
+        Assert.That(TextNamed("Hint").text, Does.Not.Contain("4 —"));
+        Assert.That(TextNamed("Hint").text, Does.Not.Contain("паяльник"));
+        yield return Press(Key.H);
+        yield return ClickButton("DiagnosisHelpButton");
+        yield return ClickButton("DiagnosisHelpButton");
+        Assert.That(TextNamed("DiagnosisText").text, Does.Not.Contain("Решение:"));
+        yield return ClickButton("DiagnosisHelpButton");
+        Assert.That(TextNamed("DiagnosisText").text, Does.Contain("Решение:"));
+        Assert.That(TextNamed("DiagnosisText").text, Does.Contain("паяльником"));
+    }
+
     [UnityTearDown]
     public IEnumerator TearDown()
     {
@@ -309,6 +385,7 @@ public sealed class RepairDiagnosisTests
         SceneManager.SetActiveScene(SceneManager.CreateScene("DiagnosisCleanup"));
         yield return SceneManager.UnloadSceneAsync(scene);
         yield return null;
+        if (independentOrder != null) Object.Destroy(independentOrder);
         fixture.TearDown();
     }
 }

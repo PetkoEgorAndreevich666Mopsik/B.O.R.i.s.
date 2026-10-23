@@ -78,8 +78,8 @@ namespace BORis
             OrderDefinition order = displayedOrder;
             if (card != null) card.text = order == null ? "Нет доступных заказов"
                 : showingReceipt ? $"ЗАКАЗ {order.OrderId} ВЫДАН\n\nКлиент: {order.ClientName}\n\nПолучено: +{displayedReward} ед.\nБаланс мастерской: {session.Balance} ед.\n\nВыполнено заказов: {session.CompletedOrders}"
-                    + (order.RequiresSolderingStation ? "\n\nОчистка, замена и пайка освоены.\nМастерская продолжает работу!" : "")
-                : $"ЗАКАЗ {order.OrderId}\n\nКлиент: {order.ClientName}\n\n«{order.Symptom}»\n\n{order.Requirements}\n\nНаграда за заказ: {displayedReward} ед.";
+                    + (order.RequiresSolderingStation && !order.IndependentDiagnosis ? "\n\nОчистка, замена и пайка освоены.\nМастерская продолжает работу!" : "")
+                : $"{(order.IndependentDiagnosis ? "ЗАКАЗ НА РЕМОНТ" : "ЗАКАЗ " + order.OrderId)}\n\nКлиент: {order.ClientName}\n\n«{order.Symptom}»\n\n{order.Requirements}\n\nНаграда за заказ: {displayedReward} ед.";
             if (!session.IsProgressReady) message = session.SaveStatus;
             if (status != null) status.text = message + (!session.IsProgressReady || session.HasSolderingStation ? ""
                 : session.Balance >= WorkshopSession.SolderingStationPrice

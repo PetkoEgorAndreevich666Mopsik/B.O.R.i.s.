@@ -3,6 +3,7 @@ using UnityEngine;
 namespace BORis
 {
     public enum RepairPartKind { Cover, Drive }
+    public enum DriveTestResult { NotTested, Smooth, Interrupted }
 
     public sealed class RepairPart : MonoBehaviour
     {
@@ -24,9 +25,15 @@ namespace BORis
         public Transform TrayAnchor => trayAnchor;
         public ScrewFastener[] Screws => screws;
         public bool IsReleased { get; private set; }
+        public DriveTestResult StandResult { get; internal set; }
+        public bool WasInitiallyInstalled { get; private set; }
+        public string DriveIdentity => WasInitiallyInstalled ? "Исходный привод" : "Запасной привод";
+        public string StandObservation => StandResult == DriveTestResult.Interrupted ? "вращение прерывается, вал заедает"
+            : StandResult == DriveTestResult.Smooth ? "вал вращается равномерно" : "на стенде не проверен";
 
         void Awake()
         {
+            WasInitiallyInstalled = installed;
             colliders = GetComponentsInChildren<Collider>();
             screws = GetComponentsInChildren<ScrewFastener>();
         }

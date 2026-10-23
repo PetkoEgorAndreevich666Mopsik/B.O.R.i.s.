@@ -71,6 +71,8 @@ namespace BORis
         public RepairTool PointedTool { get; private set; }
         public Transform DropAnchor { get; private set; }
         public bool PointedTestButton { get; private set; }
+        public DriveTestStand DriveStand => activeWorkbench != null ? activeWorkbench.DriveStand : null;
+        public DriveTestStand PointedStand { get; private set; }
         public Transform PointedObject { get; private set; }
         public bool IsViewMoving { get; private set; }
         public Camera View => player.View;
@@ -142,7 +144,9 @@ namespace BORis
                     ExitWorkbench();
                 else if (cancel.WasPressedThisFrame())
                 {
-                    if (IsInspecting) activeWorkbench.ReturnToOverview();
+                    if (repairHUD != null && repairHUD.CloseDiagnosis()) { }
+                    else if (DriveStand != null && DriveStand.Part != null) DriveStand.Cancel();
+                    else if (IsInspecting) activeWorkbench.ReturnToOverview();
                     else ExitWorkbench();
                 }
                 else TickBench();
@@ -200,7 +204,9 @@ namespace BORis
                         : PointedOrderDesk != null ? "E — стойка приёма заказов"
                         : PointedWorkbench != null ? PointedWorkbench.HasRobot ? "E — сесть за верстак" : "Верстак пуст · получите заказ на стойке"
                         : session != null && session.ActiveOrder == null ? "Примите заказ на стойке слева"
-                        : session != null && session.ActiveOrder != null ? $"Заказ {session.ActiveOrder.OrderId} ждёт на верстаке впереди · E — начать ремонт"
+                        : session != null && session.ActiveOrder != null ? session.ActiveOrder.IndependentDiagnosis
+                            ? "Робот ждёт на верстаке впереди · E — начать ремонт"
+                            : $"Заказ {session.ActiveOrder.OrderId} ждёт на верстаке впереди · E — начать ремонт"
                         : "";
                     if (repairHUD != null) repairHUD.ShowShop(message);
                     else hint.text = message;
@@ -216,7 +222,23 @@ namespace BORis
             IsViewMoving = false;
             PointedObject = null;
             PointedTestButton = false;
+            PointedStand = null;
             if (robot != null && robot.IsTesting) { ClearObservation(); return; }
+            if (DriveStand != null && DriveStand.Part != null)
+            {
+                ClearObservation();
+                PointedObject = DriveStand.transform;
+                PointedStand = DriveStand;
+                if (!PointerOverUI() && primary.WasPressedThisFrame()
+                    && Physics.Raycast(player.View.ScreenPointToRay(point.ReadValue<Vector2>()), out var standHit, reach,
+                        ~(1 << gameObject.layer), QueryTriggerInteraction.Ignore)
+                    && standHit.collider.GetComponentInParent<DriveTestStand>() == DriveStand)
+                {
+                    if (!DriveStand.RunTest(out string reason)) Say(reason);
+                    else Say("");
+                }
+                return;
+            }
             if (selectHand.WasPressedThisFrame())
                 SelectTool(null);
             if (selectScrewdriver.WasPressedThisFrame() && screwdriver != null)
@@ -286,6 +308,7 @@ namespace BORis
                 PointedJoint = hit.collider.GetComponent<SolderJoint>();
                 PointedTestButton = hit.collider == activeWorkbench.TestButton;
                 PointedTool = hit.collider.GetComponentInParent<RepairTool>();
+                PointedStand = hit.collider.GetComponentInParent<DriveTestStand>();
             }
             bool canMoveView = !overUI && !primary.IsPressed();
             if (canMoveView && focus.WasPressedThisFrame())
@@ -311,6 +334,7 @@ namespace BORis
                 if (!robot.RunTest(out string reason)) Say(reason);
                 else Say("");
             }
+            else if (PointedStand != null) Say("Рукой перенесите снятый привод в гнездо стенда, затем нажмите на стенд");
             else if (hit.collider.GetComponentInParent<ScrewdriverTool>() == screwdriver && screwdriver != null)
                 SelectTool(screwdriver);
             else if (hit.collider.GetComponentInParent<BrushTool>() == brush && brush != null)
@@ -395,7 +419,7 @@ namespace BORis
 
         public void SelectToolShortcut(int slot)
         {
-            if (!IsAtWorkbench || robot == null || robot.IsTesting || slot < 0 || slot > 3) return;
+            if (!IsAtWorkbench || robot == null || robot.IsTesting || robot.IsOnDriveStand || slot < 0 || slot > 3) return;
             if (slot == 3 && !SolderingAvailable) { Say("Сначала приобретите паяльную станцию"); return; }
             SelectTool(slot == 1 ? screwdriver : slot == 2 ? brush : slot == 3 ? soldering : null);
         }
@@ -407,6 +431,10 @@ namespace BORis
 
         Transform FindDropAnchor(Ray ray)
         {
+            if (DriveStand != null && HeldPart.Kind == RepairPartKind.Drive
+                && Physics.Raycast(ray, out RaycastHit standHit, reach, ~(1 << gameObject.layer), QueryTriggerInteraction.Ignore)
+                && standHit.collider.GetComponentInParent<DriveTestStand>() == DriveStand)
+                return DriveStand.Socket;
             // The lid and drive sockets overlap; query only the held part's compatible destinations.
             Collider install = HeldPart.InstallationAnchor.GetComponent<Collider>();
             Collider tray = HeldPart.TrayAnchor.GetComponent<Collider>();
@@ -421,6 +449,15 @@ namespace BORis
 
         void FinishPart(Ray ray)
         {
+            if (DriveStand != null && DropAnchor == DriveStand.Socket)
+            {
+                RepairPart part = HeldPart;
+                HeldPart = null;
+                DropAnchor = null;
+                if (!DriveStand.TryLoad(robot, part, out string reason)) { part.RestorePose(); Say(reason); }
+                else Say("");
+                return;
+            }
             if (DropAnchor == null) Say("Перенос отменён: отпустите над посадочным местом или своим лотком");
             else
             {
@@ -460,6 +497,7 @@ namespace BORis
                 if (selectedTool != null) selectedTool.End();
                 CancelPart();
                 if (activeWorkbench != null) activeWorkbench.ReturnToOverview();
+                if (DriveStand != null) DriveStand.Cancel();
                 if (robot != null) robot.CancelTest();
             }
         }
@@ -477,6 +515,7 @@ namespace BORis
 
         public void ExitWorkbench()
         {
+            PointedStand = null;
             PointedObject = null;
             IsViewMoving = false;
             ClearObservation();
@@ -504,6 +543,7 @@ namespace BORis
         public void ResetRepair()
         {
             if (!IsAtWorkbench || activeWorkbench == null) return;
+            PointedStand = null;
             ClearObservation();
             SelectTool(null);
             RobotRepair replacement = activeWorkbench.ResetRobot();

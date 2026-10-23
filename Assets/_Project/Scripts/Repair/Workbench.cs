@@ -38,9 +38,11 @@ namespace BORis
         public Collider TestButton => testButton;
         public RobotRepair Robot => robot;
         public bool HasRobot => robot != null && robot.isActiveAndEnabled;
+        public DriveTestStand DriveStand { get; private set; }
 
         void Awake()
         {
+            DriveStand = GetComponentInChildren<DriveTestStand>();
             robot = GetComponentInChildren<RobotRepair>();
             robotParent = robot != null ? robot.transform.parent : transform;
             robotPosition = robot != null ? robot.transform.localPosition : Vector3.zero;
@@ -52,6 +54,7 @@ namespace BORis
         public bool ClearRobot()
         {
             if (IsOccupied) return false;
+            if (DriveStand != null) DriveStand.Cancel();
             if (robot != null)
             {
                 robot.gameObject.SetActive(false);
@@ -81,6 +84,7 @@ namespace BORis
         public RobotRepair ResetRobot()
         {
             if (robotPrefab == null || robot == null) return null;
+            if (DriveStand != null) DriveStand.Cancel();
             ReturnToOverview();
             var oldRobot = robot;
             oldRobot.gameObject.SetActive(false);
@@ -113,7 +117,7 @@ namespace BORis
 
         public void Focus(RepairPart part)
         {
-            if (!IsOccupied || !HasRobot || robot.IsTesting || IsFocused) return;
+            if (!IsOccupied || !HasRobot || robot.IsTesting || robot.IsOnDriveStand || IsFocused) return;
             if (part != null && (!part.isActiveAndEnabled || part.GetComponentInParent<RobotRepair>() != robot)) return;
             foreach (RepairTool tool in GetComponentsInChildren<RepairTool>())
                 if (tool.IsActive) return;
@@ -251,6 +255,7 @@ namespace BORis
 
         public void Exit()
         {
+            if (DriveStand != null) DriveStand.Cancel();
             if (robot != null) robot.CancelTest();
             ReturnToOverview();
             if (view == null) return;

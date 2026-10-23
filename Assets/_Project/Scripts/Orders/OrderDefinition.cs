@@ -12,6 +12,7 @@ namespace BORis
         [SerializeField] RobotRepair robotPrefab;
         [SerializeField] bool requiresCleaning;
         [SerializeField] bool requiresSolderingStation;
+        [SerializeField] bool independentDiagnosis;
 
         public string OrderId => orderId;
         public string ClientName => clientName;
@@ -20,7 +21,10 @@ namespace BORis
         public RobotRepair RobotPrefab => robotPrefab;
         public bool RequiresCleaning => requiresCleaning;
         public bool RequiresSolderingStation => requiresSolderingStation;
-        public string Requirements => requiresCleaning
+        public bool IndependentDiagnosis => independentDiagnosis;
+        public string Requirements => independentDiagnosis
+            ? "Проверить работу руки, устранить причину отказа и вернуть собранного робота с успешным тестом."
+            : requiresCleaning
             ? "Очистить каждый участок не менее чем на 90%.\nСобрать робота и завершить тест руки."
             : requiresSolderingStation ? "Восстановить контакт, собрать робота и завершить тест руки.\nОчистка не входит в заказ."
             : "Устранить неисправность, собрать робота и завершить тест руки.\nОчистка не входит в заказ.";

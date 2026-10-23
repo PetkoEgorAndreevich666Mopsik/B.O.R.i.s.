@@ -16,6 +16,11 @@ namespace BORis
         [SerializeField] UnityEngine.UI.Button collapseButton;
         [SerializeField] UnityEngine.UI.Text collapseLabel;
         [SerializeField] GameObject helpPanel;
+        [SerializeField] UnityEngine.UI.Button diagnosisButton;
+        [SerializeField] GameObject diagnosisPanel;
+        [SerializeField] UnityEngine.UI.Text diagnosisText;
+        [SerializeField] UnityEngine.UI.Button diagnosisHelpButton;
+        [SerializeField] UnityEngine.UI.Button closeDiagnosisButton;
         RectTransform questRect;
         CanvasGroup toolsGroup;
         Vector2 questSize, symptomSize, assemblySize, assemblyPosition;
@@ -24,13 +29,20 @@ namespace BORis
         string previousFeedback;
         Transform feedbackTarget;
         RobotRepair previousRobot;
+        UnityEngine.UI.Text diagnosisHelpLabel;
         bool faultWasFound;
         float findingUntil;
         const string Accent = "#A6E3CD";
+        int diagnosisHelpLevel;
+        bool showDiagnosis;
 
         void Awake()
         {
             if (collapseButton != null) collapseButton.onClick.AddListener(ToggleDetails);
+            if (diagnosisButton != null) diagnosisButton.onClick.AddListener(ToggleDiagnosis);
+            if (diagnosisHelpButton != null) diagnosisHelpButton.onClick.AddListener(RevealDiagnosisHelp);
+            if (diagnosisHelpButton != null) diagnosisHelpLabel = diagnosisHelpButton.GetComponentInChildren<UnityEngine.UI.Text>();
+            if (closeDiagnosisButton != null) closeDiagnosisButton.onClick.AddListener(CloseDiagnosisPanel);
             if (toolsPanel != null) toolsGroup = toolsPanel.GetComponent<CanvasGroup>();
             questRect = questPanel != null ? questPanel.GetComponent<RectTransform>() : null;
             if (questRect != null) questSize = questRect.sizeDelta;
@@ -59,7 +71,10 @@ namespace BORis
             compactNow = compact;
             SetCompact(compact);
             if (toolsPanel != null) toolsPanel.SetActive(true);
-            if (UnityEngine.InputSystem.Keyboard.current?.f1Key.wasPressedThisFrame == true) showHelp = !showHelp;
+            if (diagnosisButton != null) diagnosisButton.gameObject.SetActive(true);
+            if (UnityEngine.InputSystem.Keyboard.current?.f1Key.wasPressedThisFrame == true)
+            { showHelp = !showHelp; showDiagnosis = false; }
+            if (UnityEngine.InputSystem.Keyboard.current?.hKey.wasPressedThisFrame == true) ToggleDiagnosis();
             if (helpPanel != null) helpPanel.SetActive(showHelp);
             if (collapseLabel != null) collapseLabel.text = compact ? "+" : "−";
             RobotRepair robot = interaction.Robot;
@@ -68,6 +83,7 @@ namespace BORis
                 previousRobot = robot;
                 faultWasFound = robot != null && (robot.DriveFaultFound || robot.JointFaultFound);
                 findingUntil = 0f;
+                diagnosisHelpLevel = 0;
             }
             else if (robot != null && (robot.DriveFaultFound || robot.JointFaultFound) && !faultWasFound)
             {
@@ -75,14 +91,27 @@ namespace BORis
                 findingUntil = Time.unscaledTime + 1.4f;
             }
             OrderDefinition order = interaction.ActiveOrder;
+            bool independent = order != null && order.IndependentDiagnosis;
+            if (diagnosisPanel != null) diagnosisPanel.SetActive(showDiagnosis);
+            if (diagnosisText != null && showDiagnosis)
+                diagnosisText.text = "<b>УСТРОЙСТВО РУКИ</b>\nПлата → контакт питания → мотор / редуктор → рука\n"
+                    + "Исправный привод вращается ровно. Исправная рука выполняет полный жест. Стенд проверяет только снятый привод.\n\n"
+                    + "<b>НАБЛЮДЕНИЯ</b>\n" + (robot != null ? robot.Findings : "Нет робота")
+                    + "\n\n<b>ПОМОЩЬ</b>\n" + (robot != null ? robot.DiagnosisHelp(diagnosisHelpLevel) : "");
+            if (diagnosisHelpButton != null)
+            {
+                diagnosisHelpButton.interactable = diagnosisHelpLevel < 3;
+                if (diagnosisHelpLabel != null) diagnosisHelpLabel.text = diagnosisHelpLevel == 0 ? "Куда смотреть" : diagnosisHelpLevel == 1 ? "Что проверить"
+                    : diagnosisHelpLevel == 2 ? "Показать решение" : "Решение открыто";
+            }
             bool cleaning = order != null && order.RequiresCleaning;
             bool clean = !cleaning || robot != null && robot.CheckCleaning(out _);
             bool ready = robot != null && robot.TestResult == RobotTestResult.Passed && clean;
-            if (toolsGroup != null) toolsGroup.alpha = robot != null && robot.IsTesting ? .4f : 1f;
+            if (toolsGroup != null) toolsGroup.alpha = robot != null && (robot.IsTesting || robot.IsOnDriveStand) ? .4f : 1f;
 
             if (symptom != null)
             {
-                string heading = order != null ? $"ЗАКАЗ {order.OrderId} · {order.ClientName}" : "РЕМОНТ РОБОТА";
+                string heading = order != null ? $"{(independent ? "ЗАКАЗ" : "ЗАКАЗ " + order.OrderId)} · {order.ClientName}" : "РЕМОНТ РОБОТА";
                 symptom.text = interaction.IsInspecting
                     ? $"<size=13>ОСМОТР</size>\n<b>{interaction.InspectionName}</b>"
                     : compact ? $"<size=13>{heading}</size>\n<b>{(cleaning ? "Обслуживание" : "Ремонт руки")}</b>"
@@ -91,8 +120,13 @@ namespace BORis
 
             if (assemblyState != null)
             {
-                string goal = interaction.IsInspecting ? "Поверните предмет, чтобы рассмотреть его.\nF / ESC — вернуть и продолжить ремонт"
-                    : ready ? "Вернитесь к стойке и выдайте робота" : NextAction(robot, cleaning);
+                string goal;
+                if (interaction.IsInspecting) goal = "Поверните предмет, чтобы рассмотреть его.\nF / ESC — вернуть и продолжить ремонт";
+                else if (ready) goal = "Вернитесь к стойке и выдайте робота";
+                else if (!independent) goal = NextAction(robot, cleaning);
+                else if (robot != null && robot.IsTesting) goal = "Проверяем движение руки…";
+                else if (robot != null && robot.IsOnDriveStand) goal = robot.ActiveDriveStand.Status;
+                else goal = "Найдите причину отказа и проверьте результат ремонта.\nH — факты и помощь по запросу";
                 string finding = FindingText(robot, cleaning);
                 string progress = "";
                 if (cleaning && robot != null)
@@ -135,7 +169,7 @@ namespace BORis
                     || interaction.Soldering != null && interaction.Soldering.IsActive;
                 if (context != null)
                 {
-                    if (interaction.IsViewMoving || interaction.IsInspecting || showHelp) context.Hide();
+                    if (interaction.IsViewMoving || interaction.IsInspecting || showHelp || showDiagnosis) context.Hide();
                     else context.Present(contextText, interaction.View, working ? null : target,
                         interaction.SolderingSelected && interaction.Soldering.IsActive ? interaction.Soldering.Target.Progress
                             : interaction.ObservationProgress > 0f ? interaction.ObservationProgress : -1f,
@@ -155,7 +189,7 @@ namespace BORis
                         if (toolSlots[i] != null)
                         {
                             var button = toolSlots[i].GetComponent<UnityEngine.UI.Button>();
-                            if (button != null) button.interactable = (robot == null || !robot.IsTesting) && (i != 3 || interaction.SolderingAvailable);
+                            if (button != null) button.interactable = (robot == null || !robot.IsTesting && !robot.IsOnDriveStand) && (i != 3 || interaction.SolderingAvailable);
                             toolSlots[i].gameObject.SetActive(i != 3 || interaction.SolderingAvailable);
                             toolSlots[i].color = i == selected ? new Color(.24f, .49f, .44f, .96f)
                                 : new Color(.055f, .105f, .13f, .94f);
@@ -164,11 +198,20 @@ namespace BORis
             if (cameraHints != null)
             {
                 cameraHints.gameObject.SetActive(true);
-                cameraHints.text = interaction.IsInspecting ? "ПКМ  Повернуть предмет · Колесо  Приблизить\nR  Выровнять · F / ESC  Вернуть" : "F  Осмотр предмета · F1  Справка";
+                cameraHints.text = interaction.IsInspecting ? "ПКМ  Повернуть предмет · Колесо  Приблизить\nR  Выровнять · F / ESC  Вернуть" : "F  Осмотр · F1  Управление · H  Факты / помощь";
             }
         }
 
         void ToggleDetails() => collapsedOverride = !compactNow;
+        void ToggleDiagnosis() { showDiagnosis = !showDiagnosis; showHelp = false; }
+        void RevealDiagnosisHelp() => diagnosisHelpLevel = Mathf.Min(3, diagnosisHelpLevel + 1);
+        void CloseDiagnosisPanel() => showDiagnosis = false;
+        public bool CloseDiagnosis()
+        {
+            if (!showDiagnosis) return false;
+            showDiagnosis = false;
+            return true;
+        }
 
         static Transform ContextTarget(InteractionController interaction)
         {
@@ -185,15 +228,15 @@ namespace BORis
 
         static string FindingText(RobotRepair robot, bool cleaning)
         {
-            if (robot != null && robot.JointFaultFound && robot.SolderJoint != null)
-                return robot.SolderJoint.IsRepaired ? $"<color={Accent}><b>КОНТАКТ ВОССТАНОВЛЕН</b></color>"
-                    : $"<color={Accent}><b>НАЙДЕНО</b> · разрыв дорожки контакта</color>";
-            if (robot != null && robot.DriveFaultFound)
-                return $"<color={Accent}><b>НАЙДЕНО</b> · повреждён привод руки</color>";
             if (cleaning) return "Обслуживание · замена привода не требуется";
-            if (robot != null && robot.HasInspectedDrive && robot.InspectedDrive == robot.InstalledDrive)
-                return "Осмотрено · видимых повреждений привода нет";
-            return "Причина пока неизвестна.";
+            if (robot == null) return "Причина пока неизвестна.";
+            if (robot.JointFaultFound && robot.SolderJoint != null)
+                return robot.SolderJoint.IsRepaired ? "Контакт восстановлен" : "На дорожке контакта виден разрыв";
+            RepairPart drive = robot.InstalledDrive;
+            if (drive != null && drive.StandResult != DriveTestResult.NotTested)
+                return $"{drive.DriveIdentity}: {drive.StandObservation}";
+            if (drive != null && robot.InspectedDrive == drive) return "Осмотрено · видимых повреждений привода нет";
+            return robot.LastArmObservation != ArmObservation.NotTested ? robot.ArmObservationText : "Причина пока неизвестна.";
         }
 
         static string NextAction(RobotRepair robot, bool cleaning)
@@ -219,10 +262,13 @@ namespace BORis
         string ContextHint(InteractionController interaction)
         {
             RobotRepair robot = interaction.Robot;
+            bool independent = interaction.ActiveOrder != null && interaction.ActiveOrder.IndependentDiagnosis;
             if (robot != null && robot.IsTesting) return "<b>ПРОВЕРКА РУКИ</b> · дождитесь результата";
+            if (interaction.PointedStand != null) return "<b>СТЕНД ПРИВОДА</b>\n" + interaction.PointedStand.Status;
             if (interaction.HeldPart != null)
                 return $"<b>{robot.PartLabel(interaction.HeldPart)}</b>\nОтпустите ЛКМ — " + (interaction.DropAnchor == null
-                    ? "вернуть назад" : "установить");
+                    ? "вернуть назад" : interaction.DriveStand != null && interaction.DropAnchor == interaction.DriveStand.Socket
+                        ? "поместить на стенд" : "установить");
             var driver = interaction.Screwdriver;
             var brush = interaction.Brush;
             var soldering = interaction.Soldering;
@@ -231,8 +277,9 @@ namespace BORis
             {
                 if (interaction.ObservationProgress > 0f)
                     return "<b>ОСМОТР КОНТАКТА</b>\nЗадержите указатель на дорожке";
-                string state = joint.IsRepaired ? "восстановлен" : joint.Progress.ToString("P0");
-                string action = joint.IsRepaired ? "Подключите разъём, соберите и проверьте робота"
+                string state = joint.IsRepaired ? "дорожка непрерывна" : "виден разрыв дорожки";
+                string action = independent && !interaction.SolderingSelected ? "F — осмотреть робота · H — факты и помощь"
+                    : joint.IsRepaired ? "Подключите разъём, соберите и проверьте робота"
                     : !interaction.SolderingSelected ? "4 — паяльник · ЛКМ + движение по дорожке"
                     : !robot.CanSolder(joint, interaction.Session, out string reason) ? reason
                     : soldering.IsActive && !soldering.HasContact ? "Нет контакта · вернитесь жалом на дорожку"
@@ -301,6 +348,9 @@ namespace BORis
             if (toolsPanel != null) toolsPanel.SetActive(false);
             if (cameraHints != null) cameraHints.gameObject.SetActive(false);
             if (helpPanel != null) helpPanel.SetActive(false);
+            if (diagnosisPanel != null) diagnosisPanel.SetActive(false);
+            if (diagnosisButton != null) diagnosisButton.gameObject.SetActive(false);
+            showDiagnosis = false;
             showHelp = false;
             if (assemblyState != null) assemblyState.text = "";
             if (symptom != null) symptom.text = "";
@@ -315,6 +365,9 @@ namespace BORis
         void OnDestroy()
         {
             if (collapseButton != null) collapseButton.onClick.RemoveListener(ToggleDetails);
+            if (diagnosisButton != null) diagnosisButton.onClick.RemoveListener(ToggleDiagnosis);
+            if (diagnosisHelpButton != null) diagnosisHelpButton.onClick.RemoveListener(RevealDiagnosisHelp);
+            if (closeDiagnosisButton != null) closeDiagnosisButton.onClick.RemoveListener(CloseDiagnosisPanel);
         }
     }
 }
