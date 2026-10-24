@@ -121,7 +121,7 @@ namespace BORis
             if (assemblyState != null)
             {
                 string goal;
-                if (interaction.IsInspecting) goal = "Поверните предмет, чтобы рассмотреть его.\nF / ESC — вернуть и продолжить ремонт";
+                if (interaction.IsInspecting) goal = "Инструменты и перенос доступны вблизи.\nF / ESC — общий вид верстака";
                 else if (ready) goal = "Вернитесь к стойке и выдайте робота";
                 else if (!independent) goal = NextAction(robot, cleaning);
                 else if (robot != null && robot.IsTesting) goal = "Проверяем движение руки…";
@@ -159,8 +159,7 @@ namespace BORis
                     feedbackTarget = target;
                 }
                 bool feedback = interaction.Feedback.Length > 0 && feedbackTarget == target;
-                if (interaction.IsInspecting) contextText = "ПКМ + движение — повернуть предмет\nR — выровнять · F / ESC — вернуть";
-                else if (feedback) contextText = $"<color=#FFD599>{interaction.Feedback}</color>";
+                if (feedback) contextText = $"<color=#FFD599>{interaction.Feedback}</color>";
                 else if (Time.unscaledTime < findingUntil)
                     contextText = FindingText(robot, cleaning);
                 bool working = robot != null && robot.IsTesting || interaction.HeldPart != null
@@ -169,7 +168,7 @@ namespace BORis
                     || interaction.Soldering != null && interaction.Soldering.IsActive;
                 if (context != null)
                 {
-                    if (interaction.IsViewMoving || interaction.IsInspecting || showHelp || showDiagnosis) context.Hide();
+                    if (interaction.IsViewMoving || showHelp || showDiagnosis) context.Hide();
                     else context.Present(contextText, interaction.View, working ? null : target,
                         interaction.SolderingSelected && interaction.Soldering.IsActive ? interaction.Soldering.Target.Progress
                             : interaction.ObservationProgress > 0f ? interaction.ObservationProgress : -1f,
@@ -198,7 +197,7 @@ namespace BORis
             if (cameraHints != null)
             {
                 cameraHints.gameObject.SetActive(true);
-                cameraHints.text = interaction.IsInspecting ? "ПКМ  Повернуть предмет · Колесо  Приблизить\nR  Выровнять · F / ESC  Вернуть" : "F  Осмотр · F1  Управление · H  Факты / помощь";
+                cameraHints.text = interaction.IsInspecting ? "ПКМ  Повернуть предмет · Колесо  Приблизить\n1–4  Инструменты · R  Выровнять · F / ESC  Общий вид" : "F  Осмотр · F1  Управление · H  Факты / помощь";
             }
         }
 

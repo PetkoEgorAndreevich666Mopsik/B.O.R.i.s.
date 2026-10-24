@@ -82,6 +82,36 @@ public sealed class SolderingFlowTests
     }
 
     [UnityTest]
+    public IEnumerator SolderingAndConnectorRemainAvailableDuringInspection()
+    {
+        yield return EnterC();
+        OpenCover();
+        var bench = Object.FindFirstObjectByType<Workbench>();
+        bench.Focus(robot.InstalledDrive);
+        yield return new WaitForSeconds(1.3f);
+        yield return Pointer(interaction.View.WorldToScreenPoint(robot.Connector.transform.position), true);
+        yield return Pointer(interaction.View.WorldToScreenPoint(robot.Connector.transform.position));
+        Assert.That(robot.Connector.IsConnected, Is.False);
+        Assert.That(interaction.IsInspecting, Is.True);
+        yield return Press(Key.Digit4);
+        yield return Pointer(ScreenPosition(.01f), true);
+        Assert.That(tool.IsActive, Is.True);
+        for (int i = 1; i <= 30; i++)
+        {
+            Vector2 pointer = ScreenPosition(.01f + .98f * i / 30);
+            yield return Pointer(pointer, true);
+            Physics.Raycast(interaction.View.ScreenPointToRay(pointer), out var hit, 10f, ~0, QueryTriggerInteraction.Ignore);
+            Assert.That(tool.HasContact || joint.IsRepaired, Is.True,
+                $"Seam sample {i}: {pointer}, hit {hit.collider?.name}, progress {joint.Progress}");
+        }
+        yield return Pointer(ScreenPosition(.99f));
+        Assert.That(joint.IsRepaired, Is.True);
+        Assert.That(interaction.IsInspecting, Is.True);
+        yield return Press(Key.F);
+        Assert.That(joint.IsRepaired, Is.True);
+    }
+
+    [UnityTest]
     public IEnumerator InspectionRotatesBoardWithAssemblyAndReturnsBeforeSoldering()
     {
         yield return EnterC();
@@ -100,6 +130,7 @@ public sealed class SolderingFlowTests
         yield return Press(Key.Escape);
         Assert.That(interaction.IsAtWorkbench, Is.True);
         Assert.That(interaction.IsInspecting, Is.False);
+        yield return new WaitForSeconds(.6f);
         Assert.That(Vector3.Distance(joint.transform.position, position), Is.LessThan(.0001f));
         Assert.That(Quaternion.Angle(joint.transform.rotation, rotation), Is.LessThan(.01f));
         PrepareSeam();

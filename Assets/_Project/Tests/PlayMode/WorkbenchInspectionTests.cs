@@ -70,12 +70,57 @@ public sealed class WorkbenchInspectionTests
         yield return Pointer(ScreenUV(inner, Vector2.one * .5f));
         yield return Press(Key.F);
         Assert.That(workbench.FocusedPart, Is.SameAs(robot.Cover));
+        yield return new WaitForSeconds(1.2f);
     }
 
     static void AssertPose(Transform target, Vector3 position, Quaternion rotation)
     {
         Assert.That(Vector3.Distance(target.position, position), Is.LessThan(.0001f));
         Assert.That(Quaternion.Angle(target.rotation, rotation), Is.LessThan(.01f));
+    }
+
+    [UnityTest]
+    public IEnumerator CameraLeansOverLiftedPartAndBothReturnSmoothly()
+    {
+        foreach (var screw in robot.Cover.Screws) robot.Turn(screw, -10000f);
+        Assert.That(robot.TryPlace(robot.Cover, false, out _), Is.True);
+        Vector3 overview = player.View.transform.position;
+        Vector3 partPosition = robot.Cover.transform.position;
+        Quaternion partRotation = robot.Cover.transform.rotation;
+        Quaternion overviewRotation = player.View.transform.rotation;
+        workbench.Focus(robot.Cover);
+        AssertPose(player.View.transform, overview, player.View.transform.rotation);
+        AssertPose(robot.Cover.transform, partPosition, partRotation);
+        yield return new WaitForSeconds(.15f);
+        Assert.That(Vector3.Distance(player.View.transform.position, overview), Is.GreaterThan(.03f));
+        yield return new WaitForSeconds(1.2f);
+        Vector3 close = player.View.transform.position;
+        Assert.That(robot.Cover.transform.position.y, Is.GreaterThan(partPosition.y + .05f));
+        Assert.That(Vector3.Dot(player.View.transform.forward, Vector3.down),
+            Is.GreaterThan(Vector3.Dot(overviewRotation * Vector3.forward, Vector3.down) + .15f));
+        Assert.That(Vector3.Distance(close, partPosition), Is.LessThan(Vector3.Distance(overview, partPosition) * .85f));
+        Assert.That(robot.Cover.GetComponentsInChildren<Collider>().All(c => c.enabled), Is.True);
+        workbench.ReturnToOverview();
+        AssertPose(player.View.transform, close, player.View.transform.rotation);
+        Assert.That(robot.Cover.transform.position.y, Is.GreaterThan(partPosition.y + .05f), "Lowering must not teleport.");
+        yield return new WaitForSeconds(.15f);
+        Assert.That(Vector3.Distance(player.View.transform.position, overview), Is.GreaterThan(.1f));
+        yield return new WaitForSeconds(2f);
+        Assert.That(Vector3.Distance(player.View.transform.position, overview), Is.LessThan(.002f));
+        AssertPose(robot.Cover.transform, partPosition, partRotation);
+        Assert.That(Quaternion.Angle(player.View.transform.rotation, overviewRotation), Is.LessThan(.01f));
+    }
+
+    [UnityTest]
+    public IEnumerator OverviewDoesNotInheritWalkingEyeHeight()
+    {
+        Vector3 overview = player.View.transform.position;
+        Quaternion rotation = player.View.transform.rotation;
+        workbench.Exit();
+        player.View.transform.position += Vector3.up * .5f;
+        Assert.That(workbench.Enter(player.View), Is.True);
+        AssertPose(player.View.transform, overview, rotation);
+        yield return null;
     }
 
     [UnityTest]
@@ -97,25 +142,26 @@ public sealed class WorkbenchInspectionTests
         float fullHeight = quest.rectTransform.rect.height;
         yield return Pointer(player.View.WorldToScreenPoint(robot.Cover.transform.position));
         yield return Press(Key.F);
-        yield return new WaitForSeconds(.7f);
+        yield return new WaitForSeconds(1.2f);
         Assert.That(interaction.IsInspecting, Is.True);
         Assert.That(workbench.FocusedPart, Is.Null);
         Assert.That(quest.rectTransform.rect.height, Is.LessThan(fullHeight));
         Vector3 cameraPosition = player.View.transform.position;
+        Quaternion cameraRotation = player.View.transform.rotation;
         Vector3 playerPosition = player.transform.position;
         yield return Pointer(Center, delta: new Vector2(100, -50));
         Assert.That(Quaternion.Angle(bodyRotation, robot.InspectionPivot.rotation), Is.LessThan(.01f));
         yield return Pointer(Center, 2, new Vector2(500, 1000));
         yield return Pointer(Center);
         Assert.That(Quaternion.Angle(bodyRotation, robot.InspectionPivot.rotation), Is.GreaterThan(90f));
-        AssertPose(player.View.transform, cameraPosition, overviewRotation);
+        AssertPose(player.View.transform, cameraPosition, cameraRotation);
         Assert.That(Vector3.Distance(playerPosition, player.transform.position), Is.LessThan(.0001f));
         AssertPose(spare.transform, sparePosition, spareRotation);
         AssertPose(robot.Cover.TrayAnchor, trayPosition, trayRotation);
         Assert.That(robot.Cover.IsInstalled, Is.True);
         Assert.That(robot.Cover.Screws.All(s => s.IsTight), Is.True);
         yield return Press(Key.F);
-        yield return new WaitForSeconds(.7f);
+        yield return new WaitForSeconds(2.2f);
         AssertPose(robot.InspectionPivot, bodyPosition, bodyRotation);
         AssertPose(robot.Cover.InstallationAnchor, anchorPosition, anchorRotation);
         AssertPose(robot.Cover.transform, anchorPosition, anchorRotation);
@@ -124,7 +170,7 @@ public sealed class WorkbenchInspectionTests
     }
 
     [UnityTest]
-    public IEnumerator DetachedCoverTurnsOverAndZoomsWithFixedCameraThenRestoresPose()
+    public IEnumerator DetachedCoverTurnsInPlaceWhileCameraApproachesAndZooms()
     {
         Vector3 cameraPosition = player.View.transform.position;
         Quaternion cameraRotation = player.View.transform.rotation;
@@ -133,18 +179,21 @@ public sealed class WorkbenchInspectionTests
         Transform parent = cover.transform.parent;
         Quaternion initial = cover.transform.rotation;
         Vector3 scale = cover.transform.localScale;
-        Assert.That(Vector3.Distance(cover.transform.position, cover.TrayAnchor.position), Is.GreaterThan(.2f));
+        Assert.That(cover.transform.position.y, Is.GreaterThan(cover.TrayAnchor.position.y + .05f));
         Assert.That(cover.GetComponentInParent<RobotRepair>(), Is.SameAs(robot));
-        Assert.That(cover.GetComponentsInChildren<Collider>().All(c => !c.enabled), Is.True);
+        Assert.That(cover.GetComponentsInChildren<Collider>().All(c => c.enabled), Is.True);
         yield return Pointer(Center, 2, new Vector2(0, 720));
         yield return Pointer(Center);
         Assert.That(Vector3.Dot(initial * Vector3.forward, cover.transform.forward), Is.LessThan(-.98f), "Reverse side is reachable.");
-        float distance = Vector3.Distance(cameraPosition, cover.transform.position);
+        yield return new WaitForSeconds(1f);
+        float distance = Vector3.Distance(player.View.transform.position, cover.transform.position);
         yield return Pointer(Center, wheel: 120);
-        Assert.That(Vector3.Distance(cameraPosition, cover.transform.position), Is.LessThan(distance - .03f));
-        AssertPose(player.View.transform, cameraPosition, cameraRotation);
+        yield return new WaitForSeconds(1f);
+        Assert.That(Vector3.Distance(player.View.transform.position, cover.transform.position), Is.LessThan(distance - .03f));
+        Assert.That(Quaternion.Angle(player.View.transform.rotation, cameraRotation), Is.GreaterThan(10f));
         Assert.That(cover.transform.localScale, Is.EqualTo(scale));
         yield return Press(Key.F);
+        yield return new WaitForSeconds(.6f);
         Assert.That(cover.transform.parent, Is.SameAs(parent));
         AssertPose(cover.transform, cover.TrayAnchor.position, cover.TrayAnchor.rotation);
         Assert.That(cover.IsInstalled, Is.False);
@@ -158,6 +207,7 @@ public sealed class WorkbenchInspectionTests
     {
         yield return FocusCover();
         yield return Press(Key.F);
+        yield return new WaitForSeconds(.6f);
         Assert.That(robot.ToggleConnection(robot.Connector, out _), Is.True);
         var oldDrive = robot.InstalledDrive;
         foreach (var screw in oldDrive.Screws) robot.Turn(screw, -10000f);
@@ -171,6 +221,7 @@ public sealed class WorkbenchInspectionTests
             yield return Pointer(Center, 2, new Vector2(250, 120));
             yield return Pointer(Center);
             yield return Press(Key.F);
+            yield return new WaitForSeconds(.6f);
             AssertPose(drive.transform, drive.TrayAnchor.position, drive.TrayAnchor.rotation);
             Assert.That(robot.TryPlace(drive, true, out string reason), Is.True, reason);
             Assert.That(robot.TryPlace(drive, false, out reason), Is.True, reason);
@@ -187,6 +238,7 @@ public sealed class WorkbenchInspectionTests
         Assert.That(workbench.FocusedPart, Is.Null);
         Assert.That(robot.Cover.IsInstalled && robot.Cover.IsReleased, Is.True);
         yield return Press(Key.F);
+        yield return new WaitForSeconds(.6f);
         Assert.That(robot.Cover.transform.position, Is.EqualTo(released));
         Assert.That(robot.TryPlace(robot.Cover, false, out _), Is.True);
         Physics.SyncTransforms();
@@ -228,20 +280,14 @@ public sealed class WorkbenchInspectionTests
     }
 
     [UnityTest]
-    public IEnumerator InspectionBlocksRepairAndToolShortcutReturnsPartBeforeCleaning()
+    public IEnumerator BrushCleansDetachedCoverWithoutLeavingInspection()
     {
         yield return FocusCover();
         var inner = robot.Cover.GetComponentsInChildren<DirtPatch>().Single(p => p.RequiresOpenCover);
-        yield return Pointer(Center, 1);
-        yield return Pointer(Center + Vector2.right * 80, 1);
-        Assert.That(interaction.HeldPart, Is.Null);
-        Assert.That(interaction.Brush.IsActive, Is.False);
-        Assert.That(inner.Cleanliness, Is.Zero);
-        Assert.That(robot.Cover.Screws.All(s => s.IsLoose), Is.True);
-        yield return Pointer(Center);
         yield return Press(Key.Digit3);
-        Assert.That(interaction.IsInspecting, Is.False);
-        AssertPose(robot.Cover.transform, robot.Cover.TrayAnchor.position, robot.Cover.TrayAnchor.rotation);
+        Assert.That(interaction.IsInspecting, Is.True);
+        yield return new WaitForSeconds(1.2f);
+        Assert.That(robot.Cover.transform.position.y, Is.GreaterThan(robot.Cover.TrayAnchor.position.y + .05f));
         for (int y = 0; y < 8; y++)
         {
             float v = .06f + y * .125f;
@@ -251,7 +297,86 @@ public sealed class WorkbenchInspectionTests
                 yield return Pointer(ScreenUV(inner, new Vector2(.04f + x * .115f, v)), 1);
             yield return Pointer(ScreenUV(inner, new Vector2(.96f, v)));
         }
-        Assert.That(inner.IsClean, Is.True, "Cleaning remains reachable in the working pose.");
+        Assert.That(inner.IsClean, Is.True, "Cleaning must work at the inspected part's actual position.");
+        Assert.That(interaction.IsInspecting, Is.True);
+        yield return Press(Key.F);
+        Assert.That(inner.IsClean, Is.True, "Returning must preserve the repair.");
+    }
+
+    [UnityTest]
+    public IEnumerator ScrewdriverAndHandWorkWithoutLeavingRotatedInspection()
+    {
+        yield return Pointer(player.View.WorldToScreenPoint(robot.Cover.transform.position));
+        yield return Press(Key.F);
+        yield return new WaitForSeconds(1.2f);
+        yield return Pointer(Center, 2, new Vector2(25f, 0f));
+        yield return Pointer(Center);
+        yield return Press(Key.Digit2);
+        Assert.That(interaction.IsInspecting, Is.True);
+        foreach (var screw in robot.Cover.Screws)
+        {
+            Vector2 p = player.View.WorldToScreenPoint(screw.transform.position);
+            yield return Pointer(p, 1);
+            Assert.That(interaction.Screwdriver.Target, Is.SameAs(screw));
+            Vector3 camera = player.View.transform.position;
+            for (int i = 0; i < 16; i++) yield return Pointer(p, 1, wheel: -120);
+            Assert.That(screw.IsLoose, Is.True);
+            Assert.That(player.View.transform.position, Is.EqualTo(camera), "The camera must stay still throughout a gesture.");
+            yield return Pointer(p);
+        }
+        Assert.That(robot.Cover.IsReleased, Is.True);
+        yield return Press(Key.Digit1);
+        yield return Pointer(player.View.WorldToScreenPoint(robot.Cover.transform.position), 1);
+        Assert.That(interaction.HeldPart, Is.SameAs(robot.Cover));
+        Assert.That(interaction.IsInspecting, Is.True);
+        yield return Press(Key.Escape);
+        yield return Pointer(Center);
+        Assert.That(interaction.HeldPart, Is.Null);
+        Assert.That(interaction.IsInspecting, Is.True);
+        yield return Press(Key.F);
+        yield return new WaitForSeconds(.6f);
+        Assert.That(robot.Cover.IsInstalled && robot.Cover.IsReleased, Is.True);
+        AssertPose(robot.Cover.transform, robot.Cover.InstallationAnchor.position + robot.Cover.InstallationAnchor.rotation * Vector3.back * .035f,
+            robot.Cover.InstallationAnchor.rotation);
+    }
+
+    [UnityTest]
+    public IEnumerator HandCanRemoveAndReinstallCoverDuringInspectionWithoutRestoringOldAssembly()
+    {
+        foreach (var screw in robot.Cover.Screws) robot.Turn(screw, -10000f);
+        yield return Pointer(player.View.WorldToScreenPoint(robot.Cover.transform.position));
+        yield return Press(Key.F);
+        for (int i = 0; i < 8; i++) yield return Pointer(Center, wheel: -120);
+        yield return new WaitForSeconds(1.2f);
+        Vector3 fixedCamera = player.View.transform.position;
+        Quaternion fixedRotation = player.View.transform.rotation;
+        Vector2 source = player.View.WorldToScreenPoint(robot.Cover.transform.position);
+        yield return Pointer(source, 1);
+        Assert.That(interaction.HeldPart, Is.SameAs(robot.Cover));
+        Vector2 tray = player.View.WorldToScreenPoint(robot.Cover.TrayAnchor.position);
+        yield return Pointer(tray, 1);
+        Assert.That(interaction.DropAnchor, Is.SameAs(robot.Cover.TrayAnchor),
+            $"Tray {tray}, screen {Screen.width}x{Screen.height}, camera {player.View.transform.position}, distance {Vector3.Distance(player.View.transform.position, robot.Cover.TrayAnchor.position)}, feedback {interaction.Feedback}");
+        yield return Pointer(tray);
+        Assert.That(robot.Cover.IsInstalled, Is.False, interaction.Feedback);
+        Assert.That(interaction.IsInspecting, Is.True);
+        yield return new WaitForSeconds(1.2f);
+        AssertPose(player.View.transform, fixedCamera, fixedRotation);
+        for (int i = 0; i < 8; i++) yield return Pointer(Center, wheel: -120);
+        yield return new WaitForSeconds(1.2f);
+        source = player.View.WorldToScreenPoint(robot.Cover.transform.position);
+        yield return Pointer(source, 1);
+        Assert.That(interaction.HeldPart, Is.SameAs(robot.Cover));
+        Vector2 socket = player.View.WorldToScreenPoint(robot.Cover.InstallationAnchor.position);
+        yield return Pointer(socket, 1);
+        yield return Pointer(socket);
+        Assert.That(robot.Cover.IsInstalled, Is.True, interaction.Feedback);
+        Assert.That(interaction.IsInspecting, Is.True);
+        yield return Press(Key.F);
+        yield return new WaitForSeconds(.6f);
+        Assert.That(robot.Cover.IsInstalled, Is.True);
+        Assert.That(robot.Cover.Screws.All(s => s.IsLoose), Is.True);
+        AssertPose(robot.Cover.transform, robot.Cover.InstallationAnchor.position, robot.Cover.InstallationAnchor.rotation);
     }
 
     [UnityTest]

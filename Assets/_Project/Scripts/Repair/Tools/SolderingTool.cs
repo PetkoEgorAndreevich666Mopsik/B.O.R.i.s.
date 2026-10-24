@@ -48,7 +48,7 @@ namespace BORis
         public override void Drag(Vector2 pointer)
         {
             if (!IsAvailable || Target == null || repair == null || !repair.CanSolder(Target, session, out _)) { End(); return; }
-            HasContact = Physics.Raycast(view.ScreenPointToRay(pointer), out RaycastHit hit, 3f,
+            HasContact = Physics.Raycast(view.ScreenPointToRay(pointer), out RaycastHit hit, Reach,
                 queryMask, QueryTriggerInteraction.Ignore) && hit.collider.GetComponent<SolderJoint>() == Target;
             if (!HasContact)
             {

@@ -25,6 +25,7 @@ namespace BORis
         public Transform TrayAnchor => trayAnchor;
         public ScrewFastener[] Screws => screws;
         public bool IsReleased { get; private set; }
+        public bool IsDragging { get; private set; }
         public DriveTestResult StandResult { get; internal set; }
         public bool WasInitiallyInstalled { get; private set; }
         public string DriveIdentity => WasInitiallyInstalled ? "Исходный привод" : "Запасной привод";
@@ -40,6 +41,7 @@ namespace BORis
 
         public void SetDragging(bool dragging)
         {
+            IsDragging = dragging;
             foreach (Collider collider in colliders)
                 if (collider != null) collider.enabled = !dragging;
         }
@@ -68,10 +70,15 @@ namespace BORis
 
         public void RestorePose()
         {
+            AlignWithAnchor();
+            SetDragging(false);
+        }
+
+        internal void AlignWithAnchor()
+        {
             Transform anchor = installed ? installationAnchor : trayAnchor;
             if (anchor != null) transform.SetPositionAndRotation(
                 anchor.position + (installed && IsReleased ? anchor.rotation * Vector3.back * .035f : Vector3.zero), anchor.rotation);
-            SetDragging(false);
         }
     }
 }

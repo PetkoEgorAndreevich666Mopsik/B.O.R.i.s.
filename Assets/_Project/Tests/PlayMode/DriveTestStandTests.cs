@@ -81,7 +81,8 @@ public sealed class DriveTestStandTests
         Assert.That(stand.TryLoad(robot, spare, out _), Is.False);
         robot.CancelTest();
         bench.Focus(spare);
-        Assert.That(stand.TryLoad(robot, spare, out _), Is.False);
+        Assert.That(stand.TryLoad(robot, spare, out _), Is.True, "Inspection must not block the stand.");
+        stand.Cancel();
         bench.ReturnToOverview();
         yield return null;
     }

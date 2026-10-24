@@ -48,6 +48,7 @@ namespace BORis
         public bool IsAtOrderDesk => activeOrderDesk != null;
         public bool IsAtEquipmentShop => activeEquipmentShop != null;
         public bool IsInspecting => IsAtWorkbench && activeWorkbench.IsFocused;
+        float RepairReach => reach + (activeWorkbench != null ? activeWorkbench.CameraOffset : 0f);
         public string InspectionName => IsInspecting ? activeWorkbench.InspectionName : "";
         public OrderDefinition ActiveOrder => session != null ? session.ActiveOrder : null;
         public WorkshopSession Session => session;
@@ -146,6 +147,11 @@ namespace BORis
                 {
                     if (repairHUD != null && repairHUD.CloseDiagnosis()) { }
                     else if (DriveStand != null && DriveStand.Part != null) DriveStand.Cancel();
+                    else if (IsInspecting && (HeldPart != null || selectedTool != null && selectedTool.IsActive))
+                    {
+                        CancelPart();
+                        if (selectedTool != null) selectedTool.End();
+                    }
                     else if (IsInspecting) activeWorkbench.ReturnToOverview();
                     else ExitWorkbench();
                 }
@@ -223,14 +229,20 @@ namespace BORis
             PointedObject = null;
             PointedTestButton = false;
             PointedStand = null;
-            if (robot != null && robot.IsTesting) { ClearObservation(); return; }
+            if (robot != null && robot.IsTesting)
+            {
+                IsViewMoving = activeWorkbench.UpdateView(Vector2.zero, 0f);
+                ClearObservation();
+                return;
+            }
             if (DriveStand != null && DriveStand.Part != null)
             {
+                IsViewMoving = activeWorkbench.UpdateView(Vector2.zero, 0f);
                 ClearObservation();
                 PointedObject = DriveStand.transform;
                 PointedStand = DriveStand;
                 if (!PointerOverUI() && primary.WasPressedThisFrame()
-                    && Physics.Raycast(player.View.ScreenPointToRay(point.ReadValue<Vector2>()), out var standHit, reach,
+                    && Physics.Raycast(player.View.ScreenPointToRay(point.ReadValue<Vector2>()), out var standHit, RepairReach,
                         ~(1 << gameObject.layer), QueryTriggerInteraction.Ignore)
                     && standHit.collider.GetComponentInParent<DriveTestStand>() == DriveStand)
                 {
@@ -255,21 +267,6 @@ namespace BORis
             PointedJoint = null;
             bool overUI = PointerOverUI();
             PointedTool = null;
-            if (IsInspecting)
-            {
-                ClearObservation();
-                bool canInspect = !overUI && !primary.IsPressed();
-                if (canInspect && focus.WasPressedThisFrame()) activeWorkbench.ReturnToOverview();
-                else
-                {
-                    if (canInspect && alignInspection.WasPressedThisFrame()) AlignInspection();
-                    bool rotating = canInspect && orbit.IsPressed();
-                    IsViewMoving = activeWorkbench.UpdateView(rotating ? orbitDelta.ReadValue<Vector2>() : Vector2.zero,
-                        canInspect ? scroll.ReadValue<Vector2>().y : 0f) || rotating;
-                }
-                return;
-            }
-            if (selectedTool != null && !selectedTool.IsActive) selectedTool.FollowPointer(pointer);
             if (HeldPart != null)
             {
                 ClearObservation();
@@ -293,8 +290,18 @@ namespace BORis
                 if (!selectedTool.IsActive) selectedTool.FollowPointer(pointer);
                 return;
             }
+            bool wasInspecting = IsInspecting;
+            bool canMoveView = !overUI && !primary.IsPressed();
+            if (wasInspecting && canMoveView && focus.WasPressedThisFrame()) activeWorkbench.ReturnToOverview();
+            if (IsInspecting && canMoveView && alignInspection.WasPressedThisFrame()) AlignInspection();
+            bool rotating = IsInspecting && canMoveView && orbit.IsPressed();
+            bool viewMoving = !primary.IsPressed() && activeWorkbench.UpdateView(
+                rotating ? orbitDelta.ReadValue<Vector2>() : Vector2.zero,
+                IsInspecting && canMoveView ? scroll.ReadValue<Vector2>().y : 0f);
+            IsViewMoving = viewMoving || rotating;
+            if (selectedTool != null) selectedTool.FollowPointer(pointer);
             RaycastHit hit = default;
-            bool hasHit = !overUI && Physics.Raycast(player.View.ScreenPointToRay(pointer), out hit, reach,
+            bool hasHit = !overUI && Physics.Raycast(player.View.ScreenPointToRay(pointer), out hit, RepairReach,
                 ~(1 << gameObject.layer), QueryTriggerInteraction.Ignore);
             // Restrict tools and focus to this table; the closest collider also blocks hidden screws.
             hasHit &= hit.collider != null && hit.collider.GetComponentInParent<Workbench>() == activeWorkbench;
@@ -310,27 +317,23 @@ namespace BORis
                 PointedTool = hit.collider.GetComponentInParent<RepairTool>();
                 PointedStand = hit.collider.GetComponentInParent<DriveTestStand>();
             }
-            bool canMoveView = !overUI && !primary.IsPressed();
-            if (canMoveView && focus.WasPressedThisFrame())
+            if (!wasInspecting && canMoveView && focus.WasPressedThisFrame())
             {
                 if (hasHit && hit.collider.GetComponentInParent<RobotRepair>() == robot)
                 {
-                    SelectTool(null);
                     activeWorkbench.Focus(PointedPart);
                     ClearObservation();
                     return;
                 }
             }
-            bool viewMoving = activeWorkbench.UpdateView(Vector2.zero, 0f);
-            IsViewMoving = viewMoving;
-            if (selectedTool != null) selectedTool.FollowPointer(pointer);
-            bool canObserve = hasHit && !viewMoving && !primary.IsPressed();
+            bool canObserve = hasHit && !IsViewMoving && !primary.IsPressed();
             ObserveDrive(canObserve ? PointedPart : null, canObserve ? PointedJoint : null);
-            if (viewMoving || overUI || !hasHit) return;
+            if (rotating || overUI || !hasHit) return;
             if (!primary.WasPressedThisFrame()) return;
             if (PointedTestButton)
             {
                 SelectTool(null);
+                activeWorkbench.ReturnToOverview(true);
                 if (!robot.RunTest(out string reason)) Say(reason);
                 else Say("");
             }
@@ -368,6 +371,7 @@ namespace BORis
                 {
                     if (!robot.CanMove(PointedPart, out string reason)) { Say(reason); return; }
                     HeldPart = PointedPart;
+                    activeWorkbench.ReleaseInspectionPart(HeldPart);
                     dragPlane = new Plane(player.View.transform.forward, HeldPart.transform.position);
                     Ray ray = player.View.ScreenPointToRay(pointer);
                     grabOffset = dragPlane.Raycast(ray, out float distance) ? HeldPart.transform.position - ray.GetPoint(distance) : Vector3.zero;
@@ -407,7 +411,6 @@ namespace BORis
         void SelectTool(RepairTool tool)
         {
             CancelPart();
-            if (activeWorkbench != null) activeWorkbench.ReturnToOverview();
             if (selectedTool != null) selectedTool.Select(null);
             selectedTool = tool;
             if (selectedTool != null)
@@ -426,24 +429,25 @@ namespace BORis
 
         public void AlignInspection()
         {
-            if (IsInspecting) activeWorkbench.AlignInspection();
+            if (IsInspecting && HeldPart == null && (selectedTool == null || !selectedTool.IsActive))
+                activeWorkbench.AlignInspection();
         }
 
         Transform FindDropAnchor(Ray ray)
         {
             if (DriveStand != null && HeldPart.Kind == RepairPartKind.Drive
-                && Physics.Raycast(ray, out RaycastHit standHit, reach, ~(1 << gameObject.layer), QueryTriggerInteraction.Ignore)
+                && Physics.Raycast(ray, out RaycastHit standHit, RepairReach, ~(1 << gameObject.layer), QueryTriggerInteraction.Ignore)
                 && standHit.collider.GetComponentInParent<DriveTestStand>() == DriveStand)
                 return DriveStand.Socket;
             // The lid and drive sockets overlap; query only the held part's compatible destinations.
             Collider install = HeldPart.InstallationAnchor.GetComponent<Collider>();
             Collider tray = HeldPart.TrayAnchor.GetComponent<Collider>();
-            bool hitInstall = install != null && install.Raycast(ray, out _, reach);
-            bool hitTray = tray != null && tray.Raycast(ray, out _, reach);
+            bool hitInstall = install != null && install.Raycast(ray, out _, RepairReach);
+            bool hitTray = tray != null && tray.Raycast(ray, out _, RepairReach);
             if (!hitInstall) return hitTray ? HeldPart.TrayAnchor : null;
             if (!hitTray) return HeldPart.InstallationAnchor;
-            install.Raycast(ray, out RaycastHit installedHit, reach);
-            tray.Raycast(ray, out RaycastHit trayHit, reach);
+            install.Raycast(ray, out RaycastHit installedHit, RepairReach);
+            tray.Raycast(ray, out RaycastHit trayHit, RepairReach);
             return installedHit.distance <= trayHit.distance ? HeldPart.InstallationAnchor : HeldPart.TrayAnchor;
         }
 
@@ -463,8 +467,8 @@ namespace BORis
             {
                 bool install = DropAnchor == HeldPart.InstallationAnchor;
                 if (!robot.CanPlace(HeldPart, install, out string reason)) Say(reason);
-                else if (Physics.Raycast(ray, out RaycastHit obstacle, reach, ~(1 << gameObject.layer), QueryTriggerInteraction.Ignore)
-                    && DropAnchor.GetComponent<Collider>().Raycast(ray, out RaycastHit destination, reach)
+                else if (Physics.Raycast(ray, out RaycastHit obstacle, RepairReach, ~(1 << gameObject.layer), QueryTriggerInteraction.Ignore)
+                    && DropAnchor.GetComponent<Collider>().Raycast(ray, out RaycastHit destination, RepairReach)
                     && obstacle.distance < destination.distance - .05f) Say("Посадочное место перекрыто предметом");
                 else if (robot.TryPlace(HeldPart, install, out reason)) Say(install ? "Деталь установлена" : "Деталь в лотке");
                 else Say(reason);
@@ -477,7 +481,6 @@ namespace BORis
             if (HeldPart != null)
             {
                 HeldPart.RestorePose();
-                if (activeWorkbench != null) activeWorkbench.ReturnToOverview();
             }
             HeldPart = null;
             DropAnchor = null;
@@ -496,7 +499,7 @@ namespace BORis
                 ClearObservation();
                 if (selectedTool != null) selectedTool.End();
                 CancelPart();
-                if (activeWorkbench != null) activeWorkbench.ReturnToOverview();
+                if (activeWorkbench != null) activeWorkbench.ReturnToOverview(true);
                 if (DriveStand != null) DriveStand.Cancel();
                 if (robot != null) robot.CancelTest();
             }

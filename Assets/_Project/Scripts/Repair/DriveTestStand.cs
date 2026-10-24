@@ -44,7 +44,7 @@ namespace BORis
         {
             reason = "";
             if (!isActiveAndEnabled || socket == null || workbench == null || !workbench.isActiveAndEnabled
-                || !workbench.IsOccupied || workbench.IsFocused || owner == null || workbench.Robot != owner
+                || !workbench.IsOccupied || owner == null || workbench.Robot != owner
                 || !owner.Owns(part)) reason = "Стенд принимает только деталь текущего робота";
             else if (part.Kind != RepairPartKind.Drive) reason = "Стенд предназначен для привода";
             else if (part.IsInstalled) reason = "Сначала снимите привод";
@@ -58,6 +58,7 @@ namespace BORis
         public bool TryLoad(RobotRepair owner, RepairPart part, out string reason)
         {
             if (!CanLoad(owner, part, out reason)) return false;
+            workbench.ReleaseInspectionPart(part);
             robot = owner;
             Part = part;
             owner.ActiveDriveStand = this;

@@ -8,6 +8,9 @@ namespace BORis
         Quaternion homeRotation;
         Collider[] colliders;
         Camera selectedView;
+        Workbench workbench;
+
+        protected float Reach => 3f + (workbench != null ? workbench.CameraOffset : 0f);
 
         public bool IsSelected => selectedView != null;
         public abstract bool IsActive { get; }
@@ -16,6 +19,7 @@ namespace BORis
 
         protected virtual void Awake()
         {
+            workbench = GetComponentInParent<Workbench>();
             homePosition = transform.localPosition;
             homeRotation = transform.localRotation;
             colliders = GetComponentsInChildren<Collider>();

@@ -46,7 +46,7 @@ namespace BORis
         public override void Drag(Vector2 pointer)
         {
             if (Target == null || repair == null || !repair.CanClean(Target, out _)) { End(); return; }
-            HasContact = Physics.Raycast(view.ScreenPointToRay(pointer), out RaycastHit hit, 3f,
+            HasContact = Physics.Raycast(view.ScreenPointToRay(pointer), out RaycastHit hit, Reach,
                 queryMask, QueryTriggerInteraction.Ignore)
                 && hit.collider.GetComponent<DirtPatch>() == Target;
             if (!HasContact)
