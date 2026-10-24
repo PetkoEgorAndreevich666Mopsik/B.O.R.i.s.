@@ -128,10 +128,103 @@ public sealed class WorkshopSaveTests
         Assert.That(session.Balance, Is.EqualTo(220));
         Assert.That(session.CompletedOrders, Is.EqualTo(3));
         Assert.That(session.ActiveOrder, Is.Null);
-        Assert.That(session.OfferedOrder.OrderId, Is.EqualTo("A-001"));
+        Assert.That(session.OfferedOrder.OrderId, Is.EqualTo("D-001"));
         Assert.That(session.TryDeliverOrder(activeId, out _), Is.False);
         Assert.That(session.TryBuySolderingStation(out _), Is.False);
         Assert.That(session.Balance, Is.EqualTo(220));
+        foreach (string orderId in new[] { "D-001", "E-001" })
+        {
+            Assert.That(session.OfferedOrder.OrderId, Is.EqualTo(orderId));
+            Assert.That(session.TryAcceptOrder(out reason), Is.True, reason);
+            string independentId = session.ActiveOrderId;
+            Assert.That(session.ActiveOrderReward, Is.EqualTo(150));
+            yield return Reload();
+            Assert.That(session.ActiveOrderId, Is.EqualTo(independentId));
+            Assert.That(session.ActiveOrder.OrderId, Is.EqualTo(orderId));
+            Assert.That(session.ActiveRobot.InstalledDrive.Faulty, Is.EqualTo(orderId == "D-001"));
+            Assert.That(session.ActiveRobot.SolderJoint.IsRepaired, Is.EqualTo(orderId == "D-001"));
+            Assert.That(session.ActiveRobot.Findings, Is.EqualTo("Причина пока неизвестна."));
+            yield return PreparePassingRobot();
+            Assert.That(session.TryDeliverOrder(independentId, out reason), Is.True, reason);
+            Assert.That(session.TryDeliverOrder(independentId, out _), Is.False);
+            yield return Reload();
+        }
+        Assert.That(session.Balance, Is.EqualTo(520));
+        Assert.That(session.CompletedOrders, Is.EqualTo(5));
+        Assert.That(session.OfferedOrder.OrderId, Is.EqualTo("A-001"));
+        Assert.That(session.TryAcceptOrder(out _), Is.True);
+        Assert.That(session.Balance, Is.EqualTo(520));
+    }
+
+    [UnityTest]
+    public IEnumerator OldCatalogSnapshotKeepsNextOrderActiveContractAndAgreedReward()
+    {
+        var data = Data(220);
+        data.hasSolderingStation = true;
+        data.completedOrders = 3;
+        data.nextOrder = "A-001";
+        var store = new WorkshopProgressStore(PathName);
+        Assert.That(store.TrySave(data, out _), Is.True);
+        yield return Reload();
+        Assert.That(session.OfferedOrder.OrderId, Is.EqualTo("A-001"), "Adding D/E must not change a saved next order.");
+        data.nextOrder = data.activeOrder = "C";
+        data.activeInstance = Guid.NewGuid().ToString("N");
+        data.activeReward = 173;
+        Assert.That(store.TrySave(data, out _), Is.True);
+        yield return Reload();
+        Assert.That(session.ActiveOrderId, Is.EqualTo(data.activeInstance));
+        Assert.That(session.ActiveOrder.OrderId, Is.EqualTo("C"));
+        Assert.That(session.ActiveOrderReward, Is.EqualTo(173));
+        Assert.That(session.Balance, Is.EqualTo(220));
+        Assert.That(session.HasSolderingStation, Is.True);
+    }
+
+    [UnityTest]
+    public IEnumerator IndependentCasesSharePresentationButWrongRepairDoesNotFixCause()
+    {
+        string[] exterior = null;
+        string symptom = null;
+        foreach (string orderId in new[] { "D-001", "E-001" })
+        {
+            var data = Data(220);
+            data.hasSolderingStation = true;
+            data.nextOrder = orderId;
+            Assert.That(new WorkshopProgressStore(PathName).TrySave(data, out _), Is.True);
+            yield return Reload();
+            Assert.That(session.TryAcceptOrder(out _), Is.True);
+            var order = session.ActiveOrder;
+            var robot = session.ActiveRobot;
+            Assert.That(order.IndependentDiagnosis && order.RequiresSolderingStation, Is.True);
+            Assert.That(order.Reward, Is.EqualTo(150));
+            Assert.That(order.Requirements, Does.Not.Contain("пай").And.Not.Contain("замен"));
+            var renderers = robot.GetComponentsInChildren<Renderer>()
+                .Where(r => r.GetComponentInParent<SolderJoint>() == null)
+                .Select(r => r.name + ":" + r.sharedMaterial.name + ":" + r.transform.localPosition + ":" + r.transform.localScale).ToArray();
+            if (exterior == null) { exterior = renderers; symptom = order.Symptom; }
+            else { Assert.That(renderers, Is.EqualTo(exterior)); Assert.That(order.Symptom, Is.EqualTo(symptom)); }
+            Assert.That(robot.IsFunctional, Is.False);
+            foreach (var screw in robot.Cover.Screws) robot.Turn(screw, -10000);
+            Assert.That(robot.TryPlace(robot.Cover, false, out _), Is.True);
+            Assert.That(robot.ToggleConnection(robot.Connector, out _), Is.True);
+            if (orderId == "D-001")
+            {
+                Assert.That(robot.SolderJoint.Progress, Is.EqualTo(1));
+                Assert.That(robot.SolderStroke(robot.SolderJoint, session, 0, 1), Is.Zero);
+                Assert.That(robot.IsFunctional, Is.False, "An intact contact cannot fix a jammed motor.");
+            }
+            else
+            {
+                var old = robot.InstalledDrive;
+                foreach (var screw in old.Screws) robot.Turn(screw, -10000);
+                Assert.That(robot.TryPlace(old, false, out _), Is.True);
+                var spare = robot.GetComponentsInChildren<RepairPart>().Single(p => p.Kind == RepairPartKind.Drive && !p.WasInitiallyInstalled);
+                Assert.That(robot.TryPlace(spare, true, out _), Is.True);
+                foreach (var screw in spare.Screws) robot.Turn(screw, 10000);
+                Assert.That(robot.IsFunctional, Is.False, "A good replacement cannot bridge a broken contact.");
+                Assert.That(robot.SolderStroke(robot.SolderJoint, session, 0, 1), Is.GreaterThan(0));
+                Assert.That(robot.IsFunctional, Is.True);
+            }
+        }
     }
 
     [UnityTest]

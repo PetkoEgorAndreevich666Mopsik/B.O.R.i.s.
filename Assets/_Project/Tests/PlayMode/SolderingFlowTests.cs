@@ -86,8 +86,9 @@ public sealed class SolderingFlowTests
     {
         yield return EnterC();
         OpenCover();
-        var bench = Object.FindFirstObjectByType<Workbench>();
-        bench.Focus(robot.InstalledDrive);
+        yield return Pointer(ScreenPosition(.5f));
+        yield return Press(Key.F);
+        Assert.That(interaction.IsInspecting, Is.True);
         yield return new WaitForSeconds(1.3f);
         yield return Pointer(interaction.View.WorldToScreenPoint(robot.Connector.transform.position), true);
         yield return Pointer(interaction.View.WorldToScreenPoint(robot.Connector.transform.position));
@@ -223,7 +224,7 @@ public sealed class SolderingFlowTests
         yield return FinishAndDeliver();
         Assert.That(session.Balance, Is.EqualTo(220));
         Assert.That(session.CompletedOrders, Is.EqualTo(3));
-        Assert.That(session.OfferedOrder.OrderId, Does.StartWith("A"));
+        Assert.That(session.OfferedOrder.OrderId, Is.EqualTo("D-001"));
         Assert.That(session.TryAcceptOrder(out _), Is.True);
     }
 

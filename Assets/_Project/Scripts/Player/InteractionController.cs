@@ -321,7 +321,8 @@ namespace BORis
             {
                 if (hasHit && hit.collider.GetComponentInParent<RobotRepair>() == robot)
                 {
-                    activeWorkbench.Focus(PointedPart);
+                    // The drive's lower viewing angle keeps its fasteners clear of the contact seam.
+                    activeWorkbench.Focus(PointedPart != null ? PointedPart : PointedJoint != null ? robot.InstalledDrive : null);
                     ClearObservation();
                     return;
                 }

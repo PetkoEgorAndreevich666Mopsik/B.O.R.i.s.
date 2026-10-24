@@ -7,6 +7,7 @@ namespace BORis
         [SerializeField, Min(.01f)] float length = .3f;
         [SerializeField] Renderer[] segments = System.Array.Empty<Renderer>();
         [SerializeField] Material repairedMaterial;
+        [SerializeField] bool initiallyRepaired;
         bool[] repaired;
         int repairedCount;
 
@@ -15,7 +16,17 @@ namespace BORis
         public float PositionOnSeam(Vector3 point) => transform.InverseTransformPoint(point).x / length + .5f;
         public Vector3 PointOnSeam(float position) => transform.TransformPoint(new Vector3((position - .5f) * length, 0f, -.006f));
 
-        void Awake() => repaired = new bool[segments.Length];
+        void Awake()
+        {
+            repaired = new bool[segments.Length];
+            if (!initiallyRepaired) return;
+            for (int i = 0; i < segments.Length; i++)
+            {
+                repaired[i] = true;
+                if (segments[i] != null) segments[i].sharedMaterial = repairedMaterial;
+            }
+            repairedCount = segments.Length;
+        }
 
         internal int ApplyStroke(float from, float to)
         {

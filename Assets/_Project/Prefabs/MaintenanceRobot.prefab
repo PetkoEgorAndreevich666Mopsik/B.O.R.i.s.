@@ -74,11 +74,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5186214615934049781, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
       propertyPath: m_Text
-      value: "\u041B\u041E\u0422\u041E\u041A"
+      value: "\u0417\u0410\u041F\u0410\u0421\u041D\u041E\u0419 \u0423\u0417\u0415\u041B"
       objectReference: {fileID: 0}
     - target: {fileID: 5490357720734443419, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
       propertyPath: m_Text
-      value: "\u041B\u041E\u0422\u041E\u041A"
+      value: "\u0421\u041D\u042F\u0422\u042B\u0419 \u0423\u0417\u0415\u041B"
       objectReference: {fileID: 0}
     - target: {fileID: 5921020242766461197, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
       propertyPath: m_LocalPosition.x
