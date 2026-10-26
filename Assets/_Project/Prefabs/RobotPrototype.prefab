@@ -656,7 +656,7 @@ MeshRenderer:
   m_Materials:
   - {fileID: 2100000, guid: eda448ee4569a364cb268c08d9062fe9, type: 2}
   - {fileID: 2100000, guid: 2d70a996adb155f42a3b426bea96606c, type: 2}
-  - {fileID: 2100000, guid: 04c060a197c8fd940b223ea58183cbf1, type: 2}
+  - {fileID: 2100000, guid: 2eee9fb46e9913d44845f6480d7f1be1, type: 2}
   - {fileID: 2100000, guid: a80838ab5a802e24d94fed18d73cb7fc, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
@@ -5734,7 +5734,7 @@ MeshRenderer:
   m_Materials:
   - {fileID: 2100000, guid: eda448ee4569a364cb268c08d9062fe9, type: 2}
   - {fileID: 2100000, guid: 2d70a996adb155f42a3b426bea96606c, type: 2}
-  - {fileID: 2100000, guid: 04c060a197c8fd940b223ea58183cbf1, type: 2}
+  - {fileID: 2100000, guid: 2eee9fb46e9913d44845f6480d7f1be1, type: 2}
   - {fileID: 2100000, guid: a80838ab5a802e24d94fed18d73cb7fc, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
@@ -8962,7 +8962,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4171810bc37313e40a380a5f3fcf01fa, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: BORis.Runtime::BORis.ScrewFastener
   turns: 2
   travel: 0.035
@@ -9159,7 +9159,7 @@ MeshRenderer:
   m_Materials:
   - {fileID: 2100000, guid: eda448ee4569a364cb268c08d9062fe9, type: 2}
   - {fileID: 2100000, guid: 2d70a996adb155f42a3b426bea96606c, type: 2}
-  - {fileID: 2100000, guid: 04c060a197c8fd940b223ea58183cbf1, type: 2}
+  - {fileID: 2100000, guid: 2eee9fb46e9913d44845f6480d7f1be1, type: 2}
   - {fileID: 2100000, guid: a80838ab5a802e24d94fed18d73cb7fc, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
@@ -10468,7 +10468,7 @@ MeshRenderer:
   m_RendererPriority: 0
   m_Materials:
   - {fileID: 2100000, guid: a80838ab5a802e24d94fed18d73cb7fc, type: 2}
-  - {fileID: 2100000, guid: 04c060a197c8fd940b223ea58183cbf1, type: 2}
+  - {fileID: 2100000, guid: 2eee9fb46e9913d44845f6480d7f1be1, type: 2}
   - {fileID: 2100000, guid: 2d70a996adb155f42a3b426bea96606c, type: 2}
   - {fileID: 2100000, guid: 494497cb9870a134385b73991f55deb6, type: 2}
   m_StaticBatchInfo:
