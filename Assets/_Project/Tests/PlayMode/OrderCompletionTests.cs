@@ -77,6 +77,8 @@ public sealed class OrderCompletionTests
         InputSystem.QueueStateEvent(keyboard, new KeyboardState());
         yield return null;
         yield return null;
+        if (key == Key.Escape) yield return new WaitForSeconds(.5f);
+        if (key == Key.E) yield return new WaitForSeconds(1.2f);
     }
 
     IEnumerator OpenDesk()
@@ -331,7 +333,7 @@ public sealed class OrderCompletionTests
         yield return TestRobot();
         var body = player.GetComponent<CharacterController>();
         body.enabled = false;
-        player.transform.SetPositionAndRotation(new Vector3(0, 0, -.7f), Quaternion.identity);
+        player.transform.SetPositionAndRotation(Object.FindAnyObjectByType<Workbench>().transform.TransformPoint(new Vector3(0f, 0f, -2.2f)), Quaternion.identity);
         body.enabled = true;
         Physics.SyncTransforms();
         yield return Press(Key.E);

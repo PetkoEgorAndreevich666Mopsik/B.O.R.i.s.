@@ -21,7 +21,7 @@ namespace BORis
         int queryMask;
 
         public DirtPatch Target { get; private set; }
-        public override bool IsActive => Target != null;
+        public override bool IsActive => repair != null;
         public bool HasContact { get; private set; }
         public bool IsDustEmitting => dustParticles != null && dustParticles.isEmitting;
         public float DustStopDelay => dustStopDelay;
@@ -55,27 +55,33 @@ namespace BORis
             }
         }
 
-        public bool Begin(DirtPatch patch, Camera camera, Vector2 pointer)
+        public bool Begin(RobotRepair robot, Camera camera, Vector2 pointer)
         {
             End();
-            if (patch == null || camera == null) return false;
-            repair = patch.GetComponentInParent<RobotRepair>();
-            if (repair == null || !repair.CanClean(patch, out _)) return false;
-            Target = patch;
+            if (robot == null || camera == null || !robot.isActiveAndEnabled || robot.IsTesting || robot.IsOnDriveStand) return false;
+            repair = robot;
             view = camera;
             var player = view.GetComponentInParent<PlayerController>();
             queryMask = player != null ? ~(1 << player.gameObject.layer) : ~0;
             SetColliders(false);
             Drag(pointer);
+            if (!HasContact) { End(); return false; }
             return true;
         }
 
         public override void Drag(Vector2 pointer)
         {
-            if (Target == null || repair == null || !repair.CanClean(Target, out _)) { End(); return; }
+            if (repair == null || !repair.isActiveAndEnabled || view == null || repair.IsTesting || repair.IsOnDriveStand) { End(); return; }
+            DirtPatch previousTarget = Target;
+            Target = null;
             HasContact = Physics.Raycast(view.ScreenPointToRay(pointer), out RaycastHit hit, Reach,
                 queryMask, QueryTriggerInteraction.Ignore)
-                && hit.collider.GetComponent<DirtPatch>() == Target;
+                && hit.collider.GetComponentInParent<RobotRepair>() == repair;
+            if (HasContact)
+            {
+                Target = hit.collider.GetComponent<DirtPatch>();
+                if (Target != null && !repair.CanClean(Target, out _)) { Target = null; HasContact = false; }
+            }
             if (!HasContact)
             {
                 hasPrevious = false;
@@ -84,7 +90,8 @@ namespace BORis
                 return;
             }
             transform.SetPositionAndRotation(hit.point + hit.normal * .002f, Quaternion.LookRotation(hit.normal, view.transform.up));
-            int cleaned = hasPrevious ? Target.CleanStroke(previousUV, hit.textureCoord, radius) : 0;
+            int cleaned = Target != null && Target == previousTarget && hasPrevious
+                ? Target.CleanStroke(previousUV, hit.textureCoord, radius) : 0;
             if (cleaned > 0)
             {
                 audioSource.volume = .28f;
@@ -97,7 +104,7 @@ namespace BORis
                 UpdateDust(false, hit.point, hit.normal);
             }
             previousUV = hit.textureCoord;
-            hasPrevious = true;
+            hasPrevious = Target != null;
         }
 
         public override void End()

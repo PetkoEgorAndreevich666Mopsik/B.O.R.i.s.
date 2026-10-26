@@ -10,7 +10,6 @@ namespace BORis
         [SerializeField] GameObject emptyIndicator;
         RobotRepair robot;
         Transform view;
-        Transform previousParent;
         Vector3 previousPosition;
         Quaternion previousRotation;
         Transform robotParent;
@@ -24,7 +23,7 @@ namespace BORis
         Quaternion sourceRotation;
         Quaternion overviewRotation, inspectionRotation, objectRotation;
         float lift, liftHeight;
-        float yaw, pitch, inspectionDistance, minimumDistance;
+        float inspectionDistance, minimumDistance;
         float initialDistance, maximumDistance;
         int cameraMask;
 
@@ -33,7 +32,9 @@ namespace BORis
         public string InspectionName => framingPart != null && robot != null ? robot.PartLabel(framingPart) : "Робот";
 
         public bool IsOccupied => view != null;
-        public float CameraOffset => view != null ? Vector3.Distance(view.position, overviewPosition) : 0f;
+        // Tool reach must follow the robot now that zoom moves it instead of the camera.
+        public float CameraOffset => view != null ? Vector3.Distance(view.position, overviewPosition)
+            + Mathf.Max(0f, inspectionDistance - initialDistance) : 0f;
         public Collider TestButton => testButton;
         public RobotRepair Robot => robot;
         public bool HasRobot => robot != null && robot.isActiveAndEnabled;
@@ -89,6 +90,7 @@ namespace BORis
             oldRobot.gameObject.SetActive(false);
             SpawnRobot();
             Destroy(oldRobot.gameObject);
+            Focus(null);
             return robot;
         }
 
@@ -96,20 +98,18 @@ namespace BORis
         {
             if (!HasRobot || IsOccupied || cameraAnchor == null || camera == null) return false;
             view = camera.transform;
-            previousParent = view.parent;
             previousPosition = view.localPosition;
             previousRotation = view.localRotation;
             var player = camera.GetComponentInParent<PlayerController>();
             cameraMask = player != null ? ~(1 << player.gameObject.layer) : Physics.DefaultRaycastLayers;
-            view.SetParent(cameraAnchor, false);
-            view.localPosition = Vector3.zero;
-            view.localRotation = Quaternion.identity;
+            // Keep the camera under the player so disabling the table never reparents an inactive hierarchy.
             inspectionCamera = camera;
-            overviewPosition = view.position;
-            overviewRotation = view.rotation;
+            overviewPosition = cameraAnchor.position;
+            overviewRotation = cameraAnchor.rotation;
             cameraVelocity = Vector3.zero;
             IsFocused = false;
             liftedPart = null;
+            Focus(null);
             return true;
         }
 
@@ -126,30 +126,39 @@ namespace BORis
             framingPart = part;
             Transform framingTarget = part != null ? part.transform : inspectionRoot;
             Bounds bounds = new(framingTarget.position, Vector3.zero);
+            bool hasBounds = false;
             foreach (Renderer renderer in framingTarget.GetComponentsInChildren<Renderer>())
-                if (renderer.enabled) bounds.Encapsulate(renderer.bounds);
+                if (renderer.enabled)
+                {
+                    if (hasBounds) bounds.Encapsulate(renderer.bounds);
+                    else { bounds = renderer.bounds; hasBounds = true; }
+                }
             if (part == null)
                 foreach (RepairPart installed in robot.GetComponentsInChildren<RepairPart>())
                     if (installed.IsInstalled)
                         foreach (Renderer renderer in installed.GetComponentsInChildren<Renderer>())
-                            if (renderer.enabled) bounds.Encapsulate(renderer.bounds);
+                            if (renderer.enabled)
+                            {
+                                if (hasBounds) bounds.Encapsulate(renderer.bounds);
+                                else { bounds = renderer.bounds; hasBounds = true; }
+                            }
             sourcePosition = inspectionRoot.position;
             sourceRotation = inspectionRoot.rotation;
             inspectionPivot = bounds.center;
-            liftHeight = liftedPart != null ? Mathf.Max(.06f, bounds.extents.magnitude - bounds.extents.y + .03f) : .12f;
+            liftHeight = liftedPart != null ? Mathf.Max(.06f, bounds.extents.magnitude - bounds.extents.y + .03f) : 0f;
             lift = 0f;
             framingCenter = bounds.center + Vector3.up * liftHeight;
-            // A shallower drive view keeps the adjacent solder seam clear of its screw heads.
-            float viewPitch = liftedPart != null ? 55f : part != null && part.Kind == RepairPartKind.Drive ? 25f : 35f;
-            inspectionRotation = Quaternion.Euler(viewPitch, overviewRotation.eulerAngles.y, 0f);
+            inspectionRotation = part == null ? cameraAnchor.rotation
+                : Quaternion.Euler(liftedPart != null ? 55f : 25f, overviewRotation.eulerAngles.y, 0f);
             float halfFov = Mathf.Atan(Mathf.Tan(inspectionCamera.fieldOfView * Mathf.Deg2Rad * .5f)
                 * Mathf.Min(1f, inspectionCamera.aspect));
-            initialDistance = Mathf.Max(.35f, bounds.extents.magnitude / Mathf.Sin(halfFov) * 1.1f);
-            minimumDistance = Mathf.Max(bounds.extents.magnitude + inspectionCamera.nearClipPlane + .05f, initialDistance * .75f);
-            maximumDistance = Mathf.Max(initialDistance * 2.5f, Vector3.Distance(overviewPosition, bounds.center));
-            initialDistance = Mathf.Max(initialDistance, minimumDistance);
+            initialDistance = part == null ? Mathf.Max(.1f, Vector3.Distance(cameraAnchor.position, inspectionPivot))
+                : Mathf.Max(.35f, bounds.extents.magnitude / Mathf.Sin(halfFov) * 1.1f);
+            minimumDistance = Mathf.Min(initialDistance,
+                Mathf.Max(bounds.extents.magnitude + inspectionCamera.nearClipPlane + .05f, initialDistance * .25f));
+            maximumDistance = initialDistance * 2.5f;
+            if (part == null) framingCenter = cameraAnchor.position + cameraAnchor.forward * initialDistance;
             inspectionDistance = initialDistance;
-            yaw = pitch = 0f;
             objectRotation = Quaternion.identity;
             IsFocused = true;
         }
@@ -185,7 +194,6 @@ namespace BORis
         public void AlignInspection()
         {
             if (!IsFocused || inspectionRoot == null) return;
-            yaw = pitch = 0f;
             inspectionDistance = initialDistance;
             objectRotation = Quaternion.identity;
             ApplyInspectionPose();
@@ -193,7 +201,8 @@ namespace BORis
 
         void ApplyInspectionPose()
         {
-            inspectionRoot.SetPositionAndRotation(inspectionPivot + Vector3.up * lift + objectRotation * (sourcePosition - inspectionPivot),
+            inspectionRoot.SetPositionAndRotation(inspectionPivot + Vector3.up * lift + inspectionRotation * Vector3.forward * (inspectionDistance - initialDistance)
+                + objectRotation * (sourcePosition - inspectionPivot),
                 objectRotation * sourceRotation);
             if (liftedPart == null) AlignInstalledParts();
             Physics.SyncTransforms();
@@ -209,24 +218,15 @@ namespace BORis
         public bool UpdateView(Vector2 orbitDelta, float zoom)
         {
             if (view == null) return false;
-            if (HasRobot && robot.IsTesting && (IsFocused || inspectionRoot != null))
-                ReturnToOverview(true);
             if (!HasRobot || inspectionRoot != null && !inspectionRoot.gameObject.activeInHierarchy)
                 ReturnToOverview(true);
             if (liftedPart != null && (liftedPart.IsInstalled || liftedPart.IsDragging))
                 ReleaseInspectionPart(liftedPart);
             bool objectMoved = false;
-            if (IsFocused)
+            if (IsFocused && !robot.IsTesting && !robot.IsOnDriveStand)
             {
-                if (liftedPart != null)
-                    objectRotation = Quaternion.AngleAxis(-orbitDelta.x * .25f, inspectionRotation * Vector3.up)
-                        * Quaternion.AngleAxis(orbitDelta.y * .25f, inspectionRotation * Vector3.right) * objectRotation;
-                else
-                {
-                    yaw = Mathf.Repeat(yaw - orbitDelta.x * .25f, 360f);
-                    pitch = Mathf.Clamp(pitch + orbitDelta.y * .25f, -12f, 12f);
-                    objectRotation = Quaternion.AngleAxis(pitch, inspectionRotation * Vector3.right) * Quaternion.AngleAxis(yaw, Vector3.up);
-                }
+                objectRotation = Quaternion.AngleAxis(-orbitDelta.x * .25f, inspectionRotation * Vector3.up)
+                    * Quaternion.AngleAxis(orbitDelta.y * .25f, inspectionRotation * Vector3.right) * objectRotation;
                 if (zoom != 0f) inspectionDistance = Mathf.Clamp(inspectionDistance * Mathf.Exp(-Mathf.Sign(zoom) * .15f), minimumDistance, maximumDistance);
                 objectMoved = orbitDelta.sqrMagnitude > 0f || zoom != 0f;
             }
@@ -247,7 +247,7 @@ namespace BORis
             }
             Quaternion rotation = IsFocused ? inspectionRotation : overviewRotation;
             Vector3 position = IsFocused
-                ? framingCenter - inspectionRotation * Vector3.forward * inspectionDistance : overviewPosition;
+                ? framingCenter - inspectionRotation * Vector3.forward * initialDistance : overviewPosition;
             bool moving = Vector3.Distance(view.position, position) > .001f || Quaternion.Angle(view.rotation, rotation) > .1f;
             if (!moving)
             {
@@ -268,15 +268,15 @@ namespace BORis
             return changed || objectMoved;
         }
 
-        public void Exit()
+        public void Exit(bool immediate = true)
         {
             if (DriveStand != null) DriveStand.Cancel();
             if (robot != null) robot.CancelTest();
             ReturnToOverview(true);
             if (view == null) return;
-            view.SetParent(previousParent, false);
-            view.localPosition = previousPosition;
-            view.localRotation = previousRotation;
+            var player = view.GetComponentInParent<PlayerController>();
+            if (player != null) player.ReturnView(previousPosition, previousRotation, !immediate);
+            else view.SetLocalPositionAndRotation(previousPosition, previousRotation);
             view = null;
             inspectionCamera = null;
         }

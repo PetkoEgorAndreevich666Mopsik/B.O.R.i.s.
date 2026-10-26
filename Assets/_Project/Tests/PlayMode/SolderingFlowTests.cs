@@ -42,6 +42,8 @@ public sealed class SolderingFlowTests
         yield return null; yield return null;
         InputSystem.QueueStateEvent(keyboard, new KeyboardState());
         yield return null; yield return null;
+        if (key == Key.Escape) yield return new WaitForSeconds(.5f);
+        if (key == Key.E) yield return new WaitForSeconds(1.2f);
     }
 
     IEnumerator Pointer(Vector2 position, bool down = false)
@@ -74,7 +76,7 @@ public sealed class SolderingFlowTests
         robot = session.ActiveRobot;
         joint = robot.SolderJoint;
         tool = Object.FindObjectsByType<SolderingTool>(FindObjectsInactive.Include).Single();
-        Face(new Vector3(0, 0, -.7f));
+        Face(Object.FindAnyObjectByType<Workbench>().transform.TransformPoint(new Vector3(0f, 0f, -2.2f)));
         yield return null;
         yield return Press(Key.E);
         Assert.That(interaction.IsAtWorkbench, Is.True);
@@ -128,9 +130,9 @@ public sealed class SolderingFlowTests
         Assert.That(Quaternion.Angle(rotation, joint.transform.rotation), Is.GreaterThan(20f));
         Assert.That(joint.Progress, Is.Zero);
         yield return Pointer(new Vector2(Screen.width * .5f, Screen.height * .5f));
-        yield return Press(Key.Escape);
+        yield return Press(Key.R);
         Assert.That(interaction.IsAtWorkbench, Is.True);
-        Assert.That(interaction.IsInspecting, Is.False);
+        Assert.That(interaction.IsInspecting, Is.True);
         yield return new WaitForSeconds(.6f);
         Assert.That(Vector3.Distance(joint.transform.position, position), Is.LessThan(.0001f));
         Assert.That(Quaternion.Angle(joint.transform.rotation, rotation), Is.LessThan(.01f));

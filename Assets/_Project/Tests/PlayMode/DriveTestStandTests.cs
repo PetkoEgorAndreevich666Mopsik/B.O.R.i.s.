@@ -36,7 +36,7 @@ public sealed class DriveTestStandTests
         interaction = Object.FindFirstObjectByType<InteractionController>();
         var body = interaction.GetComponent<CharacterController>();
         body.enabled = false;
-        interaction.transform.SetPositionAndRotation(new Vector3(0f, 0f, -.7f), Quaternion.identity);
+        interaction.transform.SetPositionAndRotation(Object.FindAnyObjectByType<Workbench>().transform.TransformPoint(new Vector3(0f, 0f, -2.2f)), Quaternion.identity);
         body.enabled = true;
         yield return null;
         yield return KeyPress(Key.E);
@@ -50,6 +50,8 @@ public sealed class DriveTestStandTests
         yield return null; yield return null;
         InputSystem.QueueStateEvent(keyboard, new KeyboardState());
         yield return null; yield return null;
+        if (key == Key.Escape) yield return new WaitForSeconds(.5f);
+        if (key == Key.E) yield return new WaitForSeconds(1.2f);
     }
 
     IEnumerator Pointer(Vector2 p, bool down)
@@ -131,7 +133,8 @@ public sealed class DriveTestStandTests
         Assert.That(robot.CanRunTest(out _), Is.False);
         Assert.That(robot.ToggleConnection(robot.Connector, out _), Is.False);
         bench.Focus(spare);
-        Assert.That(bench.IsFocused, Is.False);
+        Assert.That(bench.IsFocused, Is.True);
+        Assert.That(bench.FocusedPart, Is.Null, "The active stand must not switch the inspected object.");
         interaction.SelectToolShortcut(1);
         Assert.That(interaction.ScrewdriverSelected, Is.False);
         yield return KeyPress(Key.Escape);
@@ -208,7 +211,7 @@ public sealed class DriveTestStandTests
             while (stand.IsTesting)
             {
                 Quaternion previous = spindle.localRotation;
-                yield return null;
+                yield return new WaitForSecondsRealtime(.025f);
                 if (!stand.IsTesting) break;
                 if (Quaternion.Angle(previous, spindle.localRotation) < .01f) stoppedFrames++;
                 else movingFrames++;

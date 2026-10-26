@@ -67,7 +67,7 @@ namespace BORis
         {
             if (questPanel != null) questPanel.SetActive(true);
             if (controls != null) controls.gameObject.SetActive(true);
-            bool compact = collapsedOverride ?? interaction.IsInspecting;
+            bool compact = collapsedOverride ?? false;
             compactNow = compact;
             SetCompact(compact);
             if (toolsPanel != null) toolsPanel.SetActive(true);
@@ -112,17 +112,14 @@ namespace BORis
             if (symptom != null)
             {
                 string heading = order != null ? $"{(independent ? "ЗАКАЗ" : "ЗАКАЗ " + order.OrderId)} · {order.ClientName}" : "РЕМОНТ РОБОТА";
-                symptom.text = interaction.IsInspecting
-                    ? $"<size=13>ОСМОТР</size>\n<b>{interaction.InspectionName}</b>"
-                    : compact ? $"<size=13>{heading}</size>\n<b>{(cleaning ? "Обслуживание" : "Ремонт руки")}</b>"
+                symptom.text = compact ? $"<size=13>{heading}</size>\n<b>{(cleaning ? "Обслуживание" : "Ремонт руки")}</b>"
                     : $"<size=13>{heading}</size>\n«{(order != null ? order.Symptom : "Осмотрите и проверьте робота")}»";
             }
 
             if (assemblyState != null)
             {
                 string goal;
-                if (interaction.IsInspecting) goal = "Инструменты и перенос доступны вблизи.\nF / ESC — общий вид верстака";
-                else if (ready) goal = "Вернитесь к стойке и выдайте робота";
+                if (ready) goal = "Вернитесь к стойке и выдайте робота";
                 else if (!independent) goal = NextAction(robot, cleaning);
                 else if (robot != null && robot.IsTesting) goal = "Проверяем движение руки…";
                 else if (robot != null && robot.IsOnDriveStand) goal = robot.ActiveDriveStand.Status;
@@ -197,7 +194,7 @@ namespace BORis
             if (cameraHints != null)
             {
                 cameraHints.gameObject.SetActive(true);
-                cameraHints.text = interaction.IsInspecting ? "ПКМ  Повернуть предмет · Колесо  Приблизить\n1–4  Инструменты · R  Выровнять · F / ESC  Общий вид" : "F  Осмотр · F1  Управление · H  Факты / помощь";
+                cameraHints.text = "ПКМ  Вращать робота · Колесо  Приблизить\nR  Выровнять · ESC  Выйти · F1  Управление · H  Помощь";
             }
         }
 
@@ -277,7 +274,7 @@ namespace BORis
                 if (interaction.ObservationProgress > 0f)
                     return "<b>ОСМОТР КОНТАКТА</b>\nЗадержите указатель на дорожке";
                 string state = joint.IsRepaired ? "дорожка непрерывна" : "виден разрыв дорожки";
-                string action = independent && !interaction.SolderingSelected ? "F — осмотреть робота · H — факты и помощь"
+                string action = independent && !interaction.SolderingSelected ? "ПКМ — вращать робота · H — факты и помощь"
                     : joint.IsRepaired ? "Подключите разъём, соберите и проверьте робота"
                     : !interaction.SolderingSelected ? "4 — паяльник · ЛКМ + движение по дорожке"
                     : !robot.CanSolder(joint, interaction.Session, out string reason) ? reason
@@ -323,13 +320,13 @@ namespace BORis
                     return $"<b>ОСМОТР ПРИВОДА</b> · {interaction.ObservationProgress:P0}\nЗадержите указатель на детали";
                 if (interaction.BrushSelected || interaction.ScrewdriverSelected || interaction.SolderingSelected)
                     return $"<b>{robot.PartLabel(part)}</b>\n1 — рука · "
-                        + "F — осмотреть";
+                        + "ПКМ — вращать робота";
                 if (robot != null && !robot.CanMove(part, out string reason))
-                    return $"<b>{robot.PartLabel(part)}</b>\n{reason}\nF — осмотреть в сборке";
-                return $"<b>{robot.PartLabel(part)}</b>\nУдерживайте ЛКМ — перенести · F — осмотреть";
+                    return $"<b>{robot.PartLabel(part)}</b>\n{reason}\nПКМ — вращать робота";
+                return $"<b>{robot.PartLabel(part)}</b>\nУдерживайте ЛКМ — перенести · ПКМ — вращать робота";
             }
             return interaction.PointedObject != null
-                && interaction.PointedObject.GetComponentInParent<RobotRepair>() == robot ? "F — осмотреть робота" : "";
+                && interaction.PointedObject.GetComponentInParent<RobotRepair>() == robot ? "ПКМ — вращать робота" : "";
         }
 
         public void ShowShop(string message)

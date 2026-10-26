@@ -33,7 +33,7 @@ public sealed class RepairAssemblyFlowTests
         newDrive = robot.GetComponentsInChildren<RepairPart>().Single(p => p.Kind == RepairPartKind.Drive && !p.IsInstalled);
         var body = player.GetComponent<CharacterController>();
         body.enabled = false;
-        player.transform.position = new Vector3(0,0,-.7f);
+        player.transform.position = Object.FindAnyObjectByType<Workbench>().transform.TransformPoint(new Vector3(0f, 0f, -2.2f));
         body.enabled = true;
         yield return null;
         yield return KeyPress(Key.E);
@@ -46,6 +46,8 @@ public sealed class RepairAssemblyFlowTests
         yield return null; yield return null;
         InputSystem.QueueStateEvent(keyboard, new KeyboardState());
         yield return null; yield return null;
+        if (key == Key.Escape) yield return new WaitForSeconds(.5f);
+        if (key == Key.E) yield return new WaitForSeconds(1.2f);
     }
 
     Vector2 Screen(Transform target) => player.View.WorldToScreenPoint(target.position);

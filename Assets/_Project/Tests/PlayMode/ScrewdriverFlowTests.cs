@@ -31,7 +31,7 @@ public sealed class ScrewdriverFlowTests
         screw = Object.FindFirstObjectByType<RobotRepair>().Cover.Screws[0];
         var body = player.GetComponent<CharacterController>();
         body.enabled = false;
-        player.transform.position = new Vector3(0, 0, -.7f);
+        player.transform.position = Object.FindAnyObjectByType<Workbench>().transform.TransformPoint(new Vector3(0f, 0f, -2.2f));
         body.enabled = true;
         yield return null;
         yield return Press(Key.E);
@@ -46,6 +46,8 @@ public sealed class ScrewdriverFlowTests
         InputSystem.QueueStateEvent(keyboard, new KeyboardState());
         yield return null;
         yield return null;
+        if (key == Key.Escape) yield return new WaitForSeconds(.5f);
+        if (key == Key.E) yield return new WaitForSeconds(1.2f);
     }
 
     Vector2 Center => player.View.WorldToScreenPoint(screw.transform.position);

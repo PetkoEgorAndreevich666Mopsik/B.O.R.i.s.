@@ -51,6 +51,8 @@ public sealed class OrderFlowTests
         InputSystem.QueueStateEvent(keyboard, new KeyboardState());
         yield return null;
         yield return null;
+        if (key == Key.Escape) yield return new WaitForSeconds(.5f);
+        if (key == Key.E) yield return new WaitForSeconds(1.2f);
     }
 
     IEnumerator Click(Button button)
@@ -70,7 +72,7 @@ public sealed class OrderFlowTests
         Assert.That(session.ActiveOrder, Is.Null);
         Assert.That(workbench.HasRobot, Is.False);
         Assert.That(Object.FindObjectsByType<RobotRepair>(FindObjectsSortMode.None), Is.Empty);
-        Face(new Vector3(0, 0, -.7f));
+        Face(Object.FindAnyObjectByType<Workbench>().transform.TransformPoint(new Vector3(0f, 0f, -2.2f)));
         yield return Press(Key.E);
         Assert.That(interaction.PointedWorkbench, Is.SameAs(workbench));
         Assert.That(interaction.IsAtWorkbench, Is.False);
@@ -139,7 +141,7 @@ public sealed class OrderFlowTests
         Assert.That(session.TryAcceptOrder(out _), Is.True);
         string orderId = session.ActiveOrderId;
         RobotRepair robot = session.ActiveRobot;
-        Face(new Vector3(0, 0, -.7f));
+        Face(Object.FindAnyObjectByType<Workbench>().transform.TransformPoint(new Vector3(0f, 0f, -2.2f)));
         yield return Press(Key.E);
         Assert.That(interaction.IsAtWorkbench, Is.True);
         robot.Turn(robot.Cover.Screws[0], -180f);

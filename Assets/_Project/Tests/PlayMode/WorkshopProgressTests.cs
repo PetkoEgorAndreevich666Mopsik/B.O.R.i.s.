@@ -71,6 +71,8 @@ public sealed class WorkshopProgressTests
         InputSystem.QueueStateEvent(keyboard, new KeyboardState());
         yield return null;
         yield return null;
+        if (key == Key.Escape) yield return new WaitForSeconds(.5f);
+        if (key == Key.E) yield return new WaitForSeconds(1.2f);
     }
 
     void FaceShop()

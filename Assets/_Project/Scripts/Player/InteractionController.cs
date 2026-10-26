@@ -25,7 +25,7 @@ namespace BORis
         InputActionMap bench;
         InputAction move, look, interact, cancel;
         InputAction point, primary, scroll, selectScrewdriver, selectHand, selectBrush, selectSoldering;
-        InputAction focus, orbit, orbitDelta, alignInspection;
+        InputAction orbit, orbitDelta, alignInspection;
         Workbench activeWorkbench;
         OrderDesk activeOrderDesk;
         EquipmentShop activeEquipmentShop;
@@ -98,7 +98,6 @@ namespace BORis
             selectHand = bench.FindAction("Hand", true);
             selectBrush = bench.FindAction("Brush", true);
             selectSoldering = bench.FindAction("Soldering");
-            focus = bench.FindAction("Focus", true);
             orbit = bench.FindAction("Orbit", true);
             orbitDelta = bench.FindAction("OrbitDelta", true);
             alignInspection = bench.FindAction("AlignInspection", true);
@@ -117,6 +116,7 @@ namespace BORis
 
         void Update()
         {
+            if (player.IsReturning) return;
             if (saveStatus != null && session != null)
             {
                 saveStatus.gameObject.SetActive(!IsAtWorkbench && !IsAtOrderDesk && !IsAtEquipmentShop);
@@ -152,7 +152,6 @@ namespace BORis
                         CancelPart();
                         if (selectedTool != null) selectedTool.End();
                     }
-                    else if (IsInspecting) activeWorkbench.ReturnToOverview();
                     else ExitWorkbench();
                 }
                 else TickBench();
@@ -290,9 +289,7 @@ namespace BORis
                 if (!selectedTool.IsActive) selectedTool.FollowPointer(pointer);
                 return;
             }
-            bool wasInspecting = IsInspecting;
             bool canMoveView = !overUI && !primary.IsPressed();
-            if (wasInspecting && canMoveView && focus.WasPressedThisFrame()) activeWorkbench.ReturnToOverview();
             if (IsInspecting && canMoveView && alignInspection.WasPressedThisFrame()) AlignInspection();
             bool rotating = IsInspecting && canMoveView && orbit.IsPressed();
             bool viewMoving = !primary.IsPressed() && activeWorkbench.UpdateView(
@@ -317,16 +314,6 @@ namespace BORis
                 PointedTool = hit.collider.GetComponentInParent<RepairTool>();
                 PointedStand = hit.collider.GetComponentInParent<DriveTestStand>();
             }
-            if (!wasInspecting && canMoveView && focus.WasPressedThisFrame())
-            {
-                if (hasHit && hit.collider.GetComponentInParent<RobotRepair>() == robot)
-                {
-                    // The drive's lower viewing angle keeps its fasteners clear of the contact seam.
-                    activeWorkbench.Focus(PointedPart != null ? PointedPart : PointedJoint != null ? robot.InstalledDrive : null);
-                    ClearObservation();
-                    return;
-                }
-            }
             bool canObserve = hasHit && !IsViewMoving && !primary.IsPressed();
             ObserveDrive(canObserve ? PointedPart : null, canObserve ? PointedJoint : null);
             if (rotating || overUI || !hasHit) return;
@@ -334,7 +321,6 @@ namespace BORis
             if (PointedTestButton)
             {
                 SelectTool(null);
-                activeWorkbench.ReturnToOverview(true);
                 if (!robot.RunTest(out string reason)) Say(reason);
                 else Say("");
             }
@@ -350,10 +336,10 @@ namespace BORis
                 if (robot.CanSolder(PointedJoint, session, out string reason)) soldering.Begin(PointedJoint, player.View, pointer);
                 else Say(reason);
             }
-            else if (BrushSelected && PointedDirt != null)
+            else if (BrushSelected && hit.collider.GetComponentInParent<RobotRepair>() == robot)
             {
-                if (robot.CanClean(PointedDirt, out string reason)) brush.Begin(PointedDirt, player.View, pointer);
-                else Say(reason);
+                if (PointedDirt != null && !robot.CanClean(PointedDirt, out string reason)) Say(reason);
+                else brush.Begin(robot, player.View, pointer);
             }
             else if (ScrewdriverSelected && PointedScrew != null)
             {
@@ -500,7 +486,7 @@ namespace BORis
                 ClearObservation();
                 if (selectedTool != null) selectedTool.End();
                 CancelPart();
-                if (activeWorkbench != null) activeWorkbench.ReturnToOverview(true);
+                if (activeWorkbench != null) activeWorkbench.AlignInspection();
                 if (DriveStand != null) DriveStand.Cancel();
                 if (robot != null) robot.CancelTest();
             }
@@ -537,7 +523,7 @@ namespace BORis
             robot = null;
             PointedTool = null;
             Say("");
-            if (activeWorkbench != null) activeWorkbench.Exit();
+            if (activeWorkbench != null) activeWorkbench.Exit(!isActiveAndEnabled || !activeWorkbench.isActiveAndEnabled);
             activeWorkbench = null;
             bench.Disable();
             shop.Enable();

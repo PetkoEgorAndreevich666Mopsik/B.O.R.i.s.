@@ -61,7 +61,7 @@ public sealed class RepairDiagnosisTests
         robot = session.ActiveRobot;
         var body = player.GetComponent<CharacterController>();
         body.enabled = false;
-        player.transform.SetPositionAndRotation(new Vector3(0, 0, -.7f), Quaternion.identity);
+        player.transform.SetPositionAndRotation(Object.FindAnyObjectByType<Workbench>().transform.TransformPoint(new Vector3(0f, 0f, -2.2f)), Quaternion.identity);
         body.enabled = true;
         yield return null;
         yield return Press(Key.E);
@@ -74,6 +74,8 @@ public sealed class RepairDiagnosisTests
         yield return null; yield return null;
         InputSystem.QueueStateEvent(keyboard, new KeyboardState());
         yield return null; yield return null;
+        if (key == Key.Escape) yield return new WaitForSeconds(.5f);
+        if (key == Key.E) yield return new WaitForSeconds(1.2f);
     }
 
     IEnumerator Point(Vector2 position)
@@ -307,7 +309,7 @@ public sealed class RepairDiagnosisTests
         yield return Press(Key.F);
         yield return new WaitForSeconds(1.3f);
         yield return Point(player.View.WorldToScreenPoint(robot.Cover.Screws[0].transform.position));
-        Assert.That(TextNamed("CameraHints").text, Does.Contain("Повернуть предмет"));
+        Assert.That(TextNamed("CameraHints").text, Does.Contain("Вращать робота"));
         Assert.That(TextNamed("CameraHints").text, Does.Contain("Выровнять"));
         Assert.That(TextNamed("Hint").text, Does.Contain("ВИНТ КРЫШКИ"), "Repair advice must remain available in inspection.");
         Assert.That(TextNamed("ToolShortcuts").text, Does.Contain("[2  Отвёртка]"));

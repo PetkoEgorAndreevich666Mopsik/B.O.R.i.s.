@@ -30,7 +30,7 @@ public sealed class WorkbenchFlowTests
         workbench = Object.FindFirstObjectByType<Workbench>();
         var body = player.GetComponent<CharacterController>();
         body.enabled = false;
-        player.transform.position = new Vector3(0, 0, -.7f);
+        player.transform.position = Object.FindAnyObjectByType<Workbench>().transform.TransformPoint(new Vector3(0f, 0f, -2.2f));
         body.enabled = true;
         yield return null;
         yield return null;
@@ -45,6 +45,8 @@ public sealed class WorkbenchFlowTests
         InputSystem.QueueStateEvent(keyboard, new KeyboardState());
         yield return null;
         yield return null;
+        if (key == Key.Escape) yield return new WaitForSeconds(.5f);
+        if (key == Key.E) yield return new WaitForSeconds(1.2f);
     }
 
     [UnityTest]
@@ -61,10 +63,10 @@ public sealed class WorkbenchFlowTests
         yield return KeyPress(Key.E);
         Assert.That(interaction.IsAtWorkbench, Is.True);
         Assert.That(workbench.IsOccupied, Is.True);
-        Assert.That(view.parent.name, Is.EqualTo("CameraAnchor"));
+        Assert.That(view.parent, Is.SameAs(player.transform));
         Assert.That(Cursor.visible, Is.True);
-        Assert.That(view.localPosition, Is.EqualTo(Vector3.zero));
-        Assert.That(Quaternion.Angle(view.localRotation, Quaternion.identity), Is.LessThan(.001f));
+        Assert.That(workbench.IsFocused, Is.True);
+        yield return new WaitForSeconds(1.5f);
         var quest = Object.FindObjectsByType<Image>(FindObjectsSortMode.None).Single(i => i.name == "RepairQuest");
         Assert.That(quest.rectTransform.anchorMin, Is.EqualTo(new Vector2(0, 1)));
         Assert.That(quest.raycastTarget, Is.False);
@@ -86,6 +88,29 @@ public sealed class WorkbenchFlowTests
         InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.W));
         yield return new WaitForSeconds(.15f);
         Assert.That(player.transform.position.z - position.z, Is.GreaterThan(.15f));
+    }
+
+    [UnityTest]
+    public IEnumerator ExitInterpolatesCameraAndFreezesPlayerUntilFinished()
+    {
+        Vector3 originalPosition = player.View.transform.localPosition;
+        Quaternion originalRotation = player.View.transform.localRotation;
+        yield return KeyPress(Key.E);
+        Vector3 start = player.View.transform.localPosition;
+        Vector3 playerPosition = player.transform.position;
+        interaction.ExitWorkbench();
+        Assert.That(player.IsReturning, Is.True);
+        Assert.That(Vector3.Distance(player.View.transform.localPosition, start), Is.LessThan(.001f));
+        InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.W));
+        yield return new WaitForSeconds(.15f);
+        Assert.That(Vector3.Distance(player.View.transform.localPosition, start), Is.GreaterThan(.01f));
+        Assert.That(Vector3.Distance(player.View.transform.localPosition, originalPosition), Is.GreaterThan(.01f));
+        Assert.That(Vector3.Distance(player.transform.position, playerPosition), Is.LessThan(.001f));
+        InputSystem.QueueStateEvent(keyboard, new KeyboardState());
+        yield return new WaitForSeconds(.4f);
+        Assert.That(player.IsReturning, Is.False);
+        Assert.That(Vector3.Distance(player.View.transform.localPosition, originalPosition), Is.LessThan(.001f));
+        Assert.That(Quaternion.Angle(player.View.transform.localRotation, originalRotation), Is.LessThan(.01f));
     }
 
     [UnityTest]
@@ -111,7 +136,7 @@ public sealed class WorkbenchFlowTests
     public IEnumerator WallBlocksWorkbenchInteraction()
     {
         var wall = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        wall.transform.position = new Vector3(0, 1.5f, .1f);
+        wall.transform.position = player.View.transform.position + player.View.transform.forward * .5f;
         wall.transform.localScale = new Vector3(3, 3, .2f);
         Physics.SyncTransforms();
         yield return KeyPress(Key.E);

@@ -31,7 +31,7 @@ public sealed class RepairCompletionTests
         workbench = Object.FindAnyObjectByType<Workbench>();
         robot = Object.FindAnyObjectByType<RobotRepair>();
         var body = player.GetComponent<CharacterController>();
-        body.enabled = false; player.transform.position = new Vector3(0, 0, -.7f); body.enabled = true;
+        body.enabled = false; player.transform.position = Object.FindAnyObjectByType<Workbench>().transform.TransformPoint(new Vector3(0f, 0f, -2.2f)); body.enabled = true;
         yield return null;
         yield return Press(Key.E);
         Assert.That(interaction.IsAtWorkbench, Is.True);
@@ -43,6 +43,8 @@ public sealed class RepairCompletionTests
         yield return null; yield return null;
         InputSystem.QueueStateEvent(keyboard, new KeyboardState());
         yield return null; yield return null;
+        if (key == Key.Escape) yield return new WaitForSeconds(.5f);
+        if (key == Key.E) yield return new WaitForSeconds(1.2f);
     }
 
     IEnumerator Pointer(Vector2 position, bool down)
@@ -181,7 +183,7 @@ public sealed class RepairCompletionTests
         yield return Pointer(Vector2.zero, false);
         Assert.That(old == null, Is.True);
         AssertInitial();
-        Assert.That(player.View.transform.parent.name, Is.EqualTo("CameraAnchor"));
+        Assert.That(player.View.transform.parent, Is.SameAs(player.transform));
     }
 
     [UnityTest]

@@ -33,7 +33,7 @@ public sealed class BrushFlowTests
         patch = robot.GetComponentsInChildren<DirtPatch>().Single(p => !p.RequiresOpenCover);
         var body = player.GetComponent<CharacterController>();
         body.enabled = false;
-        player.transform.position = new Vector3(0, 0, -.7f);
+        player.transform.position = Object.FindAnyObjectByType<Workbench>().transform.TransformPoint(new Vector3(0f, 0f, -2.2f));
         body.enabled = true;
         yield return null;
         yield return Press(Key.E);
@@ -46,6 +46,8 @@ public sealed class BrushFlowTests
         yield return null; yield return null;
         InputSystem.QueueStateEvent(keyboard, new KeyboardState());
         yield return null; yield return null;
+        if (key == Key.Escape) yield return new WaitForSeconds(.5f);
+        if (key == Key.E) yield return new WaitForSeconds(1.2f);
     }
 
     Vector2 ScreenUV(DirtPatch target, Vector2 uv) => player.View.WorldToScreenPoint(
@@ -82,6 +84,36 @@ public sealed class BrushFlowTests
     }
 
     [UnityTest]
+    public IEnumerator StrokeStartsOnCleanRobotThenCleansDirtWithoutRestarting()
+    {
+        var surface = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        surface.transform.SetParent(robot.transform, true);
+        Vector2 start = ScreenUV(patch, new Vector2(.2f, .5f));
+        surface.transform.position = player.View.ScreenPointToRay(start).GetPoint(.4f);
+        surface.transform.localScale = Vector3.one * .05f;
+        Physics.SyncTransforms();
+        yield return Press(Key.Digit3);
+        yield return Pointer(start, true);
+        Assert.That(brush.IsActive, Is.True);
+        Assert.That(brush.HasContact, Is.True);
+        Assert.That(brush.Target, Is.Null);
+        Assert.That(brush.IsDustEmitting, Is.False);
+        yield return Pointer(ScreenUV(patch, new Vector2(.7f, .5f)), true);
+        Assert.That(brush.Target, Is.SameAs(patch));
+        Assert.That(patch.Cleanliness, Is.Zero);
+        yield return Pointer(ScreenUV(patch, new Vector2(.8f, .5f)), true);
+        Assert.That(patch.Cleanliness, Is.GreaterThan(0f));
+        yield return Pointer(new Vector2(-1000f, -1000f), true);
+        Assert.That(brush.IsActive, Is.True);
+        Assert.That(brush.HasContact, Is.False);
+        Assert.That(brush.Target, Is.Null);
+        Assert.That(brush.IsDustEmitting, Is.False);
+        yield return Pointer(start, false);
+        Assert.That(brush.IsActive, Is.False);
+        Object.Destroy(surface);
+    }
+
+    [UnityTest]
     public IEnumerator MasksAreIndependentAndStrokeSamplingDoesNotChangeCleanedArea()
     {
         var copy = Object.Instantiate(robot.gameObject);
@@ -109,7 +141,7 @@ public sealed class BrushFlowTests
         Assert.That(brush.IsDustEmitting, Is.False);
 
         yield return Press(Key.Digit3);
-        brush.Begin(patch, player.View, ScreenUV(patch, new Vector2(.2f, .5f)));
+        brush.Begin(robot, player.View, ScreenUV(patch, new Vector2(.2f, .5f)));
         Assert.That(brush.IsDustEmitting, Is.False, "Initial contact does not remove dirt.");
 
         Vector2 strokeEnd = ScreenUV(patch, new Vector2(.35f, .5f));
@@ -130,7 +162,7 @@ public sealed class BrushFlowTests
     {
         yield return Press(Key.Digit3);
         yield return Pointer(ScreenUV(patch, new Vector2(.2f, .5f)), true);
-        yield return Pointer(ScreenUV(patch, new Vector2(-.5f, .5f)), true);
+        yield return Pointer(new Vector2(-1000f, -1000f), true);
         Assert.That(brush.HasContact, Is.False);
         yield return Pointer(ScreenUV(patch, new Vector2(.8f, .5f)), true);
         Assert.That(brush.HasContact, Is.True);
@@ -178,7 +210,6 @@ public sealed class BrushFlowTests
     {
         DirtPatch inner = robot.Cover.GetComponentsInChildren<DirtPatch>().Single(p => p.RequiresOpenCover);
         Assert.That(robot.CanClean(inner, out _), Is.False);
-        Assert.That(brush.Begin(inner, player.View, ScreenUV(inner, Vector2.one * .5f)), Is.False);
         foreach (var screw in robot.Cover.Screws) robot.Turn(screw, -10000f);
         Assert.That(robot.TryPlace(robot.Cover, false, out _), Is.True);
         Physics.SyncTransforms();
