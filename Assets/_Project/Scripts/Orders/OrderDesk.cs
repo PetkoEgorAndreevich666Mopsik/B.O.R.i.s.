@@ -56,7 +56,7 @@ namespace BORis
                 return;
             }
             bool accepted = session.TryAcceptOrder(out string reason);
-            Refresh(accepted ? "Заказ принят и сохранён. К верстаку впереди.\nПосле запуска незавершённый ремонт начнётся заново." : reason);
+            Refresh(accepted ? "Заберите робота с площадки у стойки: удерживайте ЛКМ и отнесите на верстак." : reason);
         }
 
         void Deliver()

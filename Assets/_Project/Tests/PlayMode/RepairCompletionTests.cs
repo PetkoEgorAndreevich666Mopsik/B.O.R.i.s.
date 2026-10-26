@@ -49,8 +49,11 @@ public sealed class RepairCompletionTests
 
     IEnumerator Pointer(Vector2 position, bool down)
     {
+        InputSystem.QueueStateEvent(mouse, new MouseState { position = position });
+        yield return null; yield return null;
         InputSystem.QueueStateEvent(mouse, new MouseState { position = position, buttons = down ? (ushort)1 : (ushort)0 });
         yield return null; yield return null;
+        yield return new WaitForSecondsRealtime(.05f);
     }
 
     void OpenCover()

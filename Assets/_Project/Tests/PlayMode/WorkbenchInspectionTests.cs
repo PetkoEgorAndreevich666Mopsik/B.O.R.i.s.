@@ -33,6 +33,7 @@ public sealed class WorkbenchInspectionTests
         var session = Object.FindFirstObjectByType<WorkshopSession>();
         yield return null;
         Assert.That(session.TryAcceptOrder(out _), Is.True);
+        Object.FindFirstObjectByType<Workbench>().PositionRobot(null);
         robot = workbench.Robot;
         var body = player.GetComponent<CharacterController>();
         body.enabled = false;

@@ -118,9 +118,11 @@ public sealed class OrderCompletionTests
             previousInstance = session.ActiveOrderId;
             int reward = session.ActiveOrderReward;
             yield return Press(Key.Escape);
+            Object.FindFirstObjectByType<Workbench>().PositionRobot(null);
             Repair();
             yield return TestRobot();
             Assert.That(session.Balance, Is.EqualTo(expectedBalance), "A passed test must not pay.");
+            RobotTransportTestFlow.Deliver(session);
             yield return OpenDesk();
             yield return Click("DeliverOrderButton");
             expectedBalance += reward;
@@ -148,6 +150,7 @@ public sealed class OrderCompletionTests
     {
         Assert.That(session.TryDeliverOrder(null, out _), Is.False);
         Assert.That(session.TryAcceptOrder(out _), Is.True);
+        Object.FindFirstObjectByType<Workbench>().PositionRobot(null);
         string id = session.ActiveOrderId;
         Assert.That(session.TryDeliverOrder(id, out _), Is.False);
         Repair();
@@ -156,6 +159,7 @@ public sealed class OrderCompletionTests
         Assert.That(session.TryDeliverOrder(id, out _), Is.False, "Wait for the test animation to finish.");
         session.ActiveRobot.CancelTest();
         yield return TestRobot();
+        RobotTransportTestFlow.Deliver(session);
         Assert.That(session.CanDeliverOrder(out _), Is.True);
         workbench.ResetRobot();
         Assert.That(session.TryDeliverOrder(id, out _), Is.False);
@@ -168,19 +172,23 @@ public sealed class OrderCompletionTests
     public IEnumerator OldSubmissionCannotPayTwiceOrDeliverAnotherInstance()
     {
         Assert.That(session.TryAcceptOrder(out _), Is.True);
+        Object.FindFirstObjectByType<Workbench>().PositionRobot(null);
         string first = session.ActiveOrderId;
         Repair();
         yield return TestRobot();
         int reward = session.ActiveOrderReward;
+        RobotTransportTestFlow.Deliver(session);
         Assert.That(session.TryDeliverOrder(first, out _), Is.True);
         Assert.That(session.TryDeliverOrder(first, out _), Is.False);
         Assert.That(session.TryAcceptOrder(out _), Is.True);
+        Object.FindFirstObjectByType<Workbench>().PositionRobot(null);
         string second = session.ActiveOrderId;
         Repair();
         yield return TestRobot();
         Assert.That(session.TryDeliverOrder(first, out _), Is.False);
         Assert.That(session.ActiveOrderId, Is.EqualTo(second));
         Assert.That(session.Balance, Is.EqualTo(reward));
+        RobotTransportTestFlow.Deliver(session);
         Assert.That(session.TryDeliverOrder(second, out _), Is.True);
         Assert.That(session.CompletedOrders, Is.EqualTo(2));
     }
@@ -189,6 +197,7 @@ public sealed class OrderCompletionTests
     public IEnumerator CurrentAssemblyAndOccupiedWorkbenchBlockDelivery()
     {
         Assert.That(session.TryAcceptOrder(out _), Is.True);
+        Object.FindFirstObjectByType<Workbench>().PositionRobot(null);
         Repair();
         yield return TestRobot();
         Assert.That(workbench.Enter(player.View), Is.True);
@@ -202,6 +211,7 @@ public sealed class OrderCompletionTests
         session.ActiveRobot.Turn(screw, 10000f);
         Assert.That(session.TryDeliverOrder(session.ActiveOrderId, out _), Is.False, "Reassembly does not restore an invalidated test.");
         yield return TestRobot();
+        RobotTransportTestFlow.Deliver(session);
         Assert.That(session.CanDeliverOrder(out _), Is.True);
     }
 
@@ -212,6 +222,7 @@ public sealed class OrderCompletionTests
         SetField(temporaryOrder, "requiresCleaning", true);
         SetField(session, "orders", new[] { temporaryOrder });
         Assert.That(session.TryAcceptOrder(out _), Is.True);
+        Object.FindFirstObjectByType<Workbench>().PositionRobot(null);
         int reward = session.ActiveOrderReward;
         SetField(temporaryOrder, "reward", reward + 1000);
         Repair(false);
@@ -220,6 +231,7 @@ public sealed class OrderCompletionTests
         Assert.That(reason, Does.Contain("очистку"));
         foreach (var patch in session.ActiveRobot.GetComponentsInChildren<DirtPatch>())
             patch.CleanStroke(Vector2.zero, Vector2.one, 2f);
+        RobotTransportTestFlow.Deliver(session);
         Assert.That(session.TryDeliverOrder(session.ActiveOrderId, out _), Is.True);
         Assert.That(session.Balance, Is.EqualTo(reward), "The accepted reward does not change with the template.");
     }
@@ -228,12 +240,15 @@ public sealed class OrderCompletionTests
     public IEnumerator BalanceOverflowKeepsOrderAndRobotUntouched()
     {
         Assert.That(session.TryAcceptOrder(out _), Is.True);
+        Object.FindFirstObjectByType<Workbench>().PositionRobot(null);
         Repair();
         yield return TestRobot();
+        RobotTransportTestFlow.Deliver(session);
         typeof(WorkshopSession).GetProperty("Balance").SetValue(session, int.MaxValue - 1);
         string id = session.ActiveOrderId;
         RobotRepair robot = session.ActiveRobot;
-        Assert.That(session.TryDeliverOrder(id, out _), Is.False);
+        Assert.That(session.TryDeliverOrder(id, out string reason), Is.False);
+        Assert.That(reason, Does.Contain("предел баланса"));
         Assert.That(session.Balance, Is.EqualTo(int.MaxValue - 1));
         Assert.That(session.ActiveOrderId, Is.EqualTo(id));
         Assert.That(session.ActiveRobot, Is.SameAs(robot));
@@ -245,6 +260,7 @@ public sealed class OrderCompletionTests
     {
         Assert.That(session.OfferedOrder.OrderId, Is.EqualTo("A-001"));
         Assert.That(session.TryAcceptOrder(out _), Is.True);
+        Object.FindFirstObjectByType<Workbench>().PositionRobot(null);
         RobotRepair robot = session.ActiveRobot;
         RepairPart originalDrive = robot.InstalledDrive;
         Assert.That(session.ActiveOrder.RequiresCleaning, Is.True);
@@ -270,6 +286,7 @@ public sealed class OrderCompletionTests
         Assert.That(session.CanDeliverOrder(out _), Is.False, "Cleaning and reassembly cannot restore the previous test.");
         yield return TestRobot();
         Assert.That(robot.InstalledDrive, Is.SameAs(originalDrive), "Maintenance must not require a replacement.");
+        RobotTransportTestFlow.Deliver(session);
         Assert.That(session.TryDeliverOrder(session.ActiveOrderId, out _), Is.True);
         Assert.That(session.Balance, Is.EqualTo(100));
     }
@@ -278,12 +295,15 @@ public sealed class OrderCompletionTests
     public IEnumerator DriveOrderNeedsReplacementButNotCleaningAndNextMaintenanceHasFreshDirt()
     {
         Assert.That(session.TryAcceptOrder(out _), Is.True);
+        Object.FindFirstObjectByType<Workbench>().PositionRobot(null);
         DirtPatch firstPatch = session.ActiveRobot.DirtPatches[0];
         Texture2D previousMask = firstPatch.Mask;
         Repair();
         yield return TestRobot();
+        RobotTransportTestFlow.Deliver(session);
         Assert.That(session.TryDeliverOrder(session.ActiveOrderId, out _), Is.True);
         Assert.That(session.TryAcceptOrder(out _), Is.True);
+        Object.FindFirstObjectByType<Workbench>().PositionRobot(null);
         Assert.That(session.ActiveOrder.OrderId, Is.EqualTo("B-001"));
         Assert.That(session.ActiveOrder.RequiresCleaning, Is.False);
         Assert.That(session.ActiveRobot.IsFunctional, Is.False);
@@ -301,9 +321,11 @@ public sealed class OrderCompletionTests
         Repair(false);
         Assert.That(session.ActiveRobot.DirtPatches, Is.Empty);
         yield return TestRobot();
+        RobotTransportTestFlow.Deliver(session);
         Assert.That(session.TryDeliverOrder(session.ActiveOrderId, out _), Is.True);
         Assert.That(session.Balance, Is.EqualTo(220));
         Assert.That(session.TryAcceptOrder(out _), Is.True);
+        Object.FindFirstObjectByType<Workbench>().PositionRobot(null);
         Assert.That(session.ActiveOrder.OrderId, Is.EqualTo("A-001"));
         Assert.That(session.ActiveRobot.IsFunctional, Is.True);
         Assert.That(session.ActiveRobot.DirtPatches.All(p => p.Cleanliness == 0f), Is.True);
@@ -314,6 +336,7 @@ public sealed class OrderCompletionTests
     public IEnumerator MaintenanceResetKeepsOrderAndRestoresHealthyDriveAndDirtySurfaces()
     {
         Assert.That(session.TryAcceptOrder(out _), Is.True);
+        Object.FindFirstObjectByType<Workbench>().PositionRobot(null);
         string id = session.ActiveOrderId;
         RobotRepair previous = session.ActiveRobot;
         previous.DirtPatches[0].CleanStroke(Vector2.zero, Vector2.one, 2f);
@@ -331,6 +354,7 @@ public sealed class OrderCompletionTests
     public IEnumerator MaintenanceHUDShowsCleaningAfterPassedTestAndProgressSurvivesVisits()
     {
         Assert.That(session.TryAcceptOrder(out _), Is.True);
+        Object.FindFirstObjectByType<Workbench>().PositionRobot(null);
         yield return TestRobot();
         var body = player.GetComponent<CharacterController>();
         body.enabled = false;

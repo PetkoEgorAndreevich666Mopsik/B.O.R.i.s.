@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace BORis
@@ -26,6 +27,7 @@ namespace BORis
         float inspectionDistance, minimumDistance;
         float initialDistance, maximumDistance;
         int cameraMask;
+        readonly List<GameObject> transportHidden = new();
 
         public bool IsFocused { get; private set; }
         public RepairPart FocusedPart => IsFocused ? liftedPart : null;
@@ -37,7 +39,8 @@ namespace BORis
             + Mathf.Max(0f, inspectionDistance - initialDistance) : 0f;
         public Collider TestButton => testButton;
         public RobotRepair Robot => robot;
-        public bool HasRobot => robot != null && robot.isActiveAndEnabled;
+        public bool RobotOnTable { get; private set; } = true;
+        public bool HasRobot => RobotOnTable && robot != null && robot.isActiveAndEnabled;
         public DriveTestStand DriveStand { get; private set; }
 
         void Awake()
@@ -61,6 +64,7 @@ namespace BORis
                 Destroy(robot.gameObject);
                 robot = null;
             }
+            transportHidden.Clear();
             if (emptyIndicator != null) emptyIndicator.SetActive(true);
             return true;
         }
@@ -74,11 +78,40 @@ namespace BORis
 
         RobotRepair SpawnRobot()
         {
+            RobotOnTable = true;
             robot = Instantiate(robotPrefab, robotParent);
             robot.transform.SetLocalPositionAndRotation(robotPosition, robotRotation);
             robot.transform.localScale = robotScale;
             if (emptyIndicator != null) emptyIndicator.SetActive(false);
             return robot;
+        }
+
+        public void PositionRobot(Transform destination)
+        {
+            if (robot == null || IsOccupied) return;
+            RobotOnTable = destination == null;
+            foreach (GameObject hidden in transportHidden) if (hidden != null) hidden.SetActive(true);
+            transportHidden.Clear();
+            robot.transform.SetLocalPositionAndRotation(robotPosition, robotRotation);
+            robot.transform.localScale = robotScale;
+            foreach (Transform child in robot.transform)
+            {
+                RepairPart part = child.GetComponent<RepairPart>();
+                if (!RobotOnTable && child.gameObject.activeSelf && child != robot.InspectionPivot && (part == null || !part.IsInstalled))
+                {
+                    transportHidden.Add(child.gameObject);
+                    child.gameObject.SetActive(false);
+                }
+            }
+            if (destination != null)
+            {
+                robot.transform.rotation = destination.rotation;
+                Bounds bounds = robot.InspectionPivot.GetComponentInChildren<Renderer>().bounds;
+                foreach (Renderer renderer in robot.GetComponentsInChildren<Renderer>()) bounds.Encapsulate(renderer.bounds);
+                robot.transform.position += destination.position - new Vector3(bounds.center.x, bounds.min.y, bounds.center.z);
+            }
+            if (emptyIndicator != null) emptyIndicator.SetActive(!RobotOnTable);
+            Physics.SyncTransforms();
         }
 
         public RobotRepair ResetRobot()

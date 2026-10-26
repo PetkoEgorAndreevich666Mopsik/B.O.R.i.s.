@@ -23,7 +23,8 @@ namespace BORis
         InputActionAsset actions;
         InputActionMap shop;
         InputActionMap bench;
-        InputAction move, look, interact, cancel;
+        InputAction move, look, interact, cancel, carry;
+        RobotRepair pointedRobot;
         InputAction point, primary, scroll, selectScrewdriver, selectHand, selectBrush, selectSoldering;
         InputAction orbit, orbitDelta, alignInspection;
         Workbench activeWorkbench;
@@ -90,6 +91,7 @@ namespace BORis
             move = shop.FindAction("Move", true);
             look = shop.FindAction("Look", true);
             interact = shop.FindAction("Interact", true);
+            carry = shop.AddAction("CarryRobot", InputActionType.Button, "<Mouse>/leftButton");
             cancel = bench.FindAction("Cancel", true);
             point = bench.FindAction("Point", true);
             primary = bench.FindAction("Primary", true);
@@ -159,15 +161,32 @@ namespace BORis
                 PointedWorkbench = null;
                 PointedOrderDesk = null;
                 PointedEquipmentShop = null;
+                pointedRobot = null;
                 if (!PointerOverUI() && Physics.Raycast(player.View.transform.position, player.View.transform.forward,
                     out RaycastHit hit, reach, ~(1 << gameObject.layer), QueryTriggerInteraction.Ignore))
                 {
                     PointedWorkbench = hit.collider.GetComponentInParent<Workbench>();
                     PointedOrderDesk = hit.collider.GetComponentInParent<OrderDesk>();
                     PointedEquipmentShop = hit.collider.GetComponentInParent<EquipmentShop>();
+                    pointedRobot = hit.collider.GetComponentInParent<RobotRepair>();
                 }
 
-                if (PointedEquipmentShop != null && interact.WasPressedThisFrame() && PointedEquipmentShop.Open(this))
+                RobotTransport transport = session != null ? session.Transport : null;
+                bool carrying = transport != null && transport.IsCarrying;
+                if (carrying)
+                {
+                    transport.Follow(player.View);
+                    if (!carry.IsPressed() && !transport.TryDrop(new Ray(player.View.transform.position, player.View.transform.forward), reach))
+                        Say("Робот возвращён на место");
+                }
+                else if (transport != null && pointedRobot == transport.Robot && pointedRobot != null && carry.WasPressedThisFrame())
+                {
+                    if (transport.TryPickUp(out string reason)) transport.Follow(player.View);
+                    else Say(reason);
+                    carrying = transport.IsCarrying;
+                }
+                if (carrying) { PointedWorkbench = null; PointedOrderDesk = null; PointedEquipmentShop = null; }
+                if (!carrying && PointedEquipmentShop != null && interact.WasPressedThisFrame() && PointedEquipmentShop.Open(this))
                 {
                     activeEquipmentShop = PointedEquipmentShop;
                     shop.Disable();
@@ -202,6 +221,9 @@ namespace BORis
                 {
                     string message = IsAtOrderDesk || IsAtEquipmentShop ? ""
                         : Feedback.Length > 0 ? Feedback
+                        : session != null && session.Transport != null && session.Transport.IsCarrying ? "Отпустите ЛКМ над верстаком или зоной выдачи"
+                        : pointedRobot != null && session != null && pointedRobot == session.ActiveRobot
+                            ? PointedWorkbench != null && PointedWorkbench.HasRobot ? "ЛКМ — нести · E — верстак" : "ЛКМ — нести"
                         : PointedEquipmentShop != null ? "E — оборудование мастерской"
                         : PointedOrderDesk != null ? "E — стойка приёма заказов"
                         : PointedWorkbench != null ? PointedWorkbench.HasRobot ? "E — верстак" : "Верстак пуст" : "";
@@ -476,6 +498,7 @@ namespace BORis
         {
             if (!focused)
             {
+                if (session != null && session.Transport != null) session.Transport.CancelCarry();
                 ClearObservation();
                 if (selectedTool != null) selectedTool.End();
                 CancelPart();
@@ -569,6 +592,7 @@ namespace BORis
 
         void OnDisable()
         {
+            if (session != null && session.Transport != null) session.Transport.CancelCarry();
             CloseEquipmentShop();
             CloseOrderDesk();
             ExitWorkbench();

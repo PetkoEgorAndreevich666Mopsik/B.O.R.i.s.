@@ -4,6 +4,7 @@ using System.Reflection;
 using BORis;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.SceneManagement;
@@ -58,6 +59,7 @@ public sealed class RepairDiagnosisTests
         typeof(WorkshopSession).GetField("nextOrder", BindingFlags.Instance | BindingFlags.NonPublic)
             .SetValue(session, repairIndex);
         Assert.That(session.TryAcceptOrder(out _), Is.True);
+        Object.FindFirstObjectByType<Workbench>().PositionRobot(null);
         robot = session.ActiveRobot;
         var body = player.GetComponent<CharacterController>();
         body.enabled = false;
@@ -71,10 +73,13 @@ public sealed class RepairDiagnosisTests
 
     IEnumerator Press(Key key)
     {
+        keyboard.MakeCurrent();
         InputSystem.QueueStateEvent(keyboard, new KeyboardState(key));
         yield return null; yield return null;
+        yield return new WaitForSecondsRealtime(.05f);
         InputSystem.QueueStateEvent(keyboard, new KeyboardState());
         yield return null; yield return null;
+        yield return new WaitForSecondsRealtime(.05f);
         if (key == Key.Escape) yield return new WaitForSeconds(.5f);
         if (key == Key.E) yield return new WaitForSeconds(1.2f);
     }
@@ -83,15 +88,14 @@ public sealed class RepairDiagnosisTests
     {
         InputSystem.QueueStateEvent(mouse, new MouseState { position = position });
         yield return null; yield return null;
+        yield return new WaitForSecondsRealtime(.05f);
     }
 
     IEnumerator ClickButton(string name)
     {
         var button = Object.FindObjectsByType<Button>(FindObjectsSortMode.None).Single(b => b.name == name);
-        Vector2 position = RectTransformUtility.WorldToScreenPoint(null, button.transform.position);
-        InputSystem.QueueStateEvent(mouse, new MouseState { position = position, buttons = 1 });
-        yield return null; yield return null;
-        InputSystem.QueueStateEvent(mouse, new MouseState { position = position });
+        ExecuteEvents.Execute(button.gameObject, new PointerEventData(EventSystem.current)
+            { button = PointerEventData.InputButton.Left }, ExecuteEvents.pointerClickHandler);
         yield return null; yield return null;
     }
 

@@ -5,6 +5,8 @@ namespace BORis
     public sealed class WorkshopSession : MonoBehaviour
     {
         [SerializeField] Workbench workbench;
+        [SerializeField] RobotTransport transport;
+        public RobotTransport Transport => transport;
         [SerializeField] OrderDefinition[] orders = System.Array.Empty<OrderDefinition>();
         // shortcut: scene-authored readiness; enable only after the soldering tool and its orders are integrated.
         [SerializeField] bool solderingRepairsReady;
@@ -74,6 +76,7 @@ namespace BORis
                 ActiveOrder = restoredOrder;
                 ActiveOrderId = data?.activeInstance;
                 ActiveOrderReward = data != null ? data.activeReward : 0;
+                if (restoredOrder != null && transport != null) transport.ReceiveRobot();
                 lastDeliveredInstance = data?.lastDeliveredInstance;
                 IsProgressReady = true;
                 SaveStatus = reason.Length > 0 ? reason : restoredOrder != null
@@ -104,7 +107,7 @@ namespace BORis
         {
             OrderDefinition offeredOrder = OfferedOrder;
             reason = "";
-            if (ActiveOrder != null) reason = "Уже есть активный заказ. Робот ждёт на верстаке";
+            if (ActiveOrder != null) reason = "Уже есть активный заказ";
             else if (!IsProgressReady) reason = SaveStatus;
             else if (!isActiveAndEnabled || workbench == null || offeredOrder == null || !offeredOrder.IsValid)
                 reason = "Заказ недоступен: проверьте его данные и верстак";
@@ -124,6 +127,7 @@ namespace BORis
             ActiveOrder = offeredOrder;
             ActiveOrderId = snapshot.activeInstance;
             ActiveOrderReward = offeredOrder.Reward;
+            if (transport != null) transport.ReceiveRobot();
             return true;
         }
 
@@ -157,6 +161,7 @@ namespace BORis
             else if (!robot.IsFunctional) reason = "Неисправность не устранена: проверьте привод и контакты";
             else if (robot.TestResult != RobotTestResult.Passed) reason = "Соберите робота и завершите успешный тест руки";
             else if (ActiveOrder.RequiresCleaning && !robot.CheckCleaning(out reason)) return false;
+            else if (transport != null && (!transport.IsAtDelivery || transport.IsCarrying)) reason = "Отнесите робота в зону выдачи возле стойки";
             return reason.Length == 0;
         }
 

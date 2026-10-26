@@ -51,6 +51,7 @@ public sealed class WorkshopSaveTests
 
     IEnumerator PreparePassingRobot()
     {
+        Object.FindFirstObjectByType<Workbench>().PositionRobot(null);
         var robot = session.ActiveRobot;
         foreach (var screw in robot.Cover.Screws) robot.Turn(screw, -10000);
         Assert.That(robot.TryPlace(robot.Cover, false, out _), Is.True);
@@ -84,7 +85,9 @@ public sealed class WorkshopSaveTests
     IEnumerator Complete()
     {
         Assert.That(session.TryAcceptOrder(out string reason), Is.True, reason);
+        Object.FindFirstObjectByType<Workbench>().PositionRobot(null);
         yield return PreparePassingRobot();
+        RobotTransportTestFlow.Deliver(session);
         Assert.That(session.TryDeliverOrder(session.ActiveOrderId, out reason), Is.True, reason);
         yield return null;
     }
@@ -107,6 +110,7 @@ public sealed class WorkshopSaveTests
         Assert.That(GameObject.Find("SolderingStationInstalled"), Is.Not.Null);
         Assert.That(session.OfferedOrder.OrderId, Is.EqualTo("C"));
         Assert.That(session.TryAcceptOrder(out _), Is.True);
+        Object.FindFirstObjectByType<Workbench>().PositionRobot(null);
         string activeId = session.ActiveOrderId;
         var robot = session.ActiveRobot;
         foreach (var screw in robot.Cover.Screws) robot.Turn(screw, -10000);
@@ -123,6 +127,7 @@ public sealed class WorkshopSaveTests
         Assert.That(session.SaveStatus, Does.Contain("с начала"));
         Assert.That(session.CanDeliverOrder(out _), Is.False);
         yield return PreparePassingRobot();
+        RobotTransportTestFlow.Deliver(session);
         Assert.That(session.TryDeliverOrder(activeId, out _), Is.True);
         yield return Reload();
         Assert.That(session.Balance, Is.EqualTo(220));
@@ -136,6 +141,7 @@ public sealed class WorkshopSaveTests
         {
             Assert.That(session.OfferedOrder.OrderId, Is.EqualTo(orderId));
             Assert.That(session.TryAcceptOrder(out reason), Is.True, reason);
+            Object.FindFirstObjectByType<Workbench>().PositionRobot(null);
             string independentId = session.ActiveOrderId;
             Assert.That(session.ActiveOrderReward, Is.EqualTo(150));
             yield return Reload();
@@ -145,6 +151,7 @@ public sealed class WorkshopSaveTests
             Assert.That(session.ActiveRobot.SolderJoint.IsRepaired, Is.EqualTo(orderId == "D-001"));
             Assert.That(session.ActiveRobot.Findings, Is.EqualTo("Причина пока неизвестна."));
             yield return PreparePassingRobot();
+            RobotTransportTestFlow.Deliver(session);
             Assert.That(session.TryDeliverOrder(independentId, out reason), Is.True, reason);
             Assert.That(session.TryDeliverOrder(independentId, out _), Is.False);
             yield return Reload();
@@ -153,6 +160,7 @@ public sealed class WorkshopSaveTests
         Assert.That(session.CompletedOrders, Is.EqualTo(5));
         Assert.That(session.OfferedOrder.OrderId, Is.EqualTo("A-001"));
         Assert.That(session.TryAcceptOrder(out _), Is.True);
+        Object.FindFirstObjectByType<Workbench>().PositionRobot(null);
         Assert.That(session.Balance, Is.EqualTo(520));
     }
 
@@ -192,6 +200,7 @@ public sealed class WorkshopSaveTests
             Assert.That(new WorkshopProgressStore(PathName).TrySave(data, out _), Is.True);
             yield return Reload();
             Assert.That(session.TryAcceptOrder(out _), Is.True);
+            Object.FindFirstObjectByType<Workbench>().PositionRobot(null);
             var order = session.ActiveOrder;
             var robot = session.ActiveRobot;
             Assert.That(order.IndependentDiagnosis && order.RequiresSolderingStation, Is.True);
@@ -231,6 +240,7 @@ public sealed class WorkshopSaveTests
     public IEnumerator UnfinishedMaintenanceRestartsWithSameContractAndFreshRepair()
     {
         Assert.That(session.TryAcceptOrder(out _), Is.True);
+        Object.FindFirstObjectByType<Workbench>().PositionRobot(null);
         string id = session.ActiveOrderId;
         var robot = session.ActiveRobot;
         robot.Turn(robot.Cover.Screws[0], -300);
@@ -253,6 +263,7 @@ public sealed class WorkshopSaveTests
     {
         session.TryAcceptOrder(out _);
         yield return PreparePassingRobot();
+        RobotTransportTestFlow.Deliver(session);
         var robot = session.ActiveRobot;
         string id = session.ActiveOrderId;
         string confirmed = File.ReadAllText(PathName);
@@ -268,6 +279,7 @@ public sealed class WorkshopSaveTests
             Assert.That(session.CompletedOrders, Is.Zero);
         }
         Assert.That(File.ReadAllText(PathName), Is.EqualTo(confirmed));
+        RobotTransportTestFlow.Deliver(session);
         Assert.That(session.TryDeliverOrder(id, out _), Is.True);
         Assert.That(session.TryDeliverOrder(id, out _), Is.False);
         yield return Reload();
@@ -280,6 +292,7 @@ public sealed class WorkshopSaveTests
     {
         yield return Complete(); yield return Complete();
         session.TryAcceptOrder(out _);
+        Object.FindAnyObjectByType<Workbench>().PositionRobot(null);
         var robot = session.ActiveRobot;
         string id = session.ActiveOrderId;
         robot.Turn(robot.Cover.Screws[0], -180);
@@ -315,6 +328,7 @@ public sealed class WorkshopSaveTests
         Assert.That(File.Exists(PathName), Is.False);
         Directory.Delete(PathName + ".tmp");
         Assert.That(session.TryAcceptOrder(out _), Is.True);
+        Object.FindFirstObjectByType<Workbench>().PositionRobot(null);
         yield return Reload();
         Assert.That(session.ActiveOrder, Is.Not.Null);
     }

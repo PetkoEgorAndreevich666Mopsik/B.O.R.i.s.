@@ -38,6 +38,7 @@ public sealed class WorkshopProgressTests
     IEnumerator CompleteOrder()
     {
         Assert.That(session.TryAcceptOrder(out string reason), Is.True, reason);
+        Object.FindFirstObjectByType<Workbench>().PositionRobot(null);
         RobotRepair robot = session.ActiveRobot;
         foreach (var screw in robot.Cover.Screws) robot.Turn(screw, -10000f);
         Assert.That(robot.TryPlace(robot.Cover, false, out reason), Is.True, reason);
@@ -59,6 +60,7 @@ public sealed class WorkshopProgressTests
         Assert.That(robot.RunTest(out reason), Is.True, reason);
         float deadline = Time.realtimeSinceStartup + 4f;
         while (robot.IsTesting && Time.realtimeSinceStartup < deadline) yield return null;
+        RobotTransportTestFlow.Deliver(session);
         Assert.That(session.TryDeliverOrder(session.ActiveOrderId, out reason), Is.True, reason);
         yield return null;
     }
@@ -104,6 +106,7 @@ public sealed class WorkshopProgressTests
         yield return CompleteOrder();
         Assert.That(session.Balance, Is.EqualTo(220));
         Assert.That(session.TryAcceptOrder(out _), Is.True);
+        Object.FindFirstObjectByType<Workbench>().PositionRobot(null);
         RobotRepair robot = session.ActiveRobot;
         string orderId = session.ActiveOrderId;
         var screw = robot.Cover.Screws[0];
@@ -171,6 +174,7 @@ public sealed class WorkshopProgressTests
         Assert.That(session.CanOfferSolderingOrders, Is.True);
         Assert.That(session.OfferedOrder, Is.SameAs(solderingOrder));
         Assert.That(session.TryAcceptOrder(out string reason), Is.True, reason);
+        Object.FindFirstObjectByType<Workbench>().PositionRobot(null);
     }
 
     [UnityTest]

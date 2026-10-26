@@ -101,7 +101,7 @@ public sealed class OrderFlowTests
         Assert.That(session.ActiveOrderId, Is.Not.Empty);
         string instanceId = session.ActiveOrderId;
         RobotRepair robot = session.ActiveRobot;
-        Assert.That(workbench.HasRobot, Is.True);
+        Assert.That(workbench.HasRobot, Is.False);
         Assert.That(robot.TestResult, Is.EqualTo(RobotTestResult.NotTested));
         Assert.That(accept.interactable, Is.False);
         Assert.That(session.TryAcceptOrder(out string reason), Is.False);
@@ -139,6 +139,7 @@ public sealed class OrderFlowTests
     public IEnumerator VisitsPreserveProgressAndResetRepeatsSameOrder()
     {
         Assert.That(session.TryAcceptOrder(out _), Is.True);
+        Object.FindFirstObjectByType<Workbench>().PositionRobot(null);
         string orderId = session.ActiveOrderId;
         RobotRepair robot = session.ActiveRobot;
         Face(Object.FindAnyObjectByType<Workbench>().transform.TransformPoint(new Vector3(0f, 0f, -2.2f)));

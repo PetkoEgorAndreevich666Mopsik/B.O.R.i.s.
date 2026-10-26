@@ -73,6 +73,7 @@ public sealed class SolderingFlowTests
         }
         Assert.That(session.OfferedOrder.OrderId, Is.EqualTo("C"));
         Assert.That(session.TryAcceptOrder(out string reason), Is.True, reason);
+        Object.FindFirstObjectByType<Workbench>().PositionRobot(null);
         robot = session.ActiveRobot;
         joint = robot.SolderJoint;
         tool = Object.FindObjectsByType<SolderingTool>(FindObjectsInactive.Include).Single();
@@ -166,6 +167,7 @@ public sealed class SolderingFlowTests
         Assert.That(robot.TestResult, Is.EqualTo(RobotTestResult.Passed));
         yield return Press(Key.Escape);
         string id = session.ActiveOrderId;
+        RobotTransportTestFlow.Deliver(session);
         Assert.That(session.TryDeliverOrder(id, out string reason), Is.True, reason);
         Assert.That(session.TryDeliverOrder(id, out _), Is.False);
     }
@@ -173,6 +175,7 @@ public sealed class SolderingFlowTests
     IEnumerator CompleteBasicOrder()
     {
         Assert.That(session.TryAcceptOrder(out _), Is.True);
+        Object.FindFirstObjectByType<Workbench>().PositionRobot(null);
         robot = session.ActiveRobot;
         OpenCover();
         if (robot.InstalledDrive.Faulty)
@@ -228,6 +231,7 @@ public sealed class SolderingFlowTests
         Assert.That(session.CompletedOrders, Is.EqualTo(3));
         Assert.That(session.OfferedOrder.OrderId, Is.EqualTo("D-001"));
         Assert.That(session.TryAcceptOrder(out _), Is.True);
+        Object.FindFirstObjectByType<Workbench>().PositionRobot(null);
     }
 
     [UnityTest]
