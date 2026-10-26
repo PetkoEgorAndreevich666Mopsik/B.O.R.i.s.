@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 4253081313047893021}
   - component: {fileID: 130618594543756495}
   - component: {fileID: 7210573737183156415}
+  - component: {fileID: 861195309498863270}
   m_Layer: 0
   m_Name: StationLabel
   m_TagString: Untagged
@@ -104,6 +105,21 @@ TextMesh:
   m_Color:
     serializedVersion: 2
     rgba: 4294967295
+--- !u!114 &861195309498863270
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1123084032893394432}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
+  rendererOverrides: []
+  includeChildren: 1
+  includeInactiveChildren: 1
 --- !u!1 &2100432056751102649
 GameObject:
   m_ObjectHideFlags: 0
@@ -148,6 +164,7 @@ GameObject:
   - component: {fileID: 4813189809916503390}
   - component: {fileID: 33376447686799434}
   - component: {fileID: 5872515273422303842}
+  - component: {fileID: 91096303376799286}
   m_Layer: 0
   m_Name: ControlDial
   m_TagString: Untagged
@@ -250,6 +267,21 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &91096303376799286
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3421272107203290322}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
+  rendererOverrides: []
+  includeChildren: 1
+  includeInactiveChildren: 1
 --- !u!1 &4212963023446413760
 GameObject:
   m_ObjectHideFlags: 0
@@ -300,6 +332,7 @@ GameObject:
   - component: {fileID: 2654338445872392288}
   - component: {fileID: 173868619930359943}
   - component: {fileID: 2602328848850229575}
+  - component: {fileID: 1179820048394945705}
   m_Layer: 0
   m_Name: StationDisplay
   m_TagString: Untagged
@@ -400,6 +433,21 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &1179820048394945705
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4599449663809735951}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
+  rendererOverrides: []
+  includeChildren: 1
+  includeInactiveChildren: 1
 --- !u!1 &5263929824822913860
 GameObject:
   m_ObjectHideFlags: 0
@@ -412,6 +460,7 @@ GameObject:
   - component: {fileID: 8369764969358710894}
   - component: {fileID: 2146445234676440244}
   - component: {fileID: 4744372671639762098}
+  - component: {fileID: 8681183090092800665}
   m_Layer: 0
   m_Name: ToolStand
   m_TagString: Untagged
@@ -512,6 +561,21 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &8681183090092800665
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5263929824822913860}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
+  rendererOverrides: []
+  includeChildren: 1
+  includeInactiveChildren: 1
 --- !u!1 &5673283834765511211
 GameObject:
   m_ObjectHideFlags: 0
@@ -524,6 +588,7 @@ GameObject:
   - component: {fileID: 142299255236965677}
   - component: {fileID: 7906955414989893202}
   - component: {fileID: 5802240814569680551}
+  - component: {fileID: 2239396772310610552}
   m_Layer: 0
   m_Name: SolderSpool
   m_TagString: Untagged
@@ -626,6 +691,21 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &2239396772310610552
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5673283834765511211}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
+  rendererOverrides: []
+  includeChildren: 1
+  includeInactiveChildren: 1
 --- !u!1 &5730688796310441858
 GameObject:
   m_ObjectHideFlags: 0
@@ -637,6 +717,7 @@ GameObject:
   - component: {fileID: 4516839232425569727}
   - component: {fileID: 3480716923257941261}
   - component: {fileID: 6402388426121232171}
+  - component: {fileID: 1024026099453918754}
   m_Layer: 0
   m_Name: BlenderMesh
   m_TagString: Untagged
@@ -720,6 +801,21 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &1024026099453918754
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5730688796310441858}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
+  rendererOverrides: []
+  includeChildren: 1
+  includeInactiveChildren: 1
 --- !u!1 &8740079246323293756
 GameObject:
   m_ObjectHideFlags: 0
@@ -732,6 +828,7 @@ GameObject:
   - component: {fileID: 2987838848588003446}
   - component: {fileID: 847656104508739676}
   - component: {fileID: 8537532847866646229}
+  - component: {fileID: 3548406618589770800}
   m_Layer: 0
   m_Name: StationBase
   m_TagString: Untagged
@@ -832,3 +929,18 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &3548406618589770800
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8740079246323293756}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
+  rendererOverrides: []
+  includeChildren: 1
+  includeInactiveChildren: 1
