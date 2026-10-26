@@ -1,0 +1,4 @@
+E:\Repository\B.O.R.i.s\Assets\_Project\obj\Debug\BORis.Runtime.csproj.AssemblyReference.cache
+E:\Repository\B.O.R.i.s\Assets\_Project\obj\Debug\BORis.Runtime.csproj.CoreCompileInputs.cache
+E:\Repository\B.O.R.i.s\Assets\_Project\obj\Debug\BORis.Runtime.dll
+E:\Repository\B.O.R.i.s\Assets\_Project\obj\Debug\BORis.Runtime.pdb

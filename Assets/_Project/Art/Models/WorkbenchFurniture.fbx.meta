@@ -3,7 +3,37 @@ guid: 1f75c72361e8bb344a67e3be844dc53e
 ModelImporter:
   serializedVersion: 24200
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: WB_Cyan
+    second: {fileID: 2100000, guid: 494497cb9870a134385b73991f55deb6, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: WB_Dark
+    second: {fileID: 2100000, guid: 2d70a996adb155f42a3b426bea96606c, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: WB_Orange
+    second: {fileID: 2100000, guid: 161319a43ce8fa24ebf96420bfba131a, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: WB_Steel
+    second: {fileID: 2100000, guid: 2eee9fb46e9913d44845f6480d7f1be1, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: WB_Teal
+    second: {fileID: 2100000, guid: a80838ab5a802e24d94fed18d73cb7fc, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: WB_Wood
+    second: {fileID: 2100000, guid: eda448ee4569a364cb268c08d9062fe9, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0
