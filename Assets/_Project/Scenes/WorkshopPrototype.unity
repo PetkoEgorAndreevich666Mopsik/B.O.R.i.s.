@@ -7133,8 +7133,21 @@ PrefabInstance:
       propertyPath: m_LocalRotation.z
       value: -0
       objectReference: {fileID: 0}
+    - target: {fileID: 8880395819192746654, guid: e663b0dc6645d6d4b9cca736d6b97c35, type: 3}
+      propertyPath: rotationSpeed
+      value: 360
+      objectReference: {fileID: 0}
+    - target: {fileID: 8880395819192746654, guid: e663b0dc6645d6d4b9cca736d6b97c35, type: 3}
+      propertyPath: handleSurfaceAngle
+      value: 50
+      objectReference: {fileID: 0}
+    - target: {fileID: 8880395819192746654, guid: e663b0dc6645d6d4b9cca736d6b97c35, type: 3}
+      propertyPath: rotationMovementThreshold
+      value: 0.02
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
-    m_RemovedGameObjects: []
+    m_RemovedGameObjects:
+    - {fileID: 5989972976480475939, guid: e663b0dc6645d6d4b9cca736d6b97c35, type: 3}
     m_AddedGameObjects:
     - targetCorrespondingSourceObject: {fileID: 2594442750621766525, guid: e663b0dc6645d6d4b9cca736d6b97c35, type: 3}
       insertIndex: -1

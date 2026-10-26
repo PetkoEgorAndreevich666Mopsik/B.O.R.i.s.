@@ -10,6 +10,13 @@ namespace BORis
         [SerializeField] Transform dustCleaning;
         [SerializeField, Min(0f)] float dustStopDelay = .08f;
         [SerializeField, Min(0f)] float dustSurfacePadding = .003f;
+        [SerializeField, Range(0f, 90f)] float handleSurfaceAngle = 75f;
+        [SerializeField, Min(0f)] float brushSurfaceOffset = .024f;
+        [SerializeField, Min(0f)] float rotationSpeed = 720f;
+        [SerializeField, Min(0f)] float rotationMovementThreshold = .002f;
+        [SerializeField, Range(0f, 90f)] float normalTransitionAngle = 25f;
+        [SerializeField, Min(.001f)] float maxNormalTransitionDistance = .1f;
+        [SerializeField, Range(90f, 180f)] float maxNormalTransitionAngle = 100f;
         AudioSource audioSource;
         ParticleSystem dustParticles;
         ParticleSystemRenderer dustRenderer;
@@ -17,6 +24,12 @@ namespace BORis
         RobotRepair repair;
         Vector2 previousUV;
         bool hasPrevious;
+        Vector3 previousContactPoint;
+        Vector3 brushUp;
+        bool hasContactPose;
+        Vector3 surfaceAnchorPoint;
+        Vector3 surfaceAnchorNormal;
+        bool hasSurfaceAnchor;
         float lastDustEmissionTime = float.NegativeInfinity;
         int queryMask;
 
@@ -84,34 +97,68 @@ namespace BORis
             }
             if (!HasContact)
             {
-                hasPrevious = false;
+                hasPrevious = hasContactPose = false;
                 audioSource.Stop();
                 StopDust();
                 return;
             }
-            transform.SetPositionAndRotation(hit.point + hit.normal * .002f, Quaternion.LookRotation(hit.normal, view.transform.up));
+
+            Vector3 hitNormal = hit.normal.normalized;
+            float normalAngle = hasSurfaceAnchor
+                ? Vector3.Angle(surfaceAnchorNormal, hitNormal)
+                : 0f;
+            bool changesSurface = hasSurfaceAnchor && normalAngle >= normalTransitionAngle;
+
+            // Do not let a ray jump from the current face to a distant or opposite face.
+            // The user must move through the edge, where both contact points are close.
+            if (changesSurface && (normalAngle > maxNormalTransitionAngle
+                || Vector3.Distance(surfaceAnchorPoint, hit.point) > maxNormalTransitionDistance))
+            {
+                Target = null;
+                HasContact = false;
+                hasPrevious = hasContactPose = false;
+                audioSource.Stop();
+                StopDust();
+                return;
+            }
+
+            // A valid edge crossing starts a new stroke and a new tangent frame. This
+            // prevents UV lines and the old movement direction from leaking across faces.
+            if (changesSurface)
+            {
+                hasPrevious = hasContactPose = false;
+                audioSource.Stop();
+                StopDust();
+            }
+
+            transform.SetPositionAndRotation(
+                hit.point + hitNormal * brushSurfaceOffset,
+                SurfaceRotation(hit.point, hitNormal));
             int cleaned = Target != null && Target == previousTarget && hasPrevious
                 ? Target.CleanStroke(previousUV, hit.textureCoord, radius) : 0;
             if (cleaned > 0)
             {
                 audioSource.volume = .28f;
                 if (scrubSound != null && !audioSource.isPlaying) audioSource.Play();
-                UpdateDust(true, hit.point, hit.normal);
+                UpdateDust(true, hit.point, hitNormal);
             }
             else
             {
                 audioSource.Stop();
-                UpdateDust(false, hit.point, hit.normal);
+                UpdateDust(false, hit.point, hitNormal);
             }
+            surfaceAnchorPoint = hit.point;
+            surfaceAnchorNormal = hitNormal;
+            hasSurfaceAnchor = true;
             previousUV = hit.textureCoord;
-            hasPrevious = Target != null;
+            hasPrevious = true;
         }
 
         public override void End()
         {
             Target = null;
             repair = null;
-            hasPrevious = HasContact = false;
+            hasPrevious = HasContact = hasContactPose = hasSurfaceAnchor = false;
             if (audioSource != null) audioSource.Stop();
             StopDust();
             RestorePose();
@@ -139,6 +186,42 @@ namespace BORis
             if (dustParticles.isEmitting && Time.time - lastDustEmissionTime >= dustStopDelay)
                 StopDust();
         }
+
+        Quaternion SurfaceRotation(Vector3 point, Vector3 normal)
+        {
+            normal.Normalize();
+            Vector3 cameraUp = Vector3.ProjectOnPlane(view.transform.up, normal);
+            if (cameraUp.sqrMagnitude < .000001f)
+                cameraUp = Vector3.ProjectOnPlane(view.transform.right, normal);
+            cameraUp.Normalize();
+
+            if (!hasContactPose)
+            {
+                brushUp = cameraUp;
+                previousContactPoint = point;
+                hasContactPose = true;
+                return TiltFromSurface(Quaternion.LookRotation(normal, brushUp));
+            }
+
+            Vector3 currentUp = Vector3.ProjectOnPlane(brushUp, normal);
+            if (currentUp.sqrMagnitude < .000001f) currentUp = cameraUp;
+            else currentUp.Normalize();
+
+            Vector3 movement = Vector3.ProjectOnPlane(point - previousContactPoint, normal);
+            Vector3 targetUp = movement.sqrMagnitude >= rotationMovementThreshold * rotationMovementThreshold
+                ? -movement.normalized
+                : currentUp;
+
+            float signedAngle = Vector3.SignedAngle(currentUp, targetUp, normal);
+            float maxStep = rotationSpeed * Time.deltaTime;
+            brushUp = Quaternion.AngleAxis(Mathf.Clamp(signedAngle, -maxStep, maxStep), normal) * currentUp;
+            brushUp.Normalize();
+            previousContactPoint = point;
+            return TiltFromSurface(Quaternion.LookRotation(normal, brushUp));
+        }
+
+        Quaternion TiltFromSurface(Quaternion surfaceRotation) =>
+            surfaceRotation * Quaternion.Euler(handleSurfaceAngle, 0f, 0f);
 
         float GetDustSurfaceOffset(Vector3 surfaceNormal)
         {
