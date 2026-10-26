@@ -119,16 +119,13 @@ namespace BORis
             if (player.IsReturning) return;
             if (saveStatus != null && session != null)
             {
-                saveStatus.gameObject.SetActive(!IsAtWorkbench && !IsAtOrderDesk && !IsAtEquipmentShop);
+                saveStatus.gameObject.SetActive(!session.IsProgressReady && !IsAtWorkbench && !IsAtOrderDesk && !IsAtEquipmentShop);
                 saveStatus.text = session.SaveStatus;
             }
             if (workshopProgress != null && session != null)
             {
-                workshopProgress.gameObject.SetActive(!IsAtWorkbench);
-                workshopProgress.text = $"Баланс: {session.Balance} ед.   |   Заказов выполнено: {session.CompletedOrders}"
-                    + (session.HasSolderingStation ? "\nПаяльная станция установлена"
-                        : session.Balance >= WorkshopSession.SolderingStationPrice ? "\nМожно купить паяльную станцию · оборудование справа"
-                        : $"\nПаяльная станция: {session.Balance}/{WorkshopSession.SolderingStationPrice} ед.");
+                workshopProgress.gameObject.SetActive(!IsAtWorkbench && !IsAtOrderDesk && !IsAtEquipmentShop);
+                workshopProgress.text = $"Баланс: {session.Balance} ед.";
             }
             if (IsAtEquipmentShop)
             {
@@ -145,7 +142,7 @@ namespace BORis
                     ExitWorkbench();
                 else if (cancel.WasPressedThisFrame())
                 {
-                    if (repairHUD != null && repairHUD.CloseDiagnosis()) { }
+                    if (repairHUD != null && repairHUD.CloseOverlay()) { }
                     else if (DriveStand != null && DriveStand.Part != null) DriveStand.Cancel();
                     else if (IsInspecting && (HeldPart != null || selectedTool != null && selectedTool.IsActive))
                     {
@@ -207,19 +204,15 @@ namespace BORis
                         : Feedback.Length > 0 ? Feedback
                         : PointedEquipmentShop != null ? "E — оборудование мастерской"
                         : PointedOrderDesk != null ? "E — стойка приёма заказов"
-                        : PointedWorkbench != null ? PointedWorkbench.HasRobot ? "E — сесть за верстак" : "Верстак пуст · получите заказ на стойке"
-                        : session != null && session.ActiveOrder == null ? "Примите заказ на стойке слева"
-                        : session != null && session.ActiveOrder != null ? session.ActiveOrder.IndependentDiagnosis
-                            ? "Робот ждёт на верстаке впереди · E — начать ремонт"
-                            : $"Заказ {session.ActiveOrder.OrderId} ждёт на верстаке впереди · E — начать ремонт"
-                        : "";
+                        : PointedWorkbench != null ? PointedWorkbench.HasRobot ? "E — верстак" : "Верстак пуст" : "";
                     if (repairHUD != null) repairHUD.ShowShop(message);
                     else hint.text = message;
                 }
             }
             if (exitButton != null) exitButton.gameObject.SetActive(IsAtWorkbench);
-            if (restartButton != null) restartButton.gameObject.SetActive(IsAtWorkbench);
-            if (alignInspectionButton != null) alignInspectionButton.gameObject.SetActive(IsInspecting);
+            bool showHelpActions = IsAtWorkbench && repairHUD != null && repairHUD.IsHelpOpen;
+            if (restartButton != null) restartButton.gameObject.SetActive(showHelpActions);
+            if (alignInspectionButton != null) alignInspectionButton.gameObject.SetActive(showHelpActions);
         }
 
         void TickBench()

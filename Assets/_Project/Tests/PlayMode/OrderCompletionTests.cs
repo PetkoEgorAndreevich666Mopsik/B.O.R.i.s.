@@ -130,7 +130,8 @@ public sealed class OrderCompletionTests
             Assert.That(workbench.HasRobot, Is.False);
             var card = Object.FindObjectsByType<Text>(FindObjectsSortMode.None).Single(t => t.name == "OrderDescription");
             Assert.That(card.text, Does.Contain("ВЫДАН").And.Contain("+" + reward));
-            var progress = Object.FindObjectsByType<Text>(FindObjectsSortMode.None).Single(t => t.name == "WorkshopProgress");
+            var progress = Object.FindObjectsByType<Text>(FindObjectsInactive.Include, FindObjectsSortMode.None).Single(t => t.name == "WorkshopProgress");
+            Assert.That(progress.gameObject.activeInHierarchy, Is.False, "The order receipt already shows the balance.");
             Assert.That(progress.text, Does.Contain(expectedBalance.ToString()));
             yield return Click("AcceptOrderButton");
             Assert.That(session.ActiveOrder, Is.Null, "Next-order button previews; it must not accept automatically.");
@@ -340,6 +341,8 @@ public sealed class OrderCompletionTests
         Assert.That(interaction.IsAtWorkbench, Is.True);
         var hud = Object.FindAnyObjectByType<RepairHUD>();
         Text assembly = (Text)typeof(RepairHUD).GetField("assemblyState", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(hud);
+        Assert.That(assembly.text, Is.EqualTo("Очистка: 0 / 3"));
+        yield return Click("CollapseOrderButton");
         Assert.That(assembly.text, Does.Contain("Очистка ≥90%").And.Contain("0 / 3"));
         Assert.That(assembly.text, Does.Not.Contain("выдайте робота"));
         Assert.That(assembly.text, Does.Contain("СЕЙЧАС"));

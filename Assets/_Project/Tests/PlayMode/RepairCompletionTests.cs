@@ -191,6 +191,7 @@ public sealed class RepairCompletionTests
     {
         Repair();
         Assert.That(robot.RunTest(out _), Is.True);
+        yield return Press(Key.F1);
         var restart = Object.FindObjectsByType<Button>(FindObjectsSortMode.None).Single(b => b.name == "RestartButton");
         Vector2 pointer = RectTransformUtility.WorldToScreenPoint(null, restart.transform.position);
         yield return Pointer(pointer, true);

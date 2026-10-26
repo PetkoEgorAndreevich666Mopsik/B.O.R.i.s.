@@ -37,7 +37,7 @@ public sealed class RepairDiagnosisTests
         yield return null;
     }
 
-    IEnumerator EnterOrder(bool cleaning = false, bool independent = false, bool contact = false)
+    IEnumerator EnterOrder(bool cleaning = false, bool independent = false, bool contact = false, bool details = true)
     {
         var orders = (OrderDefinition[])typeof(WorkshopSession).GetField("orders",
             BindingFlags.Instance | BindingFlags.NonPublic).GetValue(session);
@@ -66,6 +66,7 @@ public sealed class RepairDiagnosisTests
         yield return null;
         yield return Press(Key.E);
         Assert.That(interaction.IsAtWorkbench, Is.True);
+        if (details) yield return ClickButton("CollapseOrderButton");
     }
 
     IEnumerator Press(Key key)
@@ -116,7 +117,7 @@ public sealed class RepairDiagnosisTests
     }
 
     [UnityTest]
-    public IEnumerator NewOrderShowsSymptomAndInspectionGoalWithoutRevealingTheRepair()
+    public IEnumerator ExpandedOrderShowsSymptomAndInspectionGoalWithoutRevealingTheRepair()
     {
         yield return EnterOrder();
         yield return Point(new Vector2(Screen.width - 30f, Screen.height * .5f));
@@ -148,6 +149,7 @@ public sealed class RepairDiagnosisTests
         Assert.That(TextNamed("AssemblyState").text, Does.Contain("видимых повреждений"));
         interaction.ResetRepair();
         yield return null;
+        yield return ClickButton("CollapseOrderButton");
         Assert.That(TextNamed("AssemblyState").text, Does.Not.Contain("НАЙДЕНО"));
         Assert.That(TextNamed("AssemblyState").text, Does.Contain("Причина пока неизвестна"));
     }
@@ -247,7 +249,7 @@ public sealed class RepairDiagnosisTests
     }
 
     [UnityTest]
-    public IEnumerator ContextCardFitsScreenAvoidsWorkPointAndHidesWhenIdle()
+    public IEnumerator HoverStaysQuietAndBlockedActionShowsFeedback()
     {
         Assert.That(TextNamed("Title").gameObject.activeInHierarchy, Is.False);
         Assert.That(TextNamed("ToolShortcuts").gameObject.activeInHierarchy, Is.False);
@@ -257,7 +259,15 @@ public sealed class RepairDiagnosisTests
         yield return new WaitForSeconds(.3f);
         var panel = TextNamed("Hint").transform.parent.GetComponent<RectTransform>();
         var group = panel.GetComponent<CanvasGroup>();
+        Assert.That(group.alpha, Is.Zero);
+        Assert.That(TextNamed("Hint").text, Is.Empty);
+        InputSystem.QueueStateEvent(mouse, new MouseState { position = point, buttons = 1 });
+        yield return null; yield return null;
+        InputSystem.QueueStateEvent(mouse, new MouseState { position = point });
+        yield return null; yield return null;
+        yield return new WaitForSeconds(.15f);
         Assert.That(group.alpha, Is.GreaterThan(.9f));
+        Assert.That(TextNamed("Hint").text, Does.Contain("винты"));
         Assert.That(group.blocksRaycasts, Is.False);
         Assert.That(panel.rect.width, Is.LessThanOrEqualTo(380f));
         var corners = new Vector3[4]; panel.GetWorldCorners(corners);
@@ -284,7 +294,7 @@ public sealed class RepairDiagnosisTests
         yield return ClickButton("ToolSlot1");
         Assert.That(interaction.BrushSelected || interaction.ScrewdriverSelected, Is.False);
         yield return ClickButton("CollapseOrderButton");
-        Assert.That(TextNamed("AssemblyState").text, Does.Contain("СЕЙЧАС"));
+        Assert.That(TextNamed("AssemblyState").text, Does.Contain("Очистка:"));
         Assert.That(TextNamed("AssemblyState").text, Does.Not.Contain("Крышка снаружи:"));
         Assert.That(TextNamed("Symptom").text, Does.Contain("Обслуживание"));
         yield return Press(Key.F1);
@@ -297,28 +307,39 @@ public sealed class RepairDiagnosisTests
     }
 
     [UnityTest]
-    public IEnumerator TargetAdviceAndSelectedToolStayReadableInFocusedView()
+    public IEnumerator DefaultHudIsSmallAndHelpActionsOnlyAppearOnRequest()
     {
-        yield return EnterOrder();
+        yield return EnterOrder(details: false);
+        var panel = TextNamed("Symptom").transform.parent.GetComponent<RectTransform>();
+        Assert.That(panel.rect.height, Is.LessThanOrEqualTo(100f));
+        Assert.That(panel.rect.width, Is.LessThanOrEqualTo(260f));
+        Assert.That(TextNamed("Symptom").text, Does.Not.Contain(session.ActiveOrder.Symptom));
+        Assert.That(TextNamed("AssemblyState").text, Is.EqualTo("В работе"));
+        Assert.That(TextNamed("ToolShortcuts").gameObject.activeInHierarchy, Is.False);
+        Assert.That(TextNamed("CameraHints").text, Is.EqualTo("F1 — помощь"));
+        var buttons = Object.FindObjectsByType<Button>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        Assert.That(buttons.Single(b => b.name == "RestartButton").gameObject.activeInHierarchy, Is.False);
+        Assert.That(buttons.Single(b => b.name == "AlignInspectionButton").gameObject.activeInHierarchy, Is.False);
+        Assert.That(buttons.Single(b => b.name == "DiagnosisButton").gameObject.activeInHierarchy, Is.False);
         yield return Point(player.View.WorldToScreenPoint(robot.Cover.Screws[0].transform.position));
-        Assert.That(TextNamed("Hint").text, Does.Contain("ВИНТ КРЫШКИ"));
-        Assert.That(TextNamed("Hint").text, Does.Contain("2 — отвёртка"));
+        yield return new WaitForSeconds(.3f);
+        Assert.That(TextNamed("Hint").text, Is.Empty);
         yield return Press(Key.Digit2);
-        Assert.That(TextNamed("ToolShortcuts").text, Does.Contain("[2  Отвёртка]"));
-        Assert.That(TextNamed("Hint").text, Does.Contain("колесо"));
-        yield return Press(Key.F);
-        yield return new WaitForSeconds(1.3f);
-        yield return Point(player.View.WorldToScreenPoint(robot.Cover.Screws[0].transform.position));
-        Assert.That(TextNamed("CameraHints").text, Does.Contain("Вращать робота"));
-        Assert.That(TextNamed("CameraHints").text, Does.Contain("Выровнять"));
-        Assert.That(TextNamed("Hint").text, Does.Contain("ВИНТ КРЫШКИ"), "Repair advice must remain available in inspection.");
-        Assert.That(TextNamed("ToolShortcuts").text, Does.Contain("[2  Отвёртка]"));
-        Assert.That(TextNamed("AssemblyState").gameObject.activeSelf, Is.True);
-        Assert.That(TextNamed("AssemblyState").preferredHeight,
-            Is.LessThanOrEqualTo(TextNamed("AssemblyState").rectTransform.rect.height + 1f));
-        Assert.That(TextNamed("ToolShortcuts").raycastTarget, Is.False);
+        Assert.That(interaction.ScrewdriverSelected, Is.True);
+        Assert.That(buttons.Single(b => b.name == "ToolSlot2").gameObject.activeInHierarchy, Is.True);
+        Assert.That(TextNamed("ToolShortcuts").gameObject.activeInHierarchy, Is.False);
+        yield return Press(Key.F1);
+        Assert.That(TextNamed("HelpText").gameObject.activeInHierarchy, Is.True);
+        Assert.That(buttons.Single(b => b.name == "RestartButton").gameObject.activeInHierarchy, Is.True);
+        Assert.That(buttons.Single(b => b.name == "AlignInspectionButton").gameObject.activeInHierarchy, Is.True);
+        yield return Press(Key.Escape);
+        Assert.That(interaction.IsAtWorkbench, Is.True);
+        Assert.That(TextNamed("HelpText").gameObject.activeInHierarchy, Is.False);
+        Assert.That(buttons.Single(b => b.name == "RestartButton").gameObject.activeInHierarchy, Is.False);
+        yield return ClickButton("CollapseOrderButton");
+        Assert.That(TextNamed("Symptom").text, Does.Contain(session.ActiveOrder.Symptom));
+        Assert.That(panel.rect.height, Is.GreaterThan(100f));
     }
-
     [UnityTest]
     public IEnumerator IndependentDiagnosisNeverRevealsRecipeWithoutThreeExplicitRequests()
     {

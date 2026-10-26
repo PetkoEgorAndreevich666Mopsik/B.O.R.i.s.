@@ -121,7 +121,7 @@ public sealed class RepairAssemblyFlowTests
         Assert.That(cover.IsInstalled, Is.True, "Release must not remove the cover automatically.");
         Assert.That(Vector3.Distance(cover.transform.position, cover.InstallationAnchor.position), Is.EqualTo(.035f).Within(.001f));
         Assert.That(cover.GetComponent<AudioSource>().isPlaying, Is.True);
-        Assert.That(last.transform.Find("ReleasedBand").gameObject.activeSelf, Is.True);
+        Assert.That(last.IsLoose, Is.True);
         robot.Turn(last, 45f);
         Assert.That(cover.IsReleased, Is.False);
         Assert.That(Vector3.Distance(cover.transform.position, cover.InstallationAnchor.position), Is.LessThan(.001f));
@@ -172,6 +172,7 @@ public sealed class RepairAssemblyFlowTests
         Assert.That(robot.Cover.IsInstalled,Is.True);
         yield return TestButton();
         Assert.That(robot.TestResult,Is.EqualTo(RobotTestResult.Passed));
+        yield return KeyPress(Key.F1);
         var restart=Object.FindObjectsByType<Button>(FindObjectsSortMode.None).Single(b=>b.name=="RestartButton");
         Vector2 resetPoint=RectTransformUtility.WorldToScreenPoint(null,restart.transform.position);
         yield return Pointer(resetPoint,true);
