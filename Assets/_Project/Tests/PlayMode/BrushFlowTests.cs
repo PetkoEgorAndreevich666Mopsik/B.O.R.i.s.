@@ -101,6 +101,31 @@ public sealed class BrushFlowTests
     }
 
     [UnityTest]
+    public IEnumerator DustEmitsOnlyWhileStrokeRemovesDirt()
+    {
+        Transform dustRoot = brush.transform.Find("DustCleaning");
+        Assert.That(dustRoot, Is.Not.Null);
+        Assert.That(dustRoot.GetComponentInChildren<ParticleSystem>(true), Is.Not.Null);
+        Assert.That(brush.IsDustEmitting, Is.False);
+
+        yield return Press(Key.Digit3);
+        brush.Begin(patch, player.View, ScreenUV(patch, new Vector2(.2f, .5f)));
+        Assert.That(brush.IsDustEmitting, Is.False, "Initial contact does not remove dirt.");
+
+        Vector2 strokeEnd = ScreenUV(patch, new Vector2(.35f, .5f));
+        brush.Drag(strokeEnd);
+        Assert.That(brush.IsDustEmitting, Is.True);
+
+        brush.Drag(strokeEnd);
+        Assert.That(brush.IsDustEmitting, Is.True, "Brief empty samples must not make the VFX flicker.");
+        yield return new WaitForSeconds(brush.DustStopDelay + .02f);
+        brush.Drag(strokeEnd);
+        Assert.That(brush.IsDustEmitting, Is.False, "Emission stops after the configurable grace period.");
+        brush.End();
+        Assert.That(brush.IsDustEmitting, Is.False);
+    }
+
+    [UnityTest]
     public IEnumerator LeavingSurfaceBreaksStrokeAndOccluderPreventsCleaning()
     {
         yield return Press(Key.Digit3);
