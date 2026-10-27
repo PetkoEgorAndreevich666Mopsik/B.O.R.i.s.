@@ -102,5 +102,22 @@ namespace BORis
                 return false;
             }
         }
+
+        public bool TryReset(string firstOrderId, out string message)
+        {
+            var fresh = new WorkshopProgress { version = 1, nextOrder = firstOrderId };
+            if (!TrySave(fresh, out message))
+            {
+                message = "Не удалось сбросить прогресс. Проверьте доступ к сохранению и повторите попытку.";
+                return false;
+            }
+            // Replace the backup too so recovery cannot restore the previous playthrough.
+            if (!TrySave(fresh, out message))
+            {
+                message = "Не удалось обновить резервную копию. Повторите запуск новой игры.";
+                return false;
+            }
+            return true;
+        }
     }
 }
