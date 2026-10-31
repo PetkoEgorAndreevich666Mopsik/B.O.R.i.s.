@@ -103,6 +103,7 @@ public sealed class RepairDiagnosisTests
     {
         foreach (var screw in robot.Cover.Screws) robot.Turn(screw, -10000f);
         Assert.That(robot.TryPlace(robot.Cover, false, out _), Is.True);
+        robot.Cover.RecoverToTable();
         Physics.SyncTransforms();
     }
 
@@ -237,6 +238,7 @@ public sealed class RepairDiagnosisTests
         Assert.That(robot.ToggleConnection(robot.Connector, out _), Is.True);
         foreach (var screw in original.Screws) robot.Turn(screw, -10000f);
         Assert.That(robot.TryPlace(original, false, out _), Is.True);
+        original.RecoverToTable();
         Assert.That(robot.TryPlace(replacement, true, out _), Is.True);
         Physics.SyncTransforms();
         yield return Point(MotorPoint());
@@ -244,6 +246,7 @@ public sealed class RepairDiagnosisTests
         Assert.That(robot.InspectedDrive, Is.EqualTo(replacement));
         Assert.That(robot.DriveFaultFound, Is.False);
         Assert.That(robot.TryPlace(replacement, false, out _), Is.True);
+        replacement.RecoverToTable();
         Assert.That(robot.TryPlace(original, true, out _), Is.True);
         Physics.SyncTransforms();
         yield return Point(MotorPoint());
@@ -320,7 +323,8 @@ public sealed class RepairDiagnosisTests
         Assert.That(TextNamed("Symptom").text, Does.Not.Contain(session.ActiveOrder.Symptom));
         Assert.That(TextNamed("AssemblyState").text, Is.EqualTo("В работе"));
         Assert.That(TextNamed("ToolShortcuts").gameObject.activeInHierarchy, Is.False);
-        Assert.That(TextNamed("CameraHints").text, Is.EqualTo("F1 — помощь"));
+        Assert.That(TextNamed("CameraHints").text, Does.Contain("F1 — помощь"));
+        Assert.That(TextNamed("CameraHints").text, Does.Contain("G — вернуть детали"));
         var buttons = Object.FindObjectsByType<Button>(FindObjectsInactive.Include, FindObjectsSortMode.None);
         Assert.That(buttons.Single(b => b.name == "RestartButton").gameObject.activeInHierarchy, Is.False);
         Assert.That(buttons.Single(b => b.name == "AlignInspectionButton").gameObject.activeInHierarchy, Is.False);

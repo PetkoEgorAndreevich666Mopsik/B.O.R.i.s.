@@ -57,6 +57,54 @@ public sealed class RobotTransportTests
         Physics.SyncTransforms();
     }
 
+    static void AssertInstalledPartsAttached(RobotRepair robot, string stage)
+    {
+        int checkedParts = 0;
+        foreach (RepairPart part in robot.GetComponentsInChildren<RepairPart>())
+        {
+            if (!part.IsInstalled) continue;
+            checkedParts++;
+            string context = $"{stage}: {part.name}";
+            Assert.That(Vector3.Distance(part.transform.position, part.InstallationAnchor.position),
+                Is.LessThan(.001f), context + " visible pose must follow its attachment");
+            Assert.That(Quaternion.Angle(part.transform.rotation, part.InstallationAnchor.rotation),
+                Is.LessThan(.05f), context + " visible rotation must follow its attachment");
+            Assert.That(Vector3.Distance(part.Body.position, part.InstallationAnchor.position),
+                Is.LessThan(.001f), context + " physics pose must follow its attachment");
+            Assert.That(Quaternion.Angle(part.Body.rotation, part.InstallationAnchor.rotation),
+                Is.LessThan(.05f), context + " physics rotation must follow its attachment");
+            Assert.That(part.Body.isKinematic, Is.True, context);
+        }
+        Assert.That(checkedParts, Is.EqualTo(2), stage);
+    }
+
+    [UnityTest]
+    public IEnumerator CarryAndPlacementKeepInstalledPhysicsAlignedWithRobot()
+    {
+        // Drive the transport directly so a released test mouse cannot cancel the carry between physics steps.
+        player.GetComponent<InteractionController>().enabled = false;
+        RobotRepair robot = session.ActiveRobot;
+        Assert.That(session.Transport.TryPickUp(out string reason), Is.True, reason);
+        for (int frame = 0; frame < 4; frame++)
+        {
+            player.View.transform.SetPositionAndRotation(new Vector3(frame * .6f - .8f, 1.8f, -1.5f),
+                Quaternion.Euler(10f, 30f + frame * 35f, 0f));
+            session.Transport.Follow(player.View);
+            AssertInstalledPartsAttached(robot, $"carry frame {frame}");
+            yield return new WaitForFixedUpdate();
+            yield return null;
+            AssertInstalledPartsAttached(robot, $"after physics frame {frame}");
+        }
+        Collider table = workbench.transform.Find("TableTop").GetComponent<Collider>();
+        Assert.That(session.Transport.TryDrop(new Ray(table.bounds.center + Vector3.up * 2f, Vector3.down), 3f), Is.True);
+        Assert.That(workbench.HasRobot, Is.True);
+        AssertInstalledPartsAttached(robot, "immediately after placing on workbench");
+        yield return new WaitForFixedUpdate();
+        yield return new WaitForFixedUpdate();
+        yield return null;
+        AssertInstalledPartsAttached(robot, "after settling on workbench");
+    }
+
     [UnityTest]
     public IEnumerator HeldMouseCarriesRobotWithWalkingAndReleasePlacesItOnWorkbench()
     {
@@ -77,10 +125,12 @@ public sealed class RobotTransportTests
         yield return null;
         yield return null;
         Assert.That(session.Transport.IsCarrying, Is.True, player.GetComponent<InteractionController>().Feedback);
+        AssertInstalledPartsAttached(robot, "mouse pickup");
         Vector3 start = robot.transform.position;
         InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.D));
         yield return new WaitForSeconds(.15f);
         Assert.That(Vector3.Distance(start, robot.transform.position), Is.GreaterThan(.1f));
+        AssertInstalledPartsAttached(robot, "walking with held mouse");
         InputSystem.QueueStateEvent(keyboard, new KeyboardState());
         Face(workbench.transform.position + Vector3.up * 1.1f);
         InputSystem.QueueStateEvent(mouse, new MouseState());
@@ -89,6 +139,7 @@ public sealed class RobotTransportTests
         Assert.That(session.Transport.IsCarrying, Is.False);
         Assert.That(workbench.HasRobot, Is.True);
         Assert.That(session.ActiveRobot, Is.SameAs(robot));
+        AssertInstalledPartsAttached(robot, "mouse release onto workbench");
         Assert.That(workbench.Enter(player.View), Is.True);
         workbench.Exit();
     }

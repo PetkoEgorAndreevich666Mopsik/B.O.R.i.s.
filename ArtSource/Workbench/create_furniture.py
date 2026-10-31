@@ -9,7 +9,7 @@ from mathutils import Vector
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "ArtSource/Workbench/WorkbenchFurniture.blend"
 EXPORT = ROOT / "Assets/_Project/Art/Models/WorkbenchFurniture.fbx"
-REPORT = ROOT / "Temp/WorkbenchModels/furniture-model-report.json"
+REPORT = Path.home() / "Documents/Codex/BORis/reports/WorkbenchModels/furniture-model-report.json"
 bpy.ops.object.select_all(action="SELECT")
 bpy.ops.object.delete(use_global=False)
 for material in list(bpy.data.materials):

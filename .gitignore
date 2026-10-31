@@ -37,6 +37,17 @@
 # Visual Studio cache directory
 .vs/
 
+# Local Rider settings and Unity scene recovery backups
+.idea/
+/Assets/_Recovery/
+/Assets/_Recovery.meta
+
+# Intermediate compiler output accidentally generated inside Assets
+/Assets/_Project/obj/
+/Assets/_Project/obj.meta
+/Assets/_Project/Temp/
+/Assets/_Project/Temp.meta
+
 # Gradle cache directory
 .gradle/
 

@@ -18,12 +18,11 @@ namespace BORis
         Quaternion robotRotation;
         Vector3 robotScale;
         Camera inspectionCamera;
-        Vector3 overviewPosition, inspectionPivot, framingCenter, cameraVelocity, sourcePosition;
+        Vector3 overviewPosition, inspectionPivot, cameraVelocity;
         Transform inspectionRoot;
         RepairPart framingPart, liftedPart;
-        Quaternion sourceRotation;
-        Quaternion overviewRotation, inspectionRotation, objectRotation;
-        float lift, liftHeight;
+        Quaternion overviewRotation, inspectionRotation, initialInspectionRotation;
+        float orbitPitch, orbitYaw;
         float inspectionDistance, minimumDistance;
         float initialDistance, maximumDistance;
         int cameraMask;
@@ -34,9 +33,7 @@ namespace BORis
         public string InspectionName => framingPart != null && robot != null ? robot.PartLabel(framingPart) : "Робот";
 
         public bool IsOccupied => view != null;
-        // Tool reach must follow the robot now that zoom moves it instead of the camera.
-        public float CameraOffset => view != null ? Vector3.Distance(view.position, overviewPosition)
-            + Mathf.Max(0f, inspectionDistance - initialDistance) : 0f;
+        public float CameraOffset => view != null ? Vector3.Distance(view.position, overviewPosition) : 0f;
         public Collider TestButton => testButton;
         public RobotRepair Robot => robot;
         public bool RobotOnTable { get; private set; } = true;
@@ -82,6 +79,7 @@ namespace BORis
             robot = Instantiate(robotPrefab, robotParent);
             robot.transform.SetLocalPositionAndRotation(robotPosition, robotRotation);
             robot.transform.localScale = robotScale;
+            SynchronizeRobotPhysics();
             if (emptyIndicator != null) emptyIndicator.SetActive(false);
             return robot;
         }
@@ -106,12 +104,21 @@ namespace BORis
             if (destination != null)
             {
                 robot.transform.rotation = destination.rotation;
+                SynchronizeRobotPhysics();
                 Bounds bounds = robot.InspectionPivot.GetComponentInChildren<Renderer>().bounds;
                 foreach (Renderer renderer in robot.GetComponentsInChildren<Renderer>()) bounds.Encapsulate(renderer.bounds);
                 robot.transform.position += destination.position - new Vector3(bounds.center.x, bounds.min.y, bounds.center.z);
             }
+            SynchronizeRobotPhysics();
             if (emptyIndicator != null) emptyIndicator.SetActive(!RobotOnTable);
             Physics.SyncTransforms();
+        }
+
+        internal void SynchronizeRobotPhysics()
+        {
+            if (robot == null) return;
+            foreach (RepairPart part in robot.GetComponentsInChildren<RepairPart>())
+                part.SynchronizePhysicsPose();
         }
 
         public RobotRepair ResetRobot()
@@ -148,7 +155,7 @@ namespace BORis
 
         public void Focus(RepairPart part)
         {
-            if (!IsOccupied || !HasRobot || robot.IsTesting || robot.IsOnDriveStand || IsFocused) return;
+            if (!IsOccupied || !HasRobot || robot.IsTesting || robot.IsOnDriveStand) return;
             if (part != null && (!part.isActiveAndEnabled || part.GetComponentInParent<RobotRepair>() != robot)) return;
             foreach (RepairTool tool in GetComponentsInChildren<RepairTool>())
                 if (tool.IsActive) return;
@@ -156,6 +163,7 @@ namespace BORis
             liftedPart = part != null && !part.IsInstalled ? part : null;
             inspectionRoot = liftedPart != null ? liftedPart.transform : robot.InspectionPivot;
             if (inspectionRoot == null) return;
+            if (liftedPart != null) liftedPart.SetSupported(true);
             framingPart = part;
             Transform framingTarget = part != null ? part.transform : inspectionRoot;
             Bounds bounds = new(framingTarget.position, Vector3.zero);
@@ -175,14 +183,12 @@ namespace BORis
                                 if (hasBounds) bounds.Encapsulate(renderer.bounds);
                                 else { bounds = renderer.bounds; hasBounds = true; }
                             }
-            sourcePosition = inspectionRoot.position;
-            sourceRotation = inspectionRoot.rotation;
             inspectionPivot = bounds.center;
-            liftHeight = liftedPart != null ? Mathf.Max(.06f, bounds.extents.magnitude - bounds.extents.y + .03f) : 0f;
-            lift = 0f;
-            framingCenter = bounds.center + Vector3.up * liftHeight;
             inspectionRotation = part == null ? cameraAnchor.rotation
                 : Quaternion.Euler(liftedPart != null ? 55f : 25f, overviewRotation.eulerAngles.y, 0f);
+            initialInspectionRotation = inspectionRotation;
+            orbitPitch = inspectionRotation.eulerAngles.x;
+            orbitYaw = inspectionRotation.eulerAngles.y;
             float halfFov = Mathf.Atan(Mathf.Tan(inspectionCamera.fieldOfView * Mathf.Deg2Rad * .5f)
                 * Mathf.Min(1f, inspectionCamera.aspect));
             initialDistance = part == null ? Mathf.Max(.1f, Vector3.Distance(cameraAnchor.position, inspectionPivot))
@@ -190,36 +196,24 @@ namespace BORis
             minimumDistance = Mathf.Min(initialDistance,
                 Mathf.Max(bounds.extents.magnitude + inspectionCamera.nearClipPlane + .05f, initialDistance * .25f));
             maximumDistance = initialDistance * 2.5f;
-            if (part == null) framingCenter = cameraAnchor.position + cameraAnchor.forward * initialDistance;
+            if (part == null) inspectionPivot = cameraAnchor.position + cameraAnchor.forward * initialDistance;
             inspectionDistance = initialDistance;
-            objectRotation = Quaternion.identity;
             IsFocused = true;
         }
 
         public void ReturnToOverview(bool immediate = false)
         {
             IsFocused = false;
-            if (!immediate) return;
-            if (inspectionRoot != null)
-            {
-                if (liftedPart != null) liftedPart.AlignWithAnchor();
-                else
-                {
-                    inspectionRoot.SetPositionAndRotation(sourcePosition, sourceRotation);
-                    AlignInstalledParts();
-                }
-            }
+            if (liftedPart != null) liftedPart.SetSupported(false);
             inspectionRoot = null;
             framingPart = null;
             liftedPart = null;
-            lift = 0f;
-            Physics.SyncTransforms();
         }
 
         internal void ReleaseInspectionPart(RepairPart part)
         {
             if (part != liftedPart) return;
-            // A dragged part keeps its visible pose; the hand or stand now owns its motion.
+            liftedPart.SetSupported(false);
             inspectionRoot = null;
             liftedPart = null;
         }
@@ -228,24 +222,9 @@ namespace BORis
         {
             if (!IsFocused || inspectionRoot == null) return;
             inspectionDistance = initialDistance;
-            objectRotation = Quaternion.identity;
-            ApplyInspectionPose();
-        }
-
-        void ApplyInspectionPose()
-        {
-            inspectionRoot.SetPositionAndRotation(inspectionPivot + Vector3.up * lift + inspectionRotation * Vector3.forward * (inspectionDistance - initialDistance)
-                + objectRotation * (sourcePosition - inspectionPivot),
-                objectRotation * sourceRotation);
-            if (liftedPart == null) AlignInstalledParts();
-            Physics.SyncTransforms();
-        }
-
-        void AlignInstalledParts()
-        {
-            if (robot == null) return;
-            foreach (RepairPart part in robot.GetComponentsInChildren<RepairPart>())
-                if (part.IsInstalled) part.AlignWithAnchor();
+            inspectionRotation = initialInspectionRotation;
+            orbitPitch = inspectionRotation.eulerAngles.x;
+            orbitYaw = inspectionRotation.eulerAngles.y;
         }
 
         public bool UpdateView(Vector2 orbitDelta, float zoom)
@@ -255,50 +234,47 @@ namespace BORis
                 ReturnToOverview(true);
             if (liftedPart != null && (liftedPart.IsInstalled || liftedPart.IsDragging))
                 ReleaseInspectionPart(liftedPart);
-            bool objectMoved = false;
+            bool orbitChanged = false;
             if (IsFocused && !robot.IsTesting && !robot.IsOnDriveStand)
             {
-                objectRotation = Quaternion.AngleAxis(-orbitDelta.x * .25f, inspectionRotation * Vector3.up)
-                    * Quaternion.AngleAxis(orbitDelta.y * .25f, inspectionRotation * Vector3.right) * objectRotation;
-                if (zoom != 0f) inspectionDistance = Mathf.Clamp(inspectionDistance * Mathf.Exp(-Mathf.Sign(zoom) * .15f), minimumDistance, maximumDistance);
-                objectMoved = orbitDelta.sqrMagnitude > 0f || zoom != 0f;
-            }
-            if (inspectionRoot != null)
-            {
-                float nextLift = Mathf.MoveTowards(lift, IsFocused ? liftHeight : 0f,
-                    liftHeight * Time.unscaledDeltaTime / (IsFocused ? .35f : .45f));
-                objectMoved |= nextLift != lift;
-                lift = nextLift;
-                if (!IsFocused)
+                if (orbitDelta.sqrMagnitude > 0f)
                 {
-                    objectRotation = Quaternion.RotateTowards(objectRotation, Quaternion.identity, 540f * Time.unscaledDeltaTime);
-                    objectMoved |= Quaternion.Angle(objectRotation, Quaternion.identity) > .01f;
+                    orbitYaw += orbitDelta.x * .25f;
+                    orbitPitch = Mathf.Clamp(orbitPitch - orbitDelta.y * .25f, 15f, 80f);
+                    inspectionRotation = Quaternion.Euler(orbitPitch, orbitYaw, 0f);
                 }
-                if (objectMoved || !IsFocused) ApplyInspectionPose();
-                if (!IsFocused && lift == 0f && Quaternion.Angle(objectRotation, Quaternion.identity) < .01f)
-                    ReturnToOverview(true);
+                if (zoom != 0f) inspectionDistance = Mathf.Clamp(inspectionDistance * Mathf.Exp(-Mathf.Sign(zoom) * .15f), minimumDistance, maximumDistance);
+                orbitChanged = orbitDelta.sqrMagnitude > 0f || zoom != 0f;
             }
             Quaternion rotation = IsFocused ? inspectionRotation : overviewRotation;
             Vector3 position = IsFocused
-                ? framingCenter - inspectionRotation * Vector3.forward * initialDistance : overviewPosition;
+                ? inspectionPivot - inspectionRotation * Vector3.forward * inspectionDistance : overviewPosition;
             bool moving = Vector3.Distance(view.position, position) > .001f || Quaternion.Angle(view.rotation, rotation) > .1f;
             if (!moving)
             {
                 view.SetPositionAndRotation(position, rotation);
                 cameraVelocity = Vector3.zero;
-                return objectMoved;
+                return orbitChanged;
             }
-            position = Vector3.SmoothDamp(view.position, position, ref cameraVelocity,
-                IsFocused ? .18f : .4f, Mathf.Infinity, Time.unscaledDeltaTime);
+            if (IsFocused)
+            {
+                Vector3 offset = view.position - inspectionPivot;
+                Quaternion from = offset.sqrMagnitude > .0001f ? Quaternion.LookRotation(-offset, Vector3.up) : rotation;
+                float step = 1f - Mathf.Exp(-10f * Time.unscaledDeltaTime);
+                position = inspectionPivot - Quaternion.Slerp(from, rotation, step) * Vector3.forward
+                    * Mathf.Lerp(offset.magnitude, inspectionDistance, step);
+            }
+            else position = Vector3.SmoothDamp(view.position, position, ref cameraVelocity,
+                .4f, Mathf.Infinity, Time.unscaledDeltaTime);
             Vector3 travel = position - view.position;
-            // Check the swept camera volume, including the path between the overview and a tray.
+            // Sweep the camera so orbiting cannot cross the bench or room walls.
             if (Physics.SphereCast(view.position, .08f, travel.normalized, out RaycastHit hit, travel.magnitude,
                 cameraMask, QueryTriggerInteraction.Ignore))
                 position = view.position + travel.normalized * Mathf.Max(0f, hit.distance - .01f);
             rotation = Quaternion.Slerp(view.rotation, rotation, 1f - Mathf.Exp(-12f * Time.unscaledDeltaTime));
             bool changed = Vector3.Distance(view.position, position) > .00001f || Quaternion.Angle(view.rotation, rotation) > .01f;
             view.SetPositionAndRotation(position, rotation);
-            return changed || objectMoved;
+            return changed || orbitChanged;
         }
 
         public void Exit(bool immediate = true)

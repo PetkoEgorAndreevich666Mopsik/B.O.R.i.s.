@@ -13,6 +13,8 @@ namespace BORis
         RobotRepair robot;
         Coroutine routine;
         Quaternion spindleRest;
+        Vector3 returnPosition;
+        Quaternion returnRotation;
 
         public Transform Socket => socket;
         public RepairPart Part { get; private set; }
@@ -47,8 +49,8 @@ namespace BORis
                 || !workbench.IsOccupied || owner == null || workbench.Robot != owner
                 || !owner.Owns(part)) reason = "Стенд принимает только деталь текущего робота";
             else if (part.Kind != RepairPartKind.Drive) reason = "Стенд предназначен для привода";
-            else if (part.IsInstalled) reason = "Сначала снимите привод";
             else if (Part != null || owner.IsOnDriveStand || owner.IsTesting) reason = "Дождитесь завершения текущей проверки";
+            else if (part.IsInstalled && !owner.CanMove(part, out reason)) return false;
             else
                 foreach (RepairTool tool in workbench.GetComponentsInChildren<RepairTool>())
                     if (tool.IsActive) { reason = "Сначала закончите работу инструментом"; break; }
@@ -59,11 +61,16 @@ namespace BORis
         {
             if (!CanLoad(owner, part, out reason)) return false;
             workbench.ReleaseInspectionPart(part);
+            if (part.IsInstalled && !owner.TryPlace(part, false, out reason)) return false;
+            Pose returnPose = part.IsDragging ? part.PickupPose : new Pose(part.transform.position, part.transform.rotation);
+            returnPosition = returnPose.position;
+            returnRotation = returnPose.rotation;
             robot = owner;
             Part = part;
             owner.ActiveDriveStand = this;
             if (spindle != null) spindle.gameObject.SetActive(true);
-            part.SetDragging(true);
+            part.SetDragging(false);
+            part.SetSupported(true);
             part.transform.SetPositionAndRotation(socket.position, socket.rotation);
             return true;
         }
@@ -100,7 +107,11 @@ namespace BORis
 
         void ReleasePart()
         {
-            if (Part != null) Part.RestorePose();
+            if (Part != null)
+            {
+                Part.transform.SetPositionAndRotation(returnPosition, returnRotation);
+                Part.RestorePose();
+            }
             if (robot != null && robot.ActiveDriveStand == this) robot.ActiveDriveStand = null;
             Part = null;
             robot = null;

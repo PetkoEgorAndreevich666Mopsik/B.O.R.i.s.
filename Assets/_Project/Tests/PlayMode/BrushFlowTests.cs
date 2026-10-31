@@ -206,12 +206,22 @@ public sealed class BrushFlowTests
     }
 
     [UnityTest]
-    public IEnumerator InnerCoverIsCleanableInTrayAndClosedRobotBlocksInnerPatches()
+    public IEnumerator RemovedInnerCoverIsCleanableAndClosedRobotBlocksInnerPatches()
     {
         DirtPatch inner = robot.Cover.GetComponentsInChildren<DirtPatch>().Single(p => p.RequiresOpenCover);
         Assert.That(robot.CanClean(inner, out _), Is.False);
         foreach (var screw in robot.Cover.Screws) robot.Turn(screw, -10000f);
         Assert.That(robot.TryPlace(robot.Cover, false, out _), Is.True);
+        robot.Cover.RecoverToTable();
+        yield return new WaitForSeconds(.5f);
+        var bench = Object.FindAnyObjectByType<Workbench>();
+        bench.Focus(robot.Cover);
+        yield return new WaitForSeconds(.5f);
+        Vector3 faceNormal = inner.transform.TransformDirection(inner.GetComponent<MeshCollider>().sharedMesh.normals[0]);
+        Vector3 towardCamera = (player.View.transform.position - inner.transform.position).normalized;
+        robot.Cover.Body.rotation = Quaternion.FromToRotation(faceNormal, towardCamera) * robot.Cover.Body.rotation;
+        yield return new WaitForFixedUpdate();
+        yield return null;
         Physics.SyncTransforms();
         yield return Press(Key.Digit3);
         yield return Pointer(ScreenUV(inner, new Vector2(.2f, .5f)), true);
@@ -219,6 +229,8 @@ public sealed class BrushFlowTests
         yield return Pointer(ScreenUV(inner, new Vector2(.8f, .5f)), true);
         Assert.That(inner.Cleanliness, Is.GreaterThan(0f));
         float cleaned = inner.Cleanliness;
+        yield return Pointer(ScreenUV(inner, new Vector2(.8f, .5f)), false);
+        bench.ReturnToOverview(true);
         yield return Press(Key.Escape);
         Assert.That(brush.IsActive, Is.False);
         yield return Pointer(Vector2.zero, false);

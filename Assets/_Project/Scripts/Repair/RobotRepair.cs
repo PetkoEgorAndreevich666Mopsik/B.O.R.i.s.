@@ -193,8 +193,8 @@ namespace BORis
             if (!Owns(part)) reason = "Деталь недоступна";
             else if (IsTesting) reason = "Дождитесь окончания теста руки";
             else if (IsOnDriveStand) reason = "Сначала верните привод со стенда · ESC";
-            else if (part.Kind == RepairPartKind.Drive && cover.IsInstalled) reason = "Сначала снимите крышку";
-            else if (part.Kind == RepairPartKind.Drive && connector.IsConnected) reason = "Сначала отсоедините разъём";
+            else if (part.IsInstalled && part.Kind == RepairPartKind.Drive && cover.IsInstalled) reason = "Сначала снимите крышку";
+            else if (part.IsInstalled && part.Kind == RepairPartKind.Drive && connector.IsConnected) reason = "Сначала отсоедините разъём";
             else if (part.IsInstalled)
             {
                 int remaining = 0;
@@ -209,8 +209,12 @@ namespace BORis
             if (!CanMove(part, out reason)) return false;
             if (inRobot)
             {
-                if (part.Kind == RepairPartKind.Drive && InstalledDrive != null && InstalledDrive != part)
-                    reason = "Место занято: сначала уберите установленный привод в лоток";
+                if (part.Kind == RepairPartKind.Drive && cover.IsInstalled)
+                    reason = "Сначала снимите крышку";
+                else if (part.Kind == RepairPartKind.Drive && connector.IsConnected)
+                    reason = "Сначала отсоедините разъём";
+                else if (part.Kind == RepairPartKind.Drive && InstalledDrive != null && InstalledDrive != part)
+                    reason = "Место занято: сначала извлеките установленный привод";
                 else if (part.Kind == RepairPartKind.Cover && InstalledDrive == null)
                     reason = "Сначала установите привод";
                 else if (part.Kind == RepairPartKind.Cover && !FullyTightened(InstalledDrive))
@@ -326,21 +330,21 @@ namespace BORis
                     return "Тест не пройден. Снимите крышку и осмотрите узел";
                 RepairPart drive = InstalledDrive;
                 if (cover.IsInstalled)
-                    return cover.IsReleased ? "Возьмите свободную крышку и перенесите её в левый лоток"
+                    return cover.IsReleased ? "Вытяните свободную крышку рукой и отпустите на стол"
                         : drive != null && !drive.Faulty && (solderJoint == null || solderJoint.IsRepaired)
                         ? FullyTightened(cover) ? "Сборка завершена: нажмите кнопку «ТЕСТ РУКИ»" : "Затяните четыре винта крышки"
                         : "Освободите винты сервисной крышки, чтобы осмотреть узел";
-                if (drive == null) return "Перенесите исправный привод из зелёного лотка в робота";
+                if (drive == null) return "Установите подходящий привод со стола в робота";
                 if (drive.Faulty && drive.StandResult == DriveTestResult.NotTested)
                     return "Проверьте снятый привод на стенде: отключите разъём и освободите оба винта";
                 if (drive.Faulty) return connector.IsConnected ? "Рукой отсоедините разъём справа от привода"
-                    : "Освободите оба винта привода и перенесите его в красный лоток";
+                    : "Освободите оба винта привода и извлеките его рукой";
                 if (solderJoint != null && !solderJoint.IsRepaired)
                     return !JointFaultFound ? "Осмотрите открытый узел: привод и дорожку контакта под ним"
                         : connector.IsConnected ? "1 — рука: отсоедините разъём перед пайкой"
                         : "4 — паяльник: удерживайте ЛКМ и проведите по всей дорожке";
                 if (!FullyTightened(drive)) return "Затяните оба винта исправного привода";
-                return connector.IsConnected ? "Верните крышку из левого лотка на робота" : "Рукой подключите разъём";
+                return connector.IsConnected ? "Верните крышку со стола на робота" : "Рукой подключите разъём";
             }
         }
     }

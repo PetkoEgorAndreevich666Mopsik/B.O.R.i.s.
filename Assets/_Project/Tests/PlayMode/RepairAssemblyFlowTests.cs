@@ -18,11 +18,13 @@ public sealed class RepairAssemblyFlowTests
     InteractionController interaction;
     RobotRepair robot;
     RepairPart oldDrive, newDrive;
+    int moveStep;
 
     [UnitySetUp]
     public IEnumerator SetUp()
     {
         fixture.Setup();
+        moveStep = 0;
         keyboard = InputSystem.AddDevice<Keyboard>();
         mouse = InputSystem.AddDevice<Mouse>();
         yield return SceneManager.LoadSceneAsync("Assets/_Project/Scenes/RepairPrototype.unity");
@@ -52,6 +54,64 @@ public sealed class RepairAssemblyFlowTests
 
     Vector2 Screen(Transform target) => player.View.WorldToScreenPoint(target.position);
 
+    Vector2 VisiblePartScreen(RepairPart part)
+    {
+        Physics.SyncTransforms();
+        float reach = 3f + Object.FindAnyObjectByType<Workbench>().CameraOffset;
+        float[] samples = { 0f, .75f, -.75f };
+        foreach (var collider in part.GetComponentsInChildren<Collider>().Where(c => c.enabled && !c.isTrigger))
+        foreach (float x in samples)
+        foreach (float y in samples)
+        foreach (float z in samples)
+        {
+            Vector3 point = collider.bounds.center + Vector3.Scale(collider.bounds.extents, new Vector3(x, y, z));
+            Vector3 screen = player.View.WorldToScreenPoint(point);
+            if (screen.z <= 0f || screen.x < 0f || screen.y < 0f
+                || screen.x > UnityEngine.Screen.width || screen.y > UnityEngine.Screen.height) continue;
+            if (Physics.Raycast(player.View.ScreenPointToRay(screen), out var hit, reach,
+                ~(1 << player.gameObject.layer), QueryTriggerInteraction.Ignore)
+                && hit.collider.GetComponentInParent<RepairPart>() == part)
+            {
+                var ui = new System.Collections.Generic.List<UnityEngine.EventSystems.RaycastResult>();
+                UnityEngine.EventSystems.EventSystem.current.RaycastAll(
+                    new UnityEngine.EventSystems.PointerEventData(UnityEngine.EventSystems.EventSystem.current) { position = screen }, ui);
+                if (ui.Count == 0) return screen;
+            }
+        }
+        Assert.Fail("No unobstructed pointer ray reaches " + part.name + " at " + part.transform.position);
+        return Vector2.zero;
+    }
+
+    string PointerDiagnostics(RepairPart part, Vector2 source)
+    {
+        const System.Reflection.BindingFlags flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+        object Field(string name) => typeof(InteractionController).GetField(name,flags)?.GetValue(interaction);
+        var actionMap = Field("bench") as InputActionMap;
+        var primary = Field("primary") as InputAction;
+        var selected = Field("selectedTool") as RepairTool;
+        var ui = new System.Collections.Generic.List<UnityEngine.EventSystems.RaycastResult>();
+        var eventSystem = UnityEngine.EventSystems.EventSystem.current;
+        if (eventSystem != null)
+            eventSystem.RaycastAll(new UnityEngine.EventSystems.PointerEventData(eventSystem) { position = source },ui);
+        float reach = 3f + Object.FindAnyObjectByType<Workbench>().CameraOffset;
+        string hits = string.Join(", ",Physics.RaycastAll(player.View.ScreenPointToRay(source),reach,
+                ~(1 << player.gameObject.layer),QueryTriggerInteraction.Ignore)
+            .OrderBy(hit => hit.distance)
+            .Select(hit => $"{hit.collider.name}({hit.collider.GetType().Name}, part={hit.collider.GetComponentInParent<RepairPart>()?.name}, d={hit.distance:F3})"));
+        bool canMove = robot.CanMove(part,out string moveReason);
+        bool canInstall = robot.CanPlace(part,true,out string installReason);
+        return $"source={source}, mouse={mouse.position.ReadValue()}, size={UnityEngine.Screen.width}x{UnityEngine.Screen.height}, "
+            + $"atBench={interaction.IsAtWorkbench}, inspecting={interaction.IsInspecting}, benchMap={actionMap?.enabled}, "
+            + $"primaryEnabled={primary?.enabled}, primary={primary?.ReadValue<float>()}, mouseDown={mouse.leftButton.isPressed}, "
+            + $"selectedTool={(selected != null ? selected.name : "Hand")}, held={interaction.HeldPart?.name}, pointed={interaction.PointedObject?.name}, "
+            + $"installed={part.IsInstalled}, released={part.IsReleased}, dragging={part.IsDragging}, supported={part.IsSupported}, "
+            + $"body={part.Body.position:F3}, velocity={part.Body.linearVelocity:F3}, kinematic={part.Body.isKinematic}, "
+            + $"anchor={part.InstallationAnchor.position:F3}, anchorDistance={Vector3.Distance(part.Body.position,part.InstallationAnchor.position):F3}, "
+            + $"dropAnchor={interaction.DropAnchor?.name}, heldTarget={Field("heldTarget")}, dragged={Field("dragged")}, "
+            + $"canMove={canMove} ({moveReason}), canInstall={canInstall} ({installReason}), feedback={interaction.Feedback}, "
+            + $"camera={player.View.transform.position:F3}, ui=[{string.Join(", ",ui.Select(hit => hit.gameObject.name))}], rayHits=[{hits}]";
+    }
+
     IEnumerator Pointer(Vector2 position, bool down)
     {
         InputSystem.QueueStateEvent(mouse, new MouseState {position=position,buttons=down ? (ushort)1 : (ushort)0});
@@ -76,15 +136,30 @@ public sealed class RepairAssemblyFlowTests
 
     IEnumerator Move(RepairPart part, bool install)
     {
+        int step = ++moveStep;
         yield return KeyPress(Key.Digit1);
-        yield return Pointer(Screen(part.transform),true);
-        Assert.That(interaction.HeldPart, Is.SameAs(part), "Hand must reach " + part.name);
+        Vector2 source = part.IsInstalled ? Screen(part.transform) : VisiblePartScreen(part);
+        string before = PointerDiagnostics(part,source);
+        yield return Pointer(source,true);
+        Assert.That(interaction.HeldPart, Is.SameAs(part),
+            $"Move {step}: hand must reach {part.name}, requested install={install}. Before: {before}. After: {PointerDiagnostics(part,source)}");
         Transform anchor = install ? part.InstallationAnchor : part.TrayAnchor;
         yield return Pointer(Screen(anchor),true);
+        if (install)
+        {
+            float deadline = Time.realtimeSinceStartup + 2f;
+            while (interaction.DropAnchor != anchor && Time.realtimeSinceStartup < deadline) yield return null;
+        }
+        else yield return new WaitForSeconds(.5f);
         yield return Pointer(Screen(anchor),false);
         Assert.That(interaction.HeldPart, Is.Null);
         Assert.That(part.IsInstalled, Is.EqualTo(install), interaction.Feedback);
-        Assert.That(Vector3.Distance(part.transform.position,anchor.position), Is.LessThan(.001f));
+        if (install) Assert.That(Vector3.Distance(part.transform.position,anchor.position), Is.LessThan(.001f));
+        else
+        {
+            Assert.That(part.Body.isKinematic, Is.False);
+            yield return new WaitForSeconds(.5f);
+        }
     }
 
     IEnumerator ToggleConnector()
@@ -145,7 +220,7 @@ public sealed class RepairAssemblyFlowTests
         Assert.That(dirt.Cleanliness,Is.GreaterThan(0f));
         foreach(var screw in robot.Cover.Screws) yield return Turn(screw,true);
         yield return Move(robot.Cover,false);
-        Assert.That(Vector3.Dot(robot.Cover.transform.forward,Vector3.up),Is.GreaterThan(.99f),"Inside face must lie upward.");
+        Assert.That(robot.Cover.Body.isKinematic,Is.False,"A removed cover must remain a physical object.");
         yield return ToggleConnector();
         foreach(var screw in oldDrive.Screws) yield return Turn(screw,true);
         yield return Move(oldDrive,false);
@@ -155,7 +230,7 @@ public sealed class RepairAssemblyFlowTests
         Assert.That(oldDrive.IsInstalled,Is.False);
         Assert.That(robot.InstalledDrive,Is.Null);
         Assert.That(robot.Connector.IsConnected,Is.False);
-        Assert.That(Vector3.Distance(oldDrive.transform.position,oldDrive.TrayAnchor.position),Is.LessThan(.001f));
+        Assert.That(oldDrive.Body.isKinematic,Is.False);
         yield return Move(newDrive,true);
         foreach(var screw in newDrive.Screws) yield return Turn(screw,false);
         yield return ToggleConnector();
@@ -232,46 +307,53 @@ public sealed class RepairAssemblyFlowTests
     }
 
     [UnityTest]
-    public IEnumerator InvalidDropReturnsCoverAndTrayScrewsCannotTighten()
+    public IEnumerator FreeDropKeepsCoverDetachedAndLooseScrewsCannotTighten()
     {
         Release(robot.Cover);
-        Vector3 start = robot.Cover.transform.position;
         yield return Pointer(Screen(robot.Cover.transform),true);
         Assert.That(interaction.HeldPart,Is.SameAs(robot.Cover));
         yield return Pointer(new Vector2(20,300),true);
         yield return Pointer(new Vector2(20,300),false);
         Assert.That(interaction.HeldPart,Is.Null);
-        Assert.That(robot.Cover.IsInstalled,Is.True);
-        Assert.That(robot.Cover.transform.position,Is.EqualTo(start));
+        Assert.That(robot.Cover.IsInstalled,Is.False,"Releasing away from a socket must keep the cover removed.");
+        Assert.That(robot.Cover.Body.isKinematic,Is.False);
         Assert.That(robot.Cover.GetComponentsInChildren<Collider>().All(c=>c.enabled),Is.True);
-        yield return Move(robot.Cover,false);
         foreach(var screw in robot.Cover.Screws) Assert.That(robot.Turn(screw,720f),Is.Zero);
         Assert.That(robot.Cover.Screws.All(s=>s.Tightness == 0f),Is.True);
     }
 
     [UnityTest]
-    public IEnumerator EscFocusLossAndToolChangeCancelExactlyOneDrag()
+    public IEnumerator EscFocusLossAndToolChangeReleaseExactlyOnePhysicalDrag()
     {
         Release(robot.Cover);
-        Vector3 source = robot.Cover.transform.position;
         yield return Pointer(Screen(robot.Cover.transform),true);
         yield return Pointer(Screen(robot.Cover.TrayAnchor),true);
         yield return KeyPress(Key.Escape);
         Assert.That(interaction.HeldPart,Is.Null);
-        Assert.That(robot.Cover.transform.position,Is.EqualTo(source));
+        Assert.That(robot.Cover.IsInstalled,Is.False);
+        Assert.That(robot.Cover.IsDragging,Is.False);
+        Assert.That(robot.Cover.Body.isKinematic,Is.False);
         Assert.That(robot.Cover.Screws.All(s=>s.Tightness == 0f),Is.True);
         yield return Pointer(Vector2.zero,false);
-        yield return KeyPress(Key.E);
+        if (!interaction.IsAtWorkbench) yield return KeyPress(Key.E);
+        robot.Cover.RecoverToTable();
+        yield return new WaitForSeconds(.3f);
         yield return Pointer(Screen(robot.Cover.transform),true);
         yield return Pointer(Screen(robot.Cover.TrayAnchor),true);
         interaction.SendMessage("OnApplicationFocus",false);
         Assert.That(interaction.HeldPart,Is.Null);
-        Assert.That(robot.Cover.transform.position,Is.EqualTo(source));
+        Assert.That(robot.Cover.IsInstalled,Is.False);
+        Assert.That(robot.Cover.IsDragging,Is.False);
+        Assert.That(robot.Cover.Body.isKinematic,Is.False);
         yield return Pointer(Vector2.zero,false);
+        robot.Cover.RecoverToTable();
+        yield return new WaitForSeconds(.3f);
         yield return Pointer(Screen(robot.Cover.transform),true);
         yield return KeyPress(Key.Digit2);
         Assert.That(interaction.HeldPart,Is.Null);
-        Assert.That(robot.Cover.transform.position,Is.EqualTo(source));
+        Assert.That(robot.Cover.IsInstalled,Is.False);
+        Assert.That(robot.Cover.IsDragging,Is.False);
+        Assert.That(robot.Cover.Body.isKinematic,Is.False);
         Assert.That(interaction.ScrewdriverSelected,Is.True);
         Assert.That(newDrive.IsInstalled,Is.False);
     }
@@ -315,17 +397,27 @@ public sealed class RepairAssemblyFlowTests
         yield return Pointer(Screen(robot.Cover.TrayAnchor),true);
         yield return Pointer(Screen(robot.Cover.TrayAnchor),false);
         Assert.That(interaction.HeldPart,Is.Null);
-        Assert.That(robot.Cover.IsInstalled,Is.True);
+        Assert.That(robot.Cover.IsInstalled,Is.False,"UI cancellation releases the physical part instead of reinstalling it.");
         Object.Destroy(canvas);
-        yield return null;
-        yield return Pointer(Screen(robot.Cover.transform),true);
+        robot.Cover.RecoverToTable();
+        yield return new WaitForSeconds(.3f);
+        yield return Pointer(VisiblePartScreen(robot.Cover),true);
+        Assert.That(interaction.HeldPart,Is.SameAs(robot.Cover));
+        Vector2 installationPoint = Screen(robot.Cover.InstallationAnchor);
+        yield return Pointer(installationPoint,true);
+        float deadline = Time.realtimeSinceStartup + 2f;
+        while (interaction.DropAnchor != robot.Cover.InstallationAnchor && Time.realtimeSinceStartup < deadline)
+            yield return null;
+        Assert.That(interaction.DropAnchor,Is.SameAs(robot.Cover.InstallationAnchor),
+            "Installation must already be available before introducing the obstacle. " + PointerDiagnostics(robot.Cover,installationPoint));
         var obstacle = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        obstacle.transform.position = Vector3.Lerp(player.View.transform.position,robot.Cover.TrayAnchor.position,.6f);
+        obstacle.transform.position = Vector3.Lerp(player.View.transform.position,robot.Cover.InstallationAnchor.position,.6f);
         obstacle.transform.localScale = Vector3.one*.4f;
         Physics.SyncTransforms();
-        yield return Pointer(Screen(robot.Cover.TrayAnchor),true);
-        yield return Pointer(Screen(robot.Cover.TrayAnchor),false);
-        Assert.That(robot.Cover.IsInstalled,Is.True);
+        yield return Pointer(installationPoint,true);
+        Assert.That(interaction.DropAnchor,Is.Null,"The new obstacle must invalidate the existing installation preview.");
+        yield return Pointer(installationPoint,false);
+        Assert.That(robot.Cover.IsInstalled,Is.False,"An obstacle must still block installation.");
         Assert.That(interaction.HeldPart,Is.Null);
     }
 

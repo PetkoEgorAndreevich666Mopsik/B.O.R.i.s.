@@ -147,9 +147,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &387988316808113020
 GameObject:
   m_ObjectHideFlags: 0
@@ -275,9 +272,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &396566535125734225
 GameObject:
   m_ObjectHideFlags: 0
@@ -385,9 +379,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &507134387390572401
 GameObject:
   m_ObjectHideFlags: 0
@@ -491,9 +482,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &788192653555504427
 GameObject:
   m_ObjectHideFlags: 0
@@ -600,9 +588,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &824020020174104324
 GameObject:
   m_ObjectHideFlags: 0
@@ -730,9 +715,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &951295243420012409
 GameObject:
   m_ObjectHideFlags: 0
@@ -836,9 +818,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &1403155982156988840
 GameObject:
   m_ObjectHideFlags: 0
@@ -1115,9 +1094,118 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
+--- !u!1 &1755899907104873835
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7224699361287231546}
+  - component: {fileID: 1702036569566856547}
+  - component: {fileID: 9021503663204139996}
+  - component: {fileID: 4619965267130861139}
+  m_Layer: 0
+  m_Name: BenchRimRight
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7224699361287231546
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1755899907104873835}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 1.68, y: 1.125, z: 0}
+  m_LocalScale: {x: 0.035, y: 0.07, z: 1.9}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2594442750621766525}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &1702036569566856547
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1755899907104873835}
+  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!65 &9021503663204139996
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1755899907104873835}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!23 &4619965267130861139
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1755899907104873835}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: 049c73803bcf0a943a251bf7ff559630, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 1
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &2046042509758358159
 GameObject:
   m_ObjectHideFlags: 0
@@ -1235,9 +1323,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &2483456932434441049
 GameObject:
   m_ObjectHideFlags: 0
@@ -1394,9 +1479,118 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
+--- !u!1 &2750981070716514383
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8401729281508501594}
+  - component: {fileID: 2754662955391596572}
+  - component: {fileID: 5161947647723688351}
+  - component: {fileID: 2434684690354907950}
+  m_Layer: 0
+  m_Name: BenchRimBack
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8401729281508501594
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2750981070716514383}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 1.125, z: 0.93}
+  m_LocalScale: {x: 3.4, y: 0.07, z: 0.035}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2594442750621766525}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &2754662955391596572
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2750981070716514383}
+  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!65 &5161947647723688351
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2750981070716514383}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!23 &2434684690354907950
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2750981070716514383}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: 049c73803bcf0a943a251bf7ff559630, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 1
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &2890938443717083434
 GameObject:
   m_ObjectHideFlags: 0
@@ -1425,7 +1619,7 @@ Transform:
   m_GameObject: {fileID: 2890938443717083434}
   serializedVersion: 2
   m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: -0.45, y: 1.141, z: -0.55}
+  m_LocalPosition: {x: 0.6, y: 1.14, z: -0.75}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1514,9 +1708,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &3072170304721527015
 GameObject:
   m_ObjectHideFlags: 0
@@ -1542,7 +1733,7 @@ Transform:
   m_GameObject: {fileID: 3072170304721527015}
   serializedVersion: 2
   m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: 0, y: 0.1, z: -0.015}
+  m_LocalPosition: {x: 0, y: 0.32, z: -0.015}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1580,6 +1771,118 @@ Transform:
   - {fileID: 7680094419089733089}
   m_Father: {fileID: 2679284052728678622}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &3592920047801080752
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5055060563036790316}
+  - component: {fileID: 5512575037286012529}
+  - component: {fileID: 6967150057717693844}
+  - component: {fileID: 1701359504330592296}
+  m_Layer: 0
+  m_Name: BenchRimLeft
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5055060563036790316
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3592920047801080752}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -1.68, y: 1.125, z: 0}
+  m_LocalScale: {x: 0.035, y: 0.07, z: 1.9}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2594442750621766525}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &5512575037286012529
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3592920047801080752}
+  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!65 &6967150057717693844
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3592920047801080752}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!23 &1701359504330592296
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3592920047801080752}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: 049c73803bcf0a943a251bf7ff559630, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 1
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &3723621810164705502
 GameObject:
   m_ObjectHideFlags: 0
@@ -1683,9 +1986,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &4293644110106486258
 GameObject:
   m_ObjectHideFlags: 0
@@ -1789,9 +2089,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &4537739492731842447
 GameObject:
   m_ObjectHideFlags: 0
@@ -1949,9 +2246,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &4998458211208120698
 GameObject:
   m_ObjectHideFlags: 0
@@ -2077,9 +2371,118 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
+--- !u!1 &5401607423899897289
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7916418898131317734}
+  - component: {fileID: 336245840991454294}
+  - component: {fileID: 2162008673644080650}
+  - component: {fileID: 4686704681705993296}
+  m_Layer: 0
+  m_Name: ServiceMat
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7916418898131317734
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5401607423899897289}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 1.095, z: 0}
+  m_LocalScale: {x: 3.27, y: 0.012, z: 1.79}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2594442750621766525}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &336245840991454294
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5401607423899897289}
+  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!65 &2162008673644080650
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5401607423899897289}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!23 &4686704681705993296
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5401607423899897289}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: 049c73803bcf0a943a251bf7ff559630, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 1
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &5491715067485875906
 GameObject:
   m_ObjectHideFlags: 0
@@ -2109,7 +2512,7 @@ Transform:
   m_GameObject: {fileID: 5491715067485875906}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.45, y: 1.115, z: -0.55}
+  m_LocalPosition: {x: 0.6, y: 1.12, z: -0.75}
   m_LocalScale: {x: 0.28, y: 0.045, z: 0.17}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2205,9 +2608,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &5581392678225072606
 GameObject:
   m_ObjectHideFlags: 0
@@ -2365,9 +2765,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &5870965654272092706
 GameObject:
   m_ObjectHideFlags: 0
@@ -2412,6 +2809,11 @@ Transform:
   - {fileID: 4252620813626719033}
   - {fileID: 1937477286770188143}
   - {fileID: 6246009941444294255}
+  - {fileID: 7916418898131317734}
+  - {fileID: 5055060563036790316}
+  - {fileID: 7224699361287231546}
+  - {fileID: 8401729281508501594}
+  - {fileID: 4450920791768560301}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1396896906927265569
@@ -2566,9 +2968,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &6346375065005119296
 GameObject:
   m_ObjectHideFlags: 0
@@ -2694,9 +3093,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &6383799343165927311
 GameObject:
   m_ObjectHideFlags: 0
@@ -2800,9 +3196,118 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
+--- !u!1 &6646710613483968807
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4450920791768560301}
+  - component: {fileID: 9091741045536713292}
+  - component: {fileID: 726525764372069920}
+  - component: {fileID: 5040136559413945351}
+  m_Layer: 0
+  m_Name: BenchRimFront
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4450920791768560301
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6646710613483968807}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 1.125, z: -0.93}
+  m_LocalScale: {x: 3.4, y: 0.07, z: 0.035}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2594442750621766525}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &9091741045536713292
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6646710613483968807}
+  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!65 &726525764372069920
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6646710613483968807}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!23 &5040136559413945351
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6646710613483968807}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: 049c73803bcf0a943a251bf7ff559630, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 1
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &6836080067591909829
 GameObject:
   m_ObjectHideFlags: 0
@@ -2906,9 +3411,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &7146536508871478801
 GameObject:
   m_ObjectHideFlags: 0
@@ -3012,9 +3514,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &7250762336628687393
 GameObject:
   m_ObjectHideFlags: 0
@@ -3140,9 +3639,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &7395635534454251409
 GameObject:
   m_ObjectHideFlags: 0
@@ -3246,9 +3742,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &8071517330936818429
 GameObject:
   m_ObjectHideFlags: 0
@@ -3352,9 +3845,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &8182260216584591849
 GameObject:
   m_ObjectHideFlags: 0
@@ -3458,9 +3948,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &8355639740009093433
 GameObject:
   m_ObjectHideFlags: 0
@@ -3712,7 +4199,7 @@ Transform:
   m_GameObject: {fileID: 8658563893318693934}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.1, y: 1.13, z: -0.65}
+  m_LocalPosition: {x: -0.9, y: 1.13, z: -0.65}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -3887,9 +4374,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &8985327837288514176
 GameObject:
   m_ObjectHideFlags: 0
@@ -3993,9 +4477,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &8999581255804369690
 GameObject:
   m_ObjectHideFlags: 0
@@ -4121,9 +4602,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &9095586549372933232
 GameObject:
   m_ObjectHideFlags: 0
@@ -4227,9 +4705,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1001 &1717226405985058801
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -4313,9 +4788,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!4 &1179495790537971738 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: e3785663956383d429db9c541c56e248, type: 3}
@@ -4338,9 +4810,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &7877507936624031523 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 8828840782617331922, guid: e3785663956383d429db9c541c56e248, type: 3}
@@ -4358,9 +4827,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1001 &2787457207938746060
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -4731,9 +5197,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &193466427750657693 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 2594175910659762257, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -4751,9 +5214,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &248121694808420162 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 2728768859922573710, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -4771,9 +5231,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &278172082863181083 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 2698585843818761175, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -4791,9 +5248,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &406975598253837139 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 2525067664626716063, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -4811,9 +5265,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &552828665355238729 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 2378748541967039365, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -4831,9 +5282,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &555719142881791119 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 2385014522328910403, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -4851,9 +5299,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &648912378263831424 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 3435806510596195660, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -4871,9 +5316,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &919488841649152828 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 3057284118768543216, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -4891,9 +5333,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &1072185454055461192 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 2904297784441804676, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -4911,9 +5350,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &1117230308251623570 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 2967373543738304094, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -4931,9 +5367,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &1136682094150306289 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 2983995223256518461, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -4951,9 +5384,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &1375583899243229279 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 3870852449407940243, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -4971,9 +5401,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &1391042201226050744 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 3882929767077214836, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -4991,9 +5418,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &1507103971302583837 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 3622379112474650833, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -5011,9 +5435,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &1629963911998005618 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 3472770114990008254, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -5031,9 +5452,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &1786777233164235038 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 4495966691524147154, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -5051,9 +5469,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &1877802537521034125 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 4368565282584540481, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -5071,9 +5486,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &1931404994137157944 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 4351237088763410420, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -5091,9 +5503,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &2129010993867822412 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 4261757337249649536, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -5111,9 +5520,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &2141597164813692157 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 4257998183361063473, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -5131,9 +5537,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &2206819413087059400 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 4039512397280967428, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -5151,9 +5554,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &2360689014071707813 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 463259061591461481, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -5171,9 +5571,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &2368145971786885866 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 464523566607215654, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -5191,9 +5588,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &2388098367612224286 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 543584667102414290, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -5211,9 +5605,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &2401696217883537913 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 575194611590526773, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -5231,9 +5622,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &2591424464267509030 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 385514469714918378, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -5251,9 +5639,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &2664453137805612534 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 168044464925741882, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -5271,9 +5656,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &2668472624269317454 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 263276106397242242, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -5291,9 +5673,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &2765258096146814012 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 58302813176861424, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -5311,9 +5690,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &2957790411333413172 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1126787464558489592, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -5331,9 +5707,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &3118630161853863017 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1002209332778291877, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -5351,9 +5724,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &3147005258910749451 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 937699885453661639, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -5371,9 +5741,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!4 &3174655739494637519 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 766083750981343491, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -5396,9 +5763,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &3276240571532108187 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 853576160732145495, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -5416,9 +5780,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &3277265113579085259 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 852348896496835335, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -5436,9 +5797,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &3315695115930623297 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 625084093725432717, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -5456,9 +5814,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &3532652280070056354 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1705044600538148718, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -5476,9 +5831,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &3540449721739861242 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1697080582726867510, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -5496,9 +5848,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &3541648772628347687 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1696026667710905835, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -5516,9 +5865,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &3588354789784987919 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1685309590612094915, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -5536,9 +5882,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &3623629186831726404 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1506100050044727688, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -5556,9 +5899,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &3667497693881443115 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1462148392293803495, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -5576,9 +5916,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &3669559219251974804 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1460271447637005400, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -5596,9 +5933,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &3734372577277125809 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1548149330879881853, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -5616,9 +5950,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &3758349318247402969 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1335140565406010133, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -5636,9 +5967,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &4082134585486345948 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 2164452724023394320, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -5656,9 +5984,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &4221005896759479217 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 2034237180941372797, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -5676,9 +6001,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &4292598466104595604 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 2106934759455691352, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -5696,9 +6018,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &4500874826517813700 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1790559364073725704, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -5716,9 +6035,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &4502568315485508167 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1788878519493448843, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -5736,9 +6052,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &4644940362465712006 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 7411004318925328714, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -5756,9 +6069,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &4645736732057445785 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 7410657237268308821, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -5776,9 +6086,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &4818319118651538719 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 7237586117962775507, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -5796,9 +6103,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &4841701987916450484 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 7322333757721709688, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -5816,9 +6120,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &4972172547979799254 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 7183167847185673242, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -5836,9 +6137,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &5046630166923193076 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 6964309854075792440, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -5856,9 +6154,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &5141047156046361894 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 7059289789881021418, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -5876,9 +6171,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &5168849416606430168 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 6995348782007530772, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -5896,9 +6188,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &5636041243584214080 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 7536831329359573644, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -5916,9 +6205,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &5643758069912238126 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 7565380657259904738, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -5936,9 +6222,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &5974252828523694256 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 8378884179199102588, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -5956,9 +6239,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &6054132679907674406 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 8262856370893721578, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -5976,9 +6256,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &6152029157405045636 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 8345007809669346632, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -5996,9 +6273,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &6282268409046925500 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 8178554904876156528, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -6016,9 +6290,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &6283221776608354035 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 8186828776806012991, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -6036,9 +6307,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &6487692710006575743 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 8982398303750575283, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -6056,9 +6324,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &6520757865771034925 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 8994087806722076641, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -6076,9 +6341,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &6592470024228775728 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 9066345287548379644, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -6096,9 +6358,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &6630995155629621446 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 8838612759402333706, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -6116,9 +6375,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &6827779250333125522 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 8677922470812519774, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -6136,9 +6392,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &6921329702252235486 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 5089781429971209234, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -6156,9 +6409,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &7009044507955307350 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 5181999778344379802, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -6176,9 +6426,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &7126833347598608992 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 4920341628709727404, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -6196,9 +6443,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &7165906987856804361 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 5034289908449754309, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -6216,9 +6460,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &7240656563259610547 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 4815741392002880383, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -6236,9 +6477,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &7401750190517130037 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 4618235924692506105, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -6256,9 +6494,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &7545172138306492284 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 5628056539305890224, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -6276,9 +6511,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &7550009380348162403 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 5649778963171407791, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -6296,9 +6528,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &7579656091532163776 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 5737392967802223628, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -6316,9 +6545,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &7597806297687976539 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 5755561966569548951, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -6336,9 +6562,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &8018849021121415193 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 5325406766113279701, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -6356,9 +6579,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &8028740537828478698 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 5315612555778000934, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -6376,9 +6596,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &8139601471501370321 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 6222468243833783581, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -6396,9 +6613,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &8209940233434784050 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 6287192940164671486, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -6416,9 +6630,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &8247426732651349939 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 6114682564703945087, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -6436,9 +6647,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &8278958900169448709 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 6074173709241949129, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -6456,9 +6664,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &8337519665190550427 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 6132733336064277847, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -6476,9 +6681,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &8422070270979725875 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 5930745679752551679, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -6496,9 +6698,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &8609780301574862882 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 5896087255357652718, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -6516,9 +6715,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &8656339792618210840 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 6813513726492983508, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -6536,9 +6732,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &8694309661440285070 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 6775504137748455234, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -6556,9 +6749,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &8739012062549335926 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 6910840305651669434, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -6576,9 +6766,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &8793463954503089615 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 6676482473273146115, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -6596,9 +6783,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &8849513799957736748 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 6656531793315851232, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -6616,9 +6800,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &9000367247837130712 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 6505647421604686100, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -6636,9 +6817,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &9011068303209286125 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 6603041690684542753, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -6656,9 +6834,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1 &9131247750353673701 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 6347749994382023465, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
@@ -6676,9 +6851,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!1001 &3048576545679773590
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -6756,9 +6928,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
-  rendererOverrides: []
-  includeChildren: 1
-  includeInactiveChildren: 1
 --- !u!4 &3297762245108951165 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 89d7a3afcf70d1e46af34bf09aafc6ef, type: 3}

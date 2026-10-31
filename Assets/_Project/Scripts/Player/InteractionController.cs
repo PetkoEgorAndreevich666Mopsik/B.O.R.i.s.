@@ -37,6 +37,12 @@ namespace BORis
         RobotRepair robot;
         Plane dragPlane;
         Vector3 grabOffset;
+        Vector2 grabPointer;
+        Vector3 heldTarget;
+        Quaternion heldRotation;
+        float holdHeight;
+        bool dragged, rotatingPart;
+        const float PlacementTolerance = .5f;
         string feedback;
         float feedbackUntil;
         RepairPart inspectionTarget;
@@ -44,6 +50,7 @@ namespace BORis
         float observationTime;
         const float ObservationDuration = .5f;
         readonly List<RaycastResult> uiHits = new();
+        readonly List<Renderer> socketPreview = new();
 
         public bool IsAtWorkbench => activeWorkbench != null && bench != null && bench.enabled;
         public bool IsAtOrderDesk => activeOrderDesk != null;
@@ -146,7 +153,7 @@ namespace BORis
                 {
                     if (repairHUD != null && repairHUD.CloseOverlay()) { }
                     else if (DriveStand != null && DriveStand.Part != null) DriveStand.Cancel();
-                    else if (IsInspecting && (HeldPart != null || selectedTool != null && selectedTool.IsActive))
+                    else if (HeldPart != null || selectedTool != null && selectedTool.IsActive)
                     {
                         CancelPart();
                         if (selectedTool != null) selectedTool.End();
@@ -258,7 +265,8 @@ namespace BORis
                 if (!PointerOverUI() && primary.WasPressedThisFrame()
                     && Physics.Raycast(player.View.ScreenPointToRay(point.ReadValue<Vector2>()), out var standHit, RepairReach,
                         ~(1 << gameObject.layer), QueryTriggerInteraction.Ignore)
-                    && standHit.collider.GetComponentInParent<DriveTestStand>() == DriveStand)
+                    && (standHit.collider.GetComponentInParent<DriveTestStand>() == DriveStand
+                        || standHit.collider.GetComponentInParent<RepairPart>() == DriveStand.Part))
                 {
                     if (!DriveStand.RunTest(out string reason)) Say(reason);
                     else Say("");
@@ -273,6 +281,7 @@ namespace BORis
                 SelectTool(brush);
             if (selectSoldering != null && selectSoldering.WasPressedThisFrame())
                 SelectToolShortcut(3);
+            if (Keyboard.current?.gKey.wasPressedThisFrame == true) RecoverLooseParts();
             Vector2 pointer = point.ReadValue<Vector2>();
             PointedScrew = null;
             PointedPart = null;
@@ -284,12 +293,43 @@ namespace BORis
             if (HeldPart != null)
             {
                 ClearObservation();
-                if (overUI) { CancelPart(); Say("Перенос отменён"); }
+                if (overUI) { CancelPart(); Say("Деталь отпущена"); }
                 else
                 {
                     Ray ray = player.View.ScreenPointToRay(pointer);
-                    if (dragPlane.Raycast(ray, out float distance)) HeldPart.transform.position = ray.GetPoint(distance) + grabOffset;
-                    DropAnchor = FindDropAnchor(ray);
+                    bool rotate = orbit.IsPressed();
+                    if (rotatingPart && !rotate && dragPlane.Raycast(ray, out float resumedDistance))
+                        grabOffset = heldTarget - ray.GetPoint(resumedDistance);
+                    rotatingPart = rotate;
+                    if (!rotate)
+                    {
+                        dragged |= Vector2.Distance(pointer, grabPointer) > 12f;
+                        float wheel = scroll.ReadValue<Vector2>().y;
+                        if (wheel != 0f)
+                        {
+                            holdHeight = Mathf.Clamp(holdHeight + Mathf.Sign(wheel) * .05f,
+                                activeWorkbench.transform.position.y + .15f, activeWorkbench.transform.position.y + 2.5f);
+                            dragPlane = new Plane(Vector3.up, new Vector3(0f, holdHeight, 0f));
+                        }
+                        if (dragPlane.Raycast(ray, out float distance) && distance <= RepairReach * 1.5f)
+                            heldTarget = ray.GetPoint(distance) + grabOffset;
+                    }
+                    else
+                    {
+                        Vector2 delta = orbitDelta.ReadValue<Vector2>();
+                        heldRotation = Quaternion.AngleAxis(-delta.x * .35f, Vector3.up)
+                            * Quaternion.AngleAxis(delta.y * .35f, player.View.transform.right) * heldRotation;
+                    }
+                    Transform candidate = dragged && !rotate ? FindDropAnchor(ray) : null;
+                    if (candidate != null && CanPlaceHeld(candidate))
+                    {
+                        heldTarget = candidate == HeldPart.InstallationAnchor
+                            ? candidate.position - candidate.forward * HeldPart.ExtractionDistance + Vector3.up * .18f
+                            : candidate.position;
+                        heldRotation = candidate.rotation;
+                    }
+                    HeldPart.MoveHeld(heldTarget, heldRotation);
+                    SetDropAnchor(candidate != null && CloseToAnchor(candidate) ? candidate : null);
                     if (!primary.IsPressed()) FinishPart(ray);
                 }
                 return;
@@ -372,12 +412,21 @@ namespace BORis
                 else if (PointedPart != null)
                 {
                     if (!robot.CanMove(PointedPart, out string reason)) { Say(reason); return; }
+                    activeWorkbench.ReleaseInspectionPart(PointedPart);
+                    if (PointedPart.IsInstalled && !robot.TryPlace(PointedPart, false, out reason))
+                    { Say(reason); return; }
                     HeldPart = PointedPart;
-                    activeWorkbench.ReleaseInspectionPart(HeldPart);
-                    dragPlane = new Plane(player.View.transform.forward, HeldPart.transform.position);
+                    grabPointer = pointer;
+                    dragged = false;
+                    rotatingPart = false;
+                    heldTarget = HeldPart.transform.position;
+                    heldRotation = HeldPart.transform.rotation;
+                    holdHeight = heldTarget.y;
+                    dragPlane = new Plane(Vector3.up, heldTarget);
                     Ray ray = player.View.ScreenPointToRay(pointer);
                     grabOffset = dragPlane.Raycast(ray, out float distance) ? HeldPart.transform.position - ray.GetPoint(distance) : Vector3.zero;
                     HeldPart.SetDragging(true);
+                    HeldPart.MoveHeld(heldTarget, heldRotation);
                     Say("");
                 }
             }
@@ -437,42 +486,84 @@ namespace BORis
 
         Transform FindDropAnchor(Ray ray)
         {
+            Transform target = CaptureAnchor(HeldPart.InstallationAnchor, ray, out float installDistance)
+                ? HeldPart.InstallationAnchor : null;
             if (DriveStand != null && HeldPart.Kind == RepairPartKind.Drive
-                && Physics.Raycast(ray, out RaycastHit standHit, RepairReach, ~(1 << gameObject.layer), QueryTriggerInteraction.Ignore)
-                && standHit.collider.GetComponentInParent<DriveTestStand>() == DriveStand)
-                return DriveStand.Socket;
-            // The lid and drive sockets overlap; query only the held part's compatible destinations.
-            Collider install = HeldPart.InstallationAnchor.GetComponent<Collider>();
-            Collider tray = HeldPart.TrayAnchor.GetComponent<Collider>();
-            bool hitInstall = install != null && install.Raycast(ray, out _, RepairReach);
-            bool hitTray = tray != null && tray.Raycast(ray, out _, RepairReach);
-            if (!hitInstall) return hitTray ? HeldPart.TrayAnchor : null;
-            if (!hitTray) return HeldPart.InstallationAnchor;
-            install.Raycast(ray, out RaycastHit installedHit, RepairReach);
-            tray.Raycast(ray, out RaycastHit trayHit, RepairReach);
-            return installedHit.distance <= trayHit.distance ? HeldPart.InstallationAnchor : HeldPart.TrayAnchor;
+                && CaptureAnchor(DriveStand.Socket, ray, out float standDistance)
+                && (target == null || standDistance < installDistance)) target = DriveStand.Socket;
+            return target;
+        }
+
+        bool CaptureAnchor(Transform anchor, Ray ray, out float distance)
+        {
+            distance = 0f;
+            if (anchor == null) return false;
+            Collider collider = anchor.GetComponent<Collider>();
+            Bounds bounds = collider != null ? collider.bounds : new Bounds(anchor.position, Vector3.one * .18f);
+            bounds.Expand(.12f);
+            return bounds.IntersectRay(ray, out distance) && distance <= RepairReach && !DropIsBlocked(anchor, ray);
+        }
+
+        bool RaycastWithoutHeld(Ray ray, out RaycastHit nearest)
+        {
+            nearest = default;
+            bool found = false;
+            foreach (RaycastHit hit in Physics.RaycastAll(ray, RepairReach, ~(1 << gameObject.layer), QueryTriggerInteraction.Ignore))
+            {
+                if (HeldPart != null && hit.collider.GetComponentInParent<RepairPart>() == HeldPart) continue;
+                if (!found || hit.distance < nearest.distance) { nearest = hit; found = true; }
+            }
+            return found;
+        }
+
+        bool DropIsBlocked(Transform anchor, Ray ray)
+        {
+            if (!RaycastWithoutHeld(ray, out RaycastHit obstacle)) return false;
+            bool targetHit = obstacle.collider.transform == anchor || obstacle.collider.transform.IsChildOf(anchor)
+                || DriveStand != null && anchor == DriveStand.Socket
+                    && obstacle.collider.GetComponentInParent<DriveTestStand>() == DriveStand;
+            return !targetHit && obstacle.distance < Vector3.Dot(anchor.position - ray.origin, ray.direction) - .12f;
+        }
+
+        bool CloseToAnchor(Transform anchor) => HeldPart != null
+            && Vector3.Distance(HeldPart.Body.position, anchor.position) <= PlacementTolerance;
+
+        bool CanPlaceHeld(Transform anchor) => DriveStand != null && anchor == DriveStand.Socket
+            ? DriveStand.CanLoad(robot, HeldPart, out _) : robot.CanPlace(HeldPart, true, out _);
+
+        void SetDropAnchor(Transform anchor)
+        {
+            if (DropAnchor == anchor) return;
+            foreach (Renderer renderer in socketPreview) if (renderer != null) renderer.enabled = false;
+            socketPreview.Clear();
+            DropAnchor = anchor;
+            if (anchor == null || HeldPart == null) return;
+            if (!CanPlaceHeld(anchor)) return;
+            foreach (Renderer renderer in anchor.GetComponentsInChildren<Renderer>())
+                if (!renderer.enabled && renderer.name.EndsWith("Rim"))
+                { renderer.enabled = true; socketPreview.Add(renderer); }
         }
 
         void FinishPart(Ray ray)
         {
+            if (DropAnchor != null && DropIsBlocked(DropAnchor, ray))
+            {
+                CancelPart(); Say("Посадочное место перекрыто предметом"); return;
+            }
+            if (DropAnchor != null && !CloseToAnchor(DropAnchor)) SetDropAnchor(null);
             if (DriveStand != null && DropAnchor == DriveStand.Socket)
             {
                 RepairPart part = HeldPart;
+                SetDropAnchor(null);
                 HeldPart = null;
-                DropAnchor = null;
                 if (!DriveStand.TryLoad(robot, part, out string reason)) { part.RestorePose(); Say(reason); }
                 else Say("");
                 return;
             }
-            if (DropAnchor == null) Say("Перенос отменён: отпустите над посадочным местом или своим лотком");
+            if (DropAnchor == null) Say("Деталь отпущена");
             else
             {
-                bool install = DropAnchor == HeldPart.InstallationAnchor;
-                if (!robot.CanPlace(HeldPart, install, out string reason)) Say(reason);
-                else if (Physics.Raycast(ray, out RaycastHit obstacle, RepairReach, ~(1 << gameObject.layer), QueryTriggerInteraction.Ignore)
-                    && DropAnchor.GetComponent<Collider>().Raycast(ray, out RaycastHit destination, RepairReach)
-                    && obstacle.distance < destination.distance - .05f) Say("Посадочное место перекрыто предметом");
-                else if (robot.TryPlace(HeldPart, install, out reason)) Say(install ? "Деталь установлена" : "Деталь в лотке");
+                if (robot.TryPlace(HeldPart, true, out string reason)) Say("Деталь установлена");
                 else Say(reason);
             }
             CancelPart();
@@ -485,7 +576,20 @@ namespace BORis
                 HeldPart.RestorePose();
             }
             HeldPart = null;
-            DropAnchor = null;
+            SetDropAnchor(null);
+        }
+
+        public void RecoverLooseParts()
+        {
+            if (!IsAtWorkbench || robot == null || robot.IsTesting || robot.IsOnDriveStand) return;
+            if (selectedTool != null) selectedTool.End();
+            ClearObservation();
+            CancelPart();
+            activeWorkbench.ReturnToOverview(true);
+            foreach (RepairPart part in robot.GetComponentsInChildren<RepairPart>())
+                if (!part.IsInstalled) part.RecoverToTable();
+            activeWorkbench.Focus(null);
+            Say("Снятые детали возвращены на стол");
         }
 
         void Say(string message)

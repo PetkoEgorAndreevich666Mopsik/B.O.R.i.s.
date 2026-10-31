@@ -60,6 +60,20 @@ public sealed class DriveTestStandTests
         yield return null; yield return null;
     }
 
+    string StandDropDiagnostic(RepairPart expected, Vector2 pointer)
+    {
+        RepairPart held = interaction.HeldPart;
+        Ray ray = interaction.View.ScreenPointToRay(pointer);
+        var hits = Physics.RaycastAll(ray, 10f, ~(1 << interaction.gameObject.layer), QueryTriggerInteraction.Ignore)
+            .OrderBy(hit => hit.distance).ToArray();
+        var nearest = hits.FirstOrDefault(hit => held == null || hit.collider.GetComponentInParent<RepairPart>() != held);
+        string hitNames = string.Join(", ", hits.Take(10).Select(hit =>
+            $"{hit.collider.name}@{hit.distance:F3}{(hit.collider.GetComponentInParent<RepairPart>() == held ? "[held]" : "")}"));
+        Vector3 target = (Vector3)typeof(InteractionController).GetField("heldTarget", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(interaction);
+        string body = held == null ? "none" : $"{held.Body.position:F3}, rot={held.Body.rotation.eulerAngles:F1}, velocity={held.Body.linearVelocity:F3}, socketDistance={Vector3.Distance(held.Body.position, stand.Socket.position):F3}";
+        return $"Expected={expected.name}; held={(held != null ? held.name : "none")}; pointer={pointer:F1}; socketScreen={interaction.View.WorldToScreenPoint(stand.Socket.position):F1}; socket={stand.Socket.position:F3}; body={body}; heldTarget={target:F3}; nearestNonHeld={(nearest.collider != null ? nearest.collider.name : "none")}@{nearest.distance:F3}; hits=[{hitNames}]; feedback={interaction.Feedback}";
+    }
+
     void RemoveOriginal()
     {
         foreach (var screw in robot.Cover.Screws) robot.Turn(screw, -10000f);
@@ -71,7 +85,7 @@ public sealed class DriveTestStandTests
     }
 
     [UnityTest]
-    public IEnumerator OnlyDetachedOwnedDriveCanUseStand()
+    public IEnumerator OnlyOwnedReleasedDriveCanUseStand()
     {
         Assert.That(stand.TryLoad(robot, original, out string reason), Is.False);
         Assert.That(reason, Does.Contain("снимите"));
@@ -96,15 +110,22 @@ public sealed class DriveTestStandTests
         foreach (RepairPart part in new[] { original, spare, original })
         {
             var parent = part.transform.parent;
+            Vector3 sourcePosition = part.transform.position;
+            Quaternion sourceRotation = part.transform.rotation;
             Assert.That(stand.TryLoad(robot, part, out _), Is.True);
             Assert.That(part.IsInstalled, Is.False);
+            Assert.That(part.IsSupported, Is.True);
+            Assert.That(part.Body.isKinematic, Is.True);
             Assert.That(stand.RunTest(out _), Is.True);
             while (stand.IsTesting) yield return null;
             Assert.That(part.StandResult, Is.EqualTo(part == original ? DriveTestResult.Interrupted : DriveTestResult.Smooth));
             Assert.That(part.Faulty, Is.EqualTo(part == original));
             Assert.That(part.IsInstalled, Is.False);
             Assert.That(part.transform.parent, Is.SameAs(parent));
-            Assert.That(Vector3.Distance(part.transform.position, part.TrayAnchor.position), Is.LessThan(.0001f));
+            Assert.That(Vector3.Distance(part.transform.position, sourcePosition), Is.LessThan(.03f));
+            Assert.That(Quaternion.Angle(part.transform.rotation, sourceRotation), Is.LessThan(2f));
+            Assert.That(part.IsSupported, Is.False);
+            Assert.That(part.Body.isKinematic, Is.False);
             Assert.That(part.GetComponentsInChildren<Collider>().All(c => c.enabled), Is.True);
             Assert.That(robot.TestResult, Is.EqualTo(RobotTestResult.NotTested));
             Assert.That(stand.Part, Is.Null);
@@ -150,6 +171,7 @@ public sealed class DriveTestStandTests
     {
         foreach (int cancellation in new[] { 0, 1, 2 })
         {
+            Vector3 source = spare.transform.position;
             Assert.That(stand.TryLoad(robot, spare, out _), Is.True);
             Assert.That(stand.RunTest(out _), Is.True);
             if (cancellation == 0) interaction.SendMessage("OnApplicationFocus", false);
@@ -157,7 +179,9 @@ public sealed class DriveTestStandTests
             if (cancellation == 2) bench.Exit();
             Assert.That(stand.Part, Is.Null);
             Assert.That(robot.ActiveDriveStand, Is.Null);
-            Assert.That(Vector3.Distance(spare.transform.position, spare.TrayAnchor.position), Is.LessThan(.0001f));
+            Assert.That(Vector3.Distance(spare.transform.position, source), Is.LessThan(.0001f));
+            Assert.That(spare.IsSupported, Is.False);
+            Assert.That(spare.Body.isKinematic, Is.False);
             Assert.That(spare.StandResult, Is.EqualTo(DriveTestResult.NotTested));
             stand.enabled = true;
         }
@@ -173,18 +197,50 @@ public sealed class DriveTestStandTests
     }
 
     [UnityTest]
+    public IEnumerator ReleasedDriveGoesDirectlyFromRobotToStandAndReturnsToWorldPose()
+    {
+        foreach (var screw in robot.Cover.Screws) robot.Turn(screw, -10000f);
+        Assert.That(robot.TryPlace(robot.Cover, false, out _), Is.True);
+        foreach (var screw in original.Screws) robot.Turn(screw, -10000f);
+        Assert.That(stand.TryLoad(robot, original, out _), Is.False, "A connected drive must not bypass the connector rule.");
+        Assert.That(robot.ToggleConnection(robot.Connector, out _), Is.True);
+        Assert.That(original.IsInstalled, Is.True);
+        Assert.That(stand.TryLoad(robot, original, out string reason), Is.True, reason);
+        Assert.That(original.IsInstalled, Is.False);
+        Assert.That(original.IsSupported, Is.True);
+        Assert.That(original.Body.isKinematic, Is.True);
+        Assert.That(Vector3.Distance(original.transform.position, stand.Socket.position), Is.LessThan(.001f));
+        yield return null;
+        Assert.That(Vector3.Distance(original.Body.position, original.transform.position), Is.LessThan(.001f),
+            "The supported actor must follow the visible drive on the stand.");
+        Assert.That(Quaternion.Angle(original.Body.rotation, original.transform.rotation), Is.LessThan(.01f));
+        stand.Cancel();
+        Assert.That(original.IsSupported, Is.False);
+        Assert.That(original.Body.isKinematic, Is.False);
+        Assert.That(original.IsInstalled, Is.False);
+        Assert.That(Vector3.Distance(original.transform.position, original.TrayAnchor.position), Is.GreaterThan(.1f),
+            "The stand must not introduce a mandatory tray visit on release.");
+        yield return null;
+    }
+
+    [UnityTest]
     public IEnumerator PointerCanLoadClickTestAndReturnBothDrives()
     {
         RemoveOriginal();
+        robot.Cover.RecoverToTable();
+        original.RecoverToTable();
+        yield return new WaitForSeconds(.5f);
         foreach (var part in new[] { original, spare })
         {
             yield return KeyPress(Key.Digit1);
+            Vector3 pickupPosition = part.Body.position;
             Vector2 source = interaction.View.WorldToScreenPoint(part.transform.position);
             yield return Pointer(source, true);
             Assert.That(interaction.HeldPart, Is.SameAs(part), interaction.Feedback);
             Vector2 target = interaction.View.WorldToScreenPoint(stand.Socket.position);
             yield return Pointer(target, true);
-            Assert.That(interaction.DropAnchor, Is.SameAs(stand.Socket));
+            yield return new WaitForSeconds(.5f);
+            Assert.That(interaction.DropAnchor, Is.SameAs(stand.Socket), StandDropDiagnostic(part, target));
             yield return Pointer(target, false);
             Assert.That(stand.Part, Is.SameAs(part), interaction.Feedback);
             Assert.That(stand.IsTesting, Is.False, "Loading alone does not start the test.");
@@ -194,6 +250,8 @@ public sealed class DriveTestStandTests
             while (stand.IsTesting) yield return null;
             Assert.That(part.StandResult, Is.Not.EqualTo(DriveTestResult.NotTested));
             Assert.That(interaction.HeldPart, Is.Null);
+            Assert.That(Vector3.Distance(part.Body.position, pickupPosition), Is.LessThan(.05f),
+                "The tested drive must return to its pickup position so it does not obstruct the next drive.");
         }
     }
 

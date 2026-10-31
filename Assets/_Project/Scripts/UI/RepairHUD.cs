@@ -187,7 +187,8 @@ namespace BORis
             if (cameraHints != null)
             {
                 cameraHints.gameObject.SetActive(true);
-                cameraHints.text = "F1 — помощь";
+                cameraHints.text = interaction.HeldPart != null ? "ПКМ — повернуть деталь · Колесо — высота"
+                    : "G — вернуть детали на стол · F1 — помощь";
             }
         }
 
@@ -241,7 +242,7 @@ namespace BORis
                     if (!robot.Cover.IsInstalled && !patch.RequiresOpenCover
                         && patch.GetComponentInParent<RepairPart>() == robot.Cover) continue;
                     if (patch.RequiresOpenCover && robot.Cover.IsInstalled)
-                        return robot.Cover.IsReleased ? "1 — рука: перенесите крышку в левый лоток"
+                        return robot.Cover.IsReleased ? "1 — рука: вытяните крышку и отпустите над столом"
                             : "2 — отвёртка: освободите винты крышки для очистки внутри";
                     return $"3 — щётка: очистите «{patch.DisplayName}» до 90%";
                 }
@@ -251,7 +252,16 @@ namespace BORis
 
         static string WorkingStatus(InteractionController interaction)
         {
-            if (interaction.HeldPart != null) return interaction.Robot.PartLabel(interaction.HeldPart);
+            if (interaction.HeldPart != null)
+            {
+                string label = interaction.Robot.PartLabel(interaction.HeldPart);
+                if (interaction.DropAnchor == null) return label + " · отпустите ЛКМ, чтобы положить";
+                bool stand = interaction.DriveStand != null && interaction.DropAnchor == interaction.DriveStand.Socket;
+                string reason;
+                bool allowed = stand ? interaction.DriveStand.CanLoad(interaction.Robot, interaction.HeldPart, out reason)
+                    : interaction.Robot.CanPlace(interaction.HeldPart, true, out reason);
+                return allowed ? label + (stand ? " · отпустите: на стенд" : " · отпустите: установить") : reason;
+            }
             var driver = interaction.Screwdriver;
             if (driver != null && driver.IsTurning)
                 return $"Затяжка: {driver.Target.Tightness:P0}";

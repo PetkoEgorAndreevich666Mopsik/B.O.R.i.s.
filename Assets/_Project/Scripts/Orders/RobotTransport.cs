@@ -45,9 +45,11 @@ namespace BORis
         {
             if (!IsCarrying || Robot == null) return;
             Robot.transform.rotation = Quaternion.Euler(0f, view.transform.eulerAngles.y + 180f, 0f);
+            workbench.SynchronizeRobotPhysics();
             Bounds bounds = Robot.InspectionPivot.GetComponentInChildren<Renderer>().bounds;
             foreach (Renderer renderer in Robot.GetComponentsInChildren<Renderer>()) bounds.Encapsulate(renderer.bounds);
             Robot.transform.position += view.transform.position + view.transform.forward * 1.25f - view.transform.up * .35f - bounds.center;
+            workbench.SynchronizeRobotPhysics();
         }
 
         public bool TryDrop(Ray ray, float reach)

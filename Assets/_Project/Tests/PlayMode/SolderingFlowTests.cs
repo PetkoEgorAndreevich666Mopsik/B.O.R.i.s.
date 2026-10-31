@@ -1,9 +1,11 @@
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using BORis;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.SceneManagement;
@@ -53,6 +55,26 @@ public sealed class SolderingFlowTests
     }
 
     Vector2 ScreenPosition(float position) => interaction.View.WorldToScreenPoint(joint.PointOnSeam(position));
+
+    static List<RaycastResult> UiHits(Vector2 pointer)
+    {
+        var hits = new List<RaycastResult>();
+        if (EventSystem.current != null)
+            EventSystem.current.RaycastAll(new PointerEventData(EventSystem.current) { position = pointer }, hits);
+        return hits;
+    }
+
+    string PointerState(Vector2 pointer)
+    {
+        Physics.Raycast(interaction.View.ScreenPointToRay(pointer), out var hit, 20f,
+            ~(1 << interaction.gameObject.layer), QueryTriggerInteraction.Ignore);
+        var bench = Object.FindFirstObjectByType<Workbench>();
+        string collider = hit.collider != null ? $"{hit.collider.name} ({hit.collider.transform.position})" : "none";
+        return $"pointer {pointer}, mouse {mouse.position.ReadValue()}, screen {Screen.width}x{Screen.height}, "
+            + $"cursor {Cursor.lockState}, hit {collider}, UI [{string.Join(", ", UiHits(pointer).Select(h => h.gameObject.name))}], "
+            + $"camera {interaction.View.transform.position}, offset {bench.CameraOffset:F4}, "
+            + $"iron selected {interaction.SolderingSelected}, active {tool != null && tool.IsActive}, contact {tool != null && tool.HasContact}";
+    }
 
     void Face(Vector3 position)
     {
@@ -116,27 +138,35 @@ public sealed class SolderingFlowTests
     }
 
     [UnityTest]
-    public IEnumerator InspectionRotatesBoardWithAssemblyAndReturnsBeforeSoldering()
+    public IEnumerator InspectionOrbitsCameraAroundFixedBoardAndReturnsBeforeSoldering()
     {
         yield return EnterC();
         var workbench = Object.FindFirstObjectByType<Workbench>();
         Vector3 position = joint.transform.position;
         Quaternion rotation = joint.transform.rotation;
+        Vector3 cameraPosition = interaction.View.transform.position;
+        Quaternion cameraRotation = interaction.View.transform.rotation;
         yield return Pointer(interaction.View.WorldToScreenPoint(robot.Cover.transform.position));
         yield return Press(Key.F);
         Assert.That(workbench.IsFocused, Is.True);
         InputSystem.QueueStateEvent(mouse, new MouseState { position = new Vector2(Screen.width * .5f, Screen.height * .5f),
             buttons = 2, delta = new Vector2(300, 80) });
         yield return null; yield return null;
-        Assert.That(Quaternion.Angle(rotation, joint.transform.rotation), Is.GreaterThan(20f));
-        Assert.That(joint.Progress, Is.Zero);
         yield return Pointer(new Vector2(Screen.width * .5f, Screen.height * .5f));
+        yield return new WaitForSeconds(.6f);
+        Assert.That(Quaternion.Angle(cameraRotation, interaction.View.transform.rotation), Is.GreaterThan(20f));
+        Assert.That(Vector3.Distance(cameraPosition, interaction.View.transform.position), Is.GreaterThan(.05f));
+        Assert.That(Vector3.Distance(joint.transform.position, position), Is.LessThan(.0001f));
+        Assert.That(Quaternion.Angle(joint.transform.rotation, rotation), Is.LessThan(.01f));
+        Assert.That(joint.Progress, Is.Zero);
         yield return Press(Key.R);
         Assert.That(interaction.IsAtWorkbench, Is.True);
         Assert.That(interaction.IsInspecting, Is.True);
-        yield return new WaitForSeconds(.6f);
+        yield return new WaitForSeconds(1f);
         Assert.That(Vector3.Distance(joint.transform.position, position), Is.LessThan(.0001f));
         Assert.That(Quaternion.Angle(joint.transform.rotation, rotation), Is.LessThan(.01f));
+        Assert.That(Vector3.Distance(interaction.View.transform.position, cameraPosition), Is.LessThan(.01f));
+        Assert.That(Quaternion.Angle(interaction.View.transform.rotation, cameraRotation), Is.LessThan(.1f));
         PrepareSeam();
         Assert.That(robot.CanSolder(joint, session, out string reason), Is.True, reason);
     }
@@ -153,6 +183,23 @@ public sealed class SolderingFlowTests
         OpenCover();
         Assert.That(robot.ToggleConnection(robot.Connector, out _), Is.True);
         Physics.SyncTransforms();
+    }
+
+    bool SeamIsReachable(float position) => Physics.Raycast(
+        interaction.View.ScreenPointToRay(ScreenPosition(position)), out var hit,
+        3f + Object.FindFirstObjectByType<Workbench>().CameraOffset,
+        ~(1 << interaction.gameObject.layer), QueryTriggerInteraction.Ignore)
+        && hit.collider.GetComponent<SolderJoint>() == joint;
+
+    IEnumerator WaitForOpenSeam()
+    {
+        float deadline = Time.realtimeSinceStartup + 2f;
+        while ((!SeamIsReachable(.01f) || !SeamIsReachable(.5f) || !SeamIsReachable(.99f))
+            && Time.realtimeSinceStartup < deadline)
+            yield return null;
+        foreach (float position in new[] { .01f, .5f, .99f })
+            Assert.That(SeamIsReachable(position), Is.True,
+                $"The falling cover must clear seam sample {position}. " + PointerState(ScreenPosition(position)));
     }
 
     IEnumerator FinishAndDeliver()
@@ -207,14 +254,18 @@ public sealed class SolderingFlowTests
         Assert.That(interaction.IsAtEquipmentShop, Is.True);
         var buy = Object.FindObjectsByType<Button>().Single(b => b.name == "BuyStationButton");
         Vector2 point = RectTransformUtility.WorldToScreenPoint(null, buy.transform.position);
+        Assert.That(buy.interactable, Is.True, session.SaveStatus);
+        Assert.That(UiHits(point).FirstOrDefault().gameObject?.GetComponentInParent<Button>(), Is.SameAs(buy),
+            "The purchase button must be the frontmost UI target. " + PointerState(point));
         yield return Pointer(point, true); yield return Pointer(point);
-        Assert.That(session.Balance, Is.EqualTo(40));
+        Assert.That(session.Balance, Is.EqualTo(40), PointerState(point));
         Assert.That(session.CanOfferSolderingOrders, Is.True);
         yield return Press(Key.Escape);
         yield return EnterC(false);
         Assert.That(robot.InstalledDrive.Faulty, Is.False);
         Assert.That(robot.IsFunctional, Is.False);
         PrepareSeam();
+        yield return WaitForOpenSeam();
         yield return Pointer(ScreenPosition(.5f));
         yield return new WaitForSeconds(.65f);
         Assert.That(robot.JointFaultFound, Is.True, "An exposed seam can be diagnosed by observation.");
@@ -238,15 +289,17 @@ public sealed class SolderingFlowTests
     public IEnumerator StationaryHoldCannotRepairAndCancelPreservesVisiblePartialWork()
     {
         yield return EnterC(); PrepareSeam();
+        yield return WaitForOpenSeam();
         Vector2 handle = interaction.View.WorldToScreenPoint(tool.transform.Find("Handle").position);
         yield return Pointer(handle, true); yield return Pointer(handle);
         Assert.That(interaction.SolderingSelected, Is.True, "The physical iron must be visible and selectable on its station.");
         yield return Pointer(ScreenPosition(.05f), true);
+        Assert.That(tool.HasContact, Is.True, "Initial seam contact. " + PointerState(ScreenPosition(.05f)));
         yield return new WaitForSeconds(.2f);
         Assert.That(joint.Progress, Is.Zero);
         yield return Pointer(ScreenPosition(.35f), true);
         float progress = joint.Progress;
-        Assert.That(progress, Is.InRange(.2f, .5f));
+        Assert.That(progress, Is.InRange(.2f, .5f), PointerState(ScreenPosition(.35f)));
         var segments = joint.GetComponentsInChildren<Renderer>().Where(r => r.name.StartsWith("Trace")).ToArray();
         Assert.That(segments.Count(r => r.sharedMaterial.name == "SolderRestored"), Is.GreaterThan(0).And.LessThan(24));
         interaction.SendMessage("OnApplicationFocus", false);
@@ -273,12 +326,14 @@ public sealed class SolderingFlowTests
     public IEnumerator LostContactAndOcclusionCannotBridgeUnvisitedSegments()
     {
         yield return EnterC(); PrepareSeam();
+        yield return WaitForOpenSeam();
         yield return Press(Key.Digit4);
         yield return Pointer(ScreenPosition(.05f), true);
+        Assert.That(tool.HasContact, Is.True, "Initial seam contact. " + PointerState(ScreenPosition(.05f)));
         yield return Pointer(ScreenPosition(-1f), true);
         Assert.That(tool.HasContact, Is.False);
         yield return Pointer(ScreenPosition(.9f), true);
-        Assert.That(tool.HasContact, Is.True);
+        Assert.That(tool.HasContact, Is.True, "Contact after leaving the seam. " + PointerState(ScreenPosition(.9f)));
         Assert.That(joint.Progress, Is.Zero);
         yield return Pointer(ScreenPosition(.9f));
         var blocker = GameObject.CreatePrimitive(PrimitiveType.Cube);
@@ -367,6 +422,7 @@ public sealed class SolderingFlowTests
         Assert.That(robot.TestResult, Is.EqualTo(RobotTestResult.Faulty));
         Assert.That(session.CanDeliverOrder(out _), Is.False);
         PrepareSeam();
+        yield return new WaitForSeconds(.6f);
         yield return Press(Key.Digit4);
         yield return Pointer(ScreenPosition(.1f), true);
         var overlay = new GameObject("SolderBlockingUI", typeof(RectTransform), typeof(Image));

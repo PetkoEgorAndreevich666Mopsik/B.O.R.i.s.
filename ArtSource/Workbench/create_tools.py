@@ -13,7 +13,7 @@ from pathlib import Path
 from mathutils import Vector
 
 ROOT = Path(__file__).resolve().parents[2]
-OUT = ROOT / "Temp/WorkbenchModels"
+OUT = Path.home() / "Documents/Codex/BORis/reports/WorkbenchModels"
 OUT.mkdir(parents=True, exist_ok=True)
 bpy.ops.object.select_all(action="SELECT")
 bpy.ops.object.delete(use_global=False)
