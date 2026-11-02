@@ -17,6 +17,7 @@ namespace BORis
         [SerializeField, Min(.1f)] float testDuration = 1.8f;
         Coroutine testRoutine;
         Quaternion restingShoulder;
+        ScrewTray screwTray;
 
         public bool IsTesting => testRoutine != null;
         public DriveTestStand ActiveDriveStand { get; internal set; }
@@ -106,6 +107,7 @@ namespace BORis
         }
 
         public RepairPart Cover => cover;
+        public ScrewTray ScrewTray => screwTray != null ? screwTray : screwTray = GetComponentInChildren<ScrewTray>(true);
         public RepairConnector Connector => connector;
         public RepairPart InstalledDrive
         {
@@ -118,6 +120,14 @@ namespace BORis
         }
 
         public bool CanTurn(ScrewFastener screw, out string reason)
+        {
+            if (!CanAccessScrew(screw, out reason)) return false;
+            if (screw.IsRemoved) reason = "Сначала вставьте винт: нажмите на силуэт";
+            else if (ScrewTray == null) reason = "Лоток крепежа недоступен";
+            return reason.Length == 0;
+        }
+
+        bool CanAccessScrew(ScrewFastener screw, out string reason)
         {
             reason = "";
             if (screw == null || !screw.isActiveAndEnabled || !isActiveAndEnabled || screw.GetComponentInParent<RobotRepair>() != this)
@@ -134,12 +144,30 @@ namespace BORis
             return reason.Length == 0;
         }
 
+        public bool CanInsertScrew(ScrewFastener screw, out string reason)
+        {
+            if (!CanAccessScrew(screw, out reason)) return false;
+            if (!screw.IsRemoved) reason = "Винт уже установлен";
+            else if (ScrewTray == null || ScrewTray.Count == 0) reason = "В лотке нет винтов";
+            return reason.Length == 0;
+        }
+
+        public bool TryInsertScrew(ScrewFastener screw, out string reason)
+        {
+            if (!CanInsertScrew(screw, out reason) || !ScrewTray.TryTake()) return false;
+            screw.Insert();
+            InvalidateTest();
+            if (cover != null && screw.GetComponentInParent<RepairPart>() == cover) cover.RefreshRelease();
+            return true;
+        }
+
         public float Turn(ScrewFastener screw, float clockwiseDegrees)
         {
             if (!CanTurn(screw, out _)) return 0f;
             float applied = screw.Turn(clockwiseDegrees);
             if (Mathf.Abs(applied) > .0001f)
             {
+                if (screw.IsRemoved) ScrewTray.Collect(screw);
                 InvalidateTest();
                 if (cover != null && screw.GetComponentInParent<RepairPart>() == cover) cover.RefreshRelease();
             }
@@ -332,7 +360,7 @@ namespace BORis
                 if (cover.IsInstalled)
                     return cover.IsReleased ? "Вытяните свободную крышку рукой и отпустите на стол"
                         : drive != null && !drive.Faulty && (solderJoint == null || solderJoint.IsRepaired)
-                        ? FullyTightened(cover) ? "Сборка завершена: нажмите кнопку «ТЕСТ РУКИ»" : "Затяните четыре винта крышки"
+                        ? FullyTightened(cover) ? "Сборка завершена: нажмите кнопку «ТЕСТ РУКИ»" : "Вставьте винты крышки по силуэтам и затяните их"
                         : "Освободите винты сервисной крышки, чтобы осмотреть узел";
                 if (drive == null) return "Установите подходящий привод со стола в робота";
                 if (drive.Faulty && drive.StandResult == DriveTestResult.NotTested)
@@ -343,7 +371,7 @@ namespace BORis
                     return !JointFaultFound ? "Осмотрите открытый узел: привод и дорожку контакта под ним"
                         : connector.IsConnected ? "1 — рука: отсоедините разъём перед пайкой"
                         : "4 — паяльник: удерживайте ЛКМ и проведите по всей дорожке";
-                if (!FullyTightened(drive)) return "Затяните оба винта исправного привода";
+                if (!FullyTightened(drive)) return "Вставьте оба винта привода по силуэтам и затяните их";
                 return connector.IsConnected ? "Верните крышку со стола на робота" : "Рукой подключите разъём";
             }
         }

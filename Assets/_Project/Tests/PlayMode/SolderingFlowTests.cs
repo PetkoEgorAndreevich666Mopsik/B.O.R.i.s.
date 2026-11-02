@@ -206,7 +206,11 @@ public sealed class SolderingFlowTests
     {
         if (!robot.Connector.IsConnected) Assert.That(robot.ToggleConnection(robot.Connector, out _), Is.True);
         Assert.That(robot.TryPlace(robot.Cover, true, out _), Is.True);
-        foreach (var screw in robot.Cover.Screws) robot.Turn(screw, 10000f);
+        foreach (var screw in robot.Cover.Screws)
+        {
+            Assert.That(robot.TryInsertScrew(screw, out string insertReason), Is.True, insertReason);
+            robot.Turn(screw, 10000f);
+        }
         Assert.That(robot.RunTest(out _), Is.True);
         Assert.That(session.CanDeliverOrder(out _), Is.False);
         float deadline = Time.realtimeSinceStartup + 4f;
@@ -233,7 +237,11 @@ public sealed class SolderingFlowTests
             Assert.That(robot.TryPlace(old, false, out _), Is.True);
             var replacement = robot.GetComponentsInChildren<RepairPart>().Single(p => p.Kind == RepairPartKind.Drive && !p.Faulty);
             Assert.That(robot.TryPlace(replacement, true, out _), Is.True);
-            foreach (var screw in replacement.Screws) robot.Turn(screw, 10000f);
+            foreach (var screw in replacement.Screws)
+            {
+                Assert.That(robot.TryInsertScrew(screw, out string insertReason), Is.True, insertReason);
+                robot.Turn(screw, 10000f);
+            }
         }
         if (session.ActiveOrder.RequiresCleaning)
             foreach (var patch in robot.DirtPatches) patch.CleanStroke(Vector2.zero, Vector2.one, 2f);
@@ -411,11 +419,19 @@ public sealed class SolderingFlowTests
         var replacement = robot.GetComponentsInChildren<RepairPart>().Single(p => p.Kind == RepairPartKind.Drive && !p.IsInstalled && p != old);
         Assert.That(replacement.Faulty, Is.False);
         Assert.That(robot.TryPlace(replacement, true, out _), Is.True);
-        foreach (var screw in replacement.Screws) robot.Turn(screw, 10000f);
+        foreach (var screw in replacement.Screws)
+        {
+            Assert.That(robot.TryInsertScrew(screw, out string insertReason), Is.True, insertReason);
+            robot.Turn(screw, 10000f);
+        }
         Assert.That(robot.IsFunctional, Is.False);
         robot.ToggleConnection(robot.Connector, out _);
         robot.TryPlace(robot.Cover, true, out _);
-        foreach (var screw in robot.Cover.Screws) robot.Turn(screw, 10000f);
+        foreach (var screw in robot.Cover.Screws)
+        {
+            Assert.That(robot.TryInsertScrew(screw, out string insertReason), Is.True, insertReason);
+            robot.Turn(screw, 10000f);
+        }
         Assert.That(robot.RunTest(out _), Is.True);
         Assert.That(robot.CanSolder(joint, session, out _), Is.False);
         while (robot.IsTesting) yield return null;

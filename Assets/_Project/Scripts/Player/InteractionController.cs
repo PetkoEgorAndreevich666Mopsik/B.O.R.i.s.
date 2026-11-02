@@ -246,6 +246,8 @@ namespace BORis
 
         void TickBench()
         {
+            if (PointedScrew != null) PointedScrew.SetHovered(false);
+            PointedScrew = null;
             IsViewMoving = false;
             PointedObject = null;
             PointedTestButton = false;
@@ -283,7 +285,6 @@ namespace BORis
                 SelectToolShortcut(3);
             if (Keyboard.current?.gKey.wasPressedThisFrame == true) RecoverLooseParts();
             Vector2 pointer = point.ReadValue<Vector2>();
-            PointedScrew = null;
             PointedPart = null;
             PointedConnector = null;
             PointedDirt = null;
@@ -370,6 +371,9 @@ namespace BORis
                 PointedStand = hit.collider.GetComponentInParent<DriveTestStand>();
             }
             bool canObserve = hasHit && !IsViewMoving && !primary.IsPressed();
+            if (canObserve && ScrewdriverSelected && PointedScrew != null && PointedScrew.IsRemoved
+                && robot != null && robot.CanInsertScrew(PointedScrew, out _))
+                PointedScrew.SetHovered(true);
             ObserveDrive(canObserve ? PointedPart : null, canObserve ? PointedJoint : null);
             if (rotating || overUI || !hasHit) return;
             if (!primary.WasPressedThisFrame()) return;
@@ -398,7 +402,16 @@ namespace BORis
             }
             else if (ScrewdriverSelected && PointedScrew != null)
             {
-                if (robot.CanTurn(PointedScrew, out string reason)) screwdriver.Begin(PointedScrew, player.View, pointer);
+                if (PointedScrew.IsRemoved)
+                {
+                    if (robot.TryInsertScrew(PointedScrew, out string reason)) Say("");
+                    else Say(reason);
+                }
+                else if (robot.CanTurn(PointedScrew, out string reason))
+                {
+                    screwdriver.Begin(PointedScrew, player.View, pointer);
+                    Say("");
+                }
                 else Say(reason);
             }
             else if (selectedTool == null && robot != null)
@@ -461,6 +474,7 @@ namespace BORis
 
         void SelectTool(RepairTool tool)
         {
+            if (PointedScrew != null) PointedScrew.SetHovered(false);
             CancelPart();
             if (selectedTool != null) selectedTool.Select(null);
             selectedTool = tool;
@@ -602,6 +616,7 @@ namespace BORis
         {
             if (!focused)
             {
+                if (PointedScrew != null) PointedScrew.SetHovered(false);
                 if (session != null && session.Transport != null) session.Transport.CancelCarry();
                 ClearObservation();
                 if (selectedTool != null) selectedTool.End();

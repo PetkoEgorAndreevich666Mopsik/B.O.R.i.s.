@@ -265,6 +265,16 @@ namespace BORis
             var driver = interaction.Screwdriver;
             if (driver != null && driver.IsTurning)
                 return $"Затяжка: {driver.Target.Tightness:P0}";
+            ScrewFastener screw = interaction.PointedScrew;
+            if (interaction.ScrewdriverSelected && screw != null && interaction.Robot != null)
+            {
+                string reason;
+                bool available = screw.IsRemoved ? interaction.Robot.CanInsertScrew(screw, out reason)
+                    : interaction.Robot.CanTurn(screw, out reason);
+                if (!available) return reason;
+                return screw.IsRemoved ? "ЛКМ — вставить винт"
+                    : "ЛКМ + круговой жест / колесо — " + (screw.IsTight ? "открутить" : "затянуть");
+            }
             var brush = interaction.Brush;
             if (brush != null && brush.IsActive && brush.Target != null)
                 return $"{brush.Target.DisplayName}: {brush.Target.Cleanliness:P0}";

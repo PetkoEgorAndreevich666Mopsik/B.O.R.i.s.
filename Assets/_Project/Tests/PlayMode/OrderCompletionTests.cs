@@ -52,13 +52,21 @@ public sealed class OrderCompletionTests
             Assert.That(robot.TryPlace(oldDrive, false, out _), Is.True);
             RepairPart replacement = robot.GetComponentsInChildren<RepairPart>().Single(p => p.Kind == RepairPartKind.Drive && !p.Faulty);
             Assert.That(robot.TryPlace(replacement, true, out _), Is.True);
-            foreach (var screw in replacement.Screws) robot.Turn(screw, 10000f);
+            foreach (var screw in replacement.Screws)
+            {
+                Assert.That(robot.TryInsertScrew(screw, out string insertReason), Is.True, insertReason);
+                robot.Turn(screw, 10000f);
+            }
             Assert.That(robot.ToggleConnection(robot.Connector, out _), Is.True);
         }
         if (cleanRequired && session.ActiveOrder.RequiresCleaning)
             foreach (DirtPatch patch in robot.DirtPatches) patch.CleanStroke(Vector2.zero, Vector2.one, 2f);
         Assert.That(robot.TryPlace(robot.Cover, true, out _), Is.True);
-        foreach (var screw in robot.Cover.Screws) robot.Turn(screw, 10000f);
+        foreach (var screw in robot.Cover.Screws)
+        {
+            Assert.That(robot.TryInsertScrew(screw, out string insertReason), Is.True, insertReason);
+            robot.Turn(screw, 10000f);
+        }
     }
 
     IEnumerator TestRobot()
@@ -282,7 +290,11 @@ public sealed class OrderCompletionTests
             Assert.That(robot.CheckCleaning(out _), Is.EqualTo(i == robot.DirtPatches.Length - 1));
         }
         Assert.That(robot.TryPlace(robot.Cover, true, out _), Is.True);
-        foreach (var screw in robot.Cover.Screws) robot.Turn(screw, 10000f);
+        foreach (var screw in robot.Cover.Screws)
+        {
+            Assert.That(robot.TryInsertScrew(screw, out string insertReason), Is.True, insertReason);
+            robot.Turn(screw, 10000f);
+        }
         Assert.That(session.CanDeliverOrder(out _), Is.False, "Cleaning and reassembly cannot restore the previous test.");
         yield return TestRobot();
         Assert.That(robot.InstalledDrive, Is.SameAs(originalDrive), "Maintenance must not require a replacement.");

@@ -63,7 +63,11 @@ public sealed class WorkshopSaveTests
             Assert.That(robot.TryPlace(old, false, out _), Is.True);
             var replacement = robot.GetComponentsInChildren<RepairPart>().Single(p => p.Kind == RepairPartKind.Drive && !p.Faulty);
             Assert.That(robot.TryPlace(replacement, true, out _), Is.True);
-            foreach (var screw in replacement.Screws) robot.Turn(screw, 10000);
+            foreach (var screw in replacement.Screws)
+            {
+                Assert.That(robot.TryInsertScrew(screw, out string insertReason), Is.True, insertReason);
+                robot.Turn(screw, 10000);
+            }
         }
         if (robot.SolderJoint != null)
         {
@@ -75,7 +79,11 @@ public sealed class WorkshopSaveTests
         if (session.ActiveOrder.RequiresCleaning)
             foreach (var patch in robot.DirtPatches) patch.CleanStroke(Vector2.zero, Vector2.one, 2);
         Assert.That(robot.TryPlace(robot.Cover, true, out _), Is.True);
-        foreach (var screw in robot.Cover.Screws) robot.Turn(screw, 10000);
+        foreach (var screw in robot.Cover.Screws)
+        {
+            Assert.That(robot.TryInsertScrew(screw, out string insertReason), Is.True, insertReason);
+            robot.Turn(screw, 10000);
+        }
         Assert.That(robot.RunTest(out _), Is.True);
         float deadline = Time.realtimeSinceStartup + 4;
         while (robot.IsTesting && Time.realtimeSinceStartup < deadline) yield return null;
@@ -228,7 +236,11 @@ public sealed class WorkshopSaveTests
                 Assert.That(robot.TryPlace(old, false, out _), Is.True);
                 var spare = robot.GetComponentsInChildren<RepairPart>().Single(p => p.Kind == RepairPartKind.Drive && !p.WasInitiallyInstalled);
                 Assert.That(robot.TryPlace(spare, true, out _), Is.True);
-                foreach (var screw in spare.Screws) robot.Turn(screw, 10000);
+                foreach (var screw in spare.Screws)
+                {
+                    Assert.That(robot.TryInsertScrew(screw, out string insertReason), Is.True, insertReason);
+                    robot.Turn(screw, 10000);
+                }
                 Assert.That(robot.IsFunctional, Is.False, "A good replacement cannot bridge a broken contact.");
                 Assert.That(robot.SolderStroke(robot.SolderJoint, session, 0, 1), Is.GreaterThan(0));
                 Assert.That(robot.IsFunctional, Is.True);

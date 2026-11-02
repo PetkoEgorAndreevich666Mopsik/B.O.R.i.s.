@@ -71,10 +71,18 @@ public sealed class RepairCompletionTests
         Assert.That(robot.TryPlace(old, false, out _), Is.True);
         var replacement = robot.GetComponentsInChildren<RepairPart>().Single(p => p.Kind == RepairPartKind.Drive && !p.Faulty);
         Assert.That(robot.TryPlace(replacement, true, out _), Is.True);
-        foreach (var screw in replacement.Screws) robot.Turn(screw, 10000f);
+        foreach (var screw in replacement.Screws)
+        {
+            Assert.That(robot.TryInsertScrew(screw, out string insertReason), Is.True, insertReason);
+            robot.Turn(screw, 10000f);
+        }
         Assert.That(robot.ToggleConnection(robot.Connector, out _), Is.True);
         Assert.That(robot.TryPlace(robot.Cover, true, out _), Is.True);
-        foreach (var screw in robot.Cover.Screws) robot.Turn(screw, 10000f);
+        foreach (var screw in robot.Cover.Screws)
+        {
+            Assert.That(robot.TryInsertScrew(screw, out string insertReason), Is.True, insertReason);
+            robot.Turn(screw, 10000f);
+        }
     }
 
     IEnumerator WaitForTest()
@@ -174,6 +182,7 @@ public sealed class RepairCompletionTests
         dirt.CleanStroke(new Vector2(.2f, .5f), new Vector2(.8f, .5f), .035f);
         Assert.That(dirt.Cleanliness, Is.GreaterThan(0f));
         OpenCover();
+        Assert.That(robot.ScrewTray.Count, Is.EqualTo(4));
         Physics.SyncTransforms();
         yield return Pointer(player.View.WorldToScreenPoint(robot.Cover.transform.position), true);
         Assert.That(interaction.HeldPart, Is.SameAs(robot.Cover));
@@ -211,6 +220,7 @@ public sealed class RepairCompletionTests
 
     void AssertInitial()
     {
+        Assert.That(robot.ScrewTray.Count, Is.Zero, "Restart must discard the old repair's loose screws.");
         Assert.That(robot.Cover.IsInstalled, Is.True);
         Assert.That(RobotRepair.FullyTightened(robot.Cover), Is.True);
         Assert.That(robot.InstalledDrive.Faulty, Is.True);

@@ -121,6 +121,14 @@ public sealed class RepairAssemblyFlowTests
     IEnumerator Turn(ScrewFastener screw, bool loosen)
     {
         yield return KeyPress(Key.Digit2);
+        if (!loosen && screw.IsRemoved)
+        {
+            yield return Pointer(Screen(screw.transform), true);
+            Assert.That(screw.IsRemoved, Is.False, "The first click must insert " + screw.name);
+            Assert.That(screw.IsTight, Is.False, "Insertion must not tighten the screw automatically.");
+            Assert.That(interaction.Screwdriver.Target, Is.Null);
+            yield return Pointer(Screen(screw.transform), false);
+        }
         yield return Pointer(Screen(screw.transform),true);
         Assert.That(interaction.Screwdriver.Target, Is.SameAs(screw), "Pointer must reach " + screw.name);
         yield return Pointer(Screen(screw.transform)+Vector2.right*45f,true);
@@ -128,6 +136,11 @@ public sealed class RepairAssemblyFlowTests
         {
             float angle = i*15f*Mathf.Deg2Rad*(loosen ? 1 : -1);
             yield return Pointer(Screen(screw.transform)+new Vector2(Mathf.Cos(angle),Mathf.Sin(angle))*45f,true);
+            if (loosen && screw.IsRemoved)
+            {
+                Assert.That(interaction.Screwdriver.Target, Is.Null, "Extraction ends the captured gesture.");
+                break;
+            }
             Assert.That(interaction.Screwdriver.Target, Is.SameAs(screw), $"{screw.name}, sample {i}, screen {UnityEngine.Screen.width}x{UnityEngine.Screen.height}, pointer {mouse.position.ReadValue()}");
         }
         yield return Pointer(Screen(screw.transform),false);
@@ -197,10 +210,40 @@ public sealed class RepairAssemblyFlowTests
         Assert.That(Vector3.Distance(cover.transform.position, cover.InstallationAnchor.position), Is.EqualTo(.035f).Within(.001f));
         Assert.That(cover.GetComponent<AudioSource>().isPlaying, Is.True);
         Assert.That(last.IsLoose, Is.True);
+        Assert.That(robot.ScrewTray.Count, Is.EqualTo(cover.Screws.Length));
+        Assert.That(robot.TryInsertScrew(last, out string reason), Is.True, reason);
         robot.Turn(last, 45f);
         Assert.That(cover.IsReleased, Is.False);
         Assert.That(Vector3.Distance(cover.transform.position, cover.InstallationAnchor.position), Is.LessThan(.001f));
         Assert.That(robot.CanMove(cover, out _), Is.False);
+        yield return null;
+    }
+
+    [UnityTest]
+    public IEnumerator CoverReassemblyConsumesCollectedScrews_AndStillRequiresTightening()
+    {
+        var cover = robot.Cover;
+        Assert.That(robot.ScrewTray.Count, Is.Zero);
+        foreach (var screw in cover.Screws) robot.Turn(screw, -10000f);
+        Assert.That(robot.ScrewTray.Count, Is.EqualTo(4));
+        Assert.That(cover.IsReleased, Is.True);
+        Assert.That(cover.IsInstalled, Is.True, "The last screw must not take the cover off automatically.");
+        Assert.That(robot.TryPlace(cover, false, out _), Is.True);
+        Assert.That(robot.CanInsertScrew(cover.Screws[0], out _), Is.False);
+        Assert.That(robot.TryInsertScrew(cover.Screws[0], out _), Is.False);
+        Assert.That(robot.ScrewTray.Count, Is.EqualTo(4));
+        Assert.That(robot.TryPlace(cover, true, out _), Is.True);
+        foreach (var screw in cover.Screws)
+        {
+            Assert.That(robot.TryInsertScrew(screw, out string reason), Is.True, reason);
+            Assert.That(screw.IsRemoved || screw.IsTight, Is.False);
+        }
+        Assert.That(robot.ScrewTray.Count, Is.Zero);
+        Assert.That(RobotRepair.FullyTightened(cover), Is.False);
+        Assert.That(robot.RunTest(out _), Is.False, "Inserted screws do not count as a completed assembly.");
+        foreach (var screw in cover.Screws) robot.Turn(screw, 10000f);
+        Assert.That(RobotRepair.FullyTightened(cover), Is.True);
+        Assert.That(robot.ScrewTray.Count, Is.Zero);
         yield return null;
     }
 
@@ -372,7 +415,11 @@ public sealed class RepairAssemblyFlowTests
         Assert.That(robot.TryPlace(robot.Cover,true,out reason),Is.False);
         Assert.That(reason,Does.Contain("винта привода"));
         Assert.That(robot.ToggleConnection(robot.Connector,out reason),Is.False);
-        foreach(var screw in oldDrive.Screws) robot.Turn(screw,10000f);
+        foreach(var screw in oldDrive.Screws)
+        {
+            Assert.That(robot.TryInsertScrew(screw, out string insertReason), Is.True, insertReason);
+            robot.Turn(screw,10000f);
+        }
         Assert.That(robot.TryPlace(robot.Cover,true,out reason),Is.False);
         Assert.That(reason,Does.Contain("разъём"));
         Assert.That(robot.ToggleConnection(robot.Connector,out reason),Is.True);

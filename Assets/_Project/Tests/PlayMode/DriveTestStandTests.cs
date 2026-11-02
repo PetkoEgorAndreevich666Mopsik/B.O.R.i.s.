@@ -134,10 +134,18 @@ public sealed class DriveTestStandTests
         Assert.That(robot.Findings, Does.Contain("Исходный привод: вращение прерывается"));
         Assert.That(robot.Findings, Does.Contain("Запасной привод: вал вращается равномерно"));
         Assert.That(robot.TryPlace(spare, true, out _), Is.True);
-        foreach (var screw in spare.Screws) robot.Turn(screw, 10000f);
+        foreach (var screw in spare.Screws)
+        {
+            Assert.That(robot.TryInsertScrew(screw, out string insertReason), Is.True, insertReason);
+            robot.Turn(screw, 10000f);
+        }
         Assert.That(robot.ToggleConnection(robot.Connector, out _), Is.True);
         Assert.That(robot.TryPlace(robot.Cover, true, out _), Is.True);
-        foreach (var screw in robot.Cover.Screws) robot.Turn(screw, 10000f);
+        foreach (var screw in robot.Cover.Screws)
+        {
+            Assert.That(robot.TryInsertScrew(screw, out string insertReason), Is.True, insertReason);
+            robot.Turn(screw, 10000f);
+        }
         Assert.That(robot.RunTest(out _), Is.True);
         while (robot.IsTesting) yield return null;
         Assert.That(robot.TestResult, Is.EqualTo(RobotTestResult.Passed));

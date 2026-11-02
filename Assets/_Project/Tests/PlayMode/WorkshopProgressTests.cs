@@ -50,13 +50,21 @@ public sealed class WorkshopProgressTests
             Assert.That(robot.TryPlace(old, false, out reason), Is.True, reason);
             RepairPart replacement = robot.GetComponentsInChildren<RepairPart>().Single(p => p.Kind == RepairPartKind.Drive && !p.Faulty);
             Assert.That(robot.TryPlace(replacement, true, out reason), Is.True, reason);
-            foreach (var screw in replacement.Screws) robot.Turn(screw, 10000f);
+            foreach (var screw in replacement.Screws)
+            {
+                Assert.That(robot.TryInsertScrew(screw, out reason), Is.True, reason);
+                robot.Turn(screw, 10000f);
+            }
             Assert.That(robot.ToggleConnection(robot.Connector, out reason), Is.True, reason);
         }
         if (session.ActiveOrder.RequiresCleaning)
             foreach (var patch in robot.DirtPatches) patch.CleanStroke(Vector2.zero, Vector2.one, 2f);
         Assert.That(robot.TryPlace(robot.Cover, true, out reason), Is.True, reason);
-        foreach (var screw in robot.Cover.Screws) robot.Turn(screw, 10000f);
+        foreach (var screw in robot.Cover.Screws)
+        {
+            Assert.That(robot.TryInsertScrew(screw, out reason), Is.True, reason);
+            robot.Turn(screw, 10000f);
+        }
         Assert.That(robot.RunTest(out reason), Is.True, reason);
         float deadline = Time.realtimeSinceStartup + 4f;
         while (robot.IsTesting && Time.realtimeSinceStartup < deadline) yield return null;

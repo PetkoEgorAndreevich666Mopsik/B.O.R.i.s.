@@ -77,6 +77,9 @@ public sealed class ScrewdriverFlowTests
             yield return null; yield return null;
         }
         Assert.That(screw.IsLoose, Is.True);
+        Assert.That(screw.IsRemoved, Is.True);
+        Assert.That(screw.GetComponentInParent<RobotRepair>().ScrewTray.Count, Is.EqualTo(1));
+        Assert.That(tool.Target, Is.Null, "Extraction must release the screwdriver capture.");
         Assert.That(tool.GetComponent<AudioSource>().loop, Is.False, "Completion sound must start on reaching the endpoint.");
         yield return Pointer(Center, false);
         Assert.That(tool.IsSelected, Is.True);
@@ -84,6 +87,17 @@ public sealed class ScrewdriverFlowTests
         yield return null; yield return null;
         Assert.That(screw.IsLoose, Is.True, "Uncaptured wheel input must not change a screw.");
         yield return Pointer(Center, true);
+        Assert.That(screw.IsRemoved, Is.False, "The ghost click must return the collected screw.");
+        Assert.That(screw.IsTight, Is.False);
+        Assert.That(screw.GetComponentInParent<RobotRepair>().ScrewTray.Count, Is.Zero);
+        Assert.That(tool.Target, Is.Null, "Insertion is separate from the turning gesture.");
+        float insertedTightness = screw.Tightness;
+        InputSystem.QueueStateEvent(mouse, new MouseState { position = Center, buttons = 1, scroll = new Vector2(0, 120) });
+        yield return null; yield return null;
+        Assert.That(screw.Tightness, Is.EqualTo(insertedTightness), "Holding the insertion click must not start tightening.");
+        yield return Pointer(Center, false);
+        yield return Pointer(Center, true);
+        Assert.That(tool.Target, Is.SameAs(screw));
         for (int i = 0; i < 16; i++)
         {
             InputSystem.QueueStateEvent(mouse, new MouseState { position = Center, buttons = 1, scroll = new Vector2(0, 120) });
@@ -109,9 +123,15 @@ public sealed class ScrewdriverFlowTests
             yield return Pointer(Center + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * 60f, true);
         }
         Assert.That(screw.Tightness, Is.Zero.Within(.001f));
-        Assert.That(tool.transform.position, Is.EqualTo(screw.transform.position));
+        Assert.That(screw.IsRemoved, Is.True);
+        Assert.That(tool.IsTurning, Is.False);
         yield return Pointer(Center, false);
         Assert.That(tool.IsTurning, Is.False);
+        yield return Pointer(Center, true);
+        Assert.That(screw.IsRemoved, Is.False);
+        Assert.That(screw.IsTight, Is.False);
+        Assert.That(tool.IsTurning, Is.False);
+        yield return Pointer(Center, false);
         yield return Pointer(Center, true);
         yield return Pointer(Center + Vector2.right * 60f, true);
         for (int i = 1; i <= 52; i++)
@@ -210,6 +230,56 @@ public sealed class ScrewdriverFlowTests
         Assert.That(tool.IsTurning, Is.False);
         Assert.That(tool.GetComponent<AudioSource>().isPlaying, Is.False);
         Assert.That(screw.Tightness, Is.EqualTo(progress));
+    }
+
+    [UnityTest]
+    public IEnumerator OccludedGhostCannotConsumeTrayScrew_AndClearGhostCanBeClicked()
+    {
+        var robot = screw.GetComponentInParent<RobotRepair>();
+        robot.Turn(screw, -10000f);
+        yield return Press(Key.Digit2);
+        var blocker = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        blocker.transform.position = Vector3.Lerp(player.View.transform.position, screw.transform.position, .5f);
+        blocker.transform.localScale = Vector3.one * .2f;
+        Physics.SyncTransforms();
+        yield return Pointer(Center, true);
+        Assert.That(screw.IsRemoved, Is.True);
+        Assert.That(robot.ScrewTray.Count, Is.EqualTo(1));
+        Assert.That(tool.IsTurning, Is.False);
+        yield return Pointer(Center, false);
+        Object.Destroy(blocker);
+        yield return null;
+        Physics.SyncTransforms();
+        yield return Pointer(Center, true);
+        Assert.That(screw.IsRemoved, Is.False);
+        Assert.That(screw.IsTight, Is.False);
+        Assert.That(robot.ScrewTray.Count, Is.Zero);
+        Assert.That(tool.IsTurning, Is.False);
+    }
+
+    [UnityTest]
+    public IEnumerator FallingScrewRemainsAvailable_AndImmediateInsertionDoesNotDuplicateIt()
+    {
+        var robot = screw.GetComponentInParent<RobotRepair>();
+        var tray = robot.ScrewTray;
+        robot.Turn(screw, -10000f);
+        Assert.That(tray.Count, Is.EqualTo(1), "Collection is credited before the fall finishes.");
+        Assert.That(tray.GetComponentsInChildren<Rigidbody>().Count(body => !body.isKinematic), Is.EqualTo(1));
+        Assert.That(robot.TryInsertScrew(screw, out string reason), Is.True, reason);
+        Assert.That(tray.Count, Is.Zero);
+        Assert.That(robot.TryInsertScrew(screw, out _), Is.False);
+        yield return new WaitForSeconds(.5f);
+        Assert.That(tray.Count, Is.Zero);
+        Assert.That(tray.GetComponentsInChildren<Rigidbody>().Count(body => !body.isKinematic), Is.Zero);
+        robot.Turn(screw, -10000f);
+        Assert.That(tray.Count, Is.EqualTo(1));
+        var body = tray.GetComponentsInChildren<Rigidbody>().Single(candidate => !candidate.isKinematic);
+        body.position = tray.transform.position + Vector3.down * 10f;
+        yield return new WaitForSeconds(.5f);
+        Assert.That(tray.Count, Is.EqualTo(1), "Physical movement must not lose the available fastener.");
+        Assert.That(body.position.y, Is.GreaterThan(tray.transform.position.y - 1f));
+        Assert.That(robot.TryInsertScrew(screw, out reason), Is.True, reason);
+        Assert.That(tray.Count, Is.Zero);
     }
 
     [UnityTearDown]

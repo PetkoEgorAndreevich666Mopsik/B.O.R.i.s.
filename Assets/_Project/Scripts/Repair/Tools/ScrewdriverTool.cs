@@ -45,7 +45,7 @@ namespace BORis
 
         public override void Drag(Vector2 pointer)
         {
-            if (Target == null || !Target.isActiveAndEnabled || repair == null) { End(); return; }
+            if (Target == null || !Target.isActiveAndEnabled || Target.IsRemoved || repair == null) { End(); return; }
             Vector2 offset = pointer - (Vector2)view.WorldToScreenPoint(Target.transform.position);
             if (offset.sqrMagnitude < deadZone * deadZone)
             {
@@ -60,7 +60,8 @@ namespace BORis
             if (Mathf.Abs(degrees) > 90f) degrees = 0f;
             ApplyTurn(degrees);
             // The screw moves toward the camera; don't count that movement as a reverse gesture.
-            previousOffset = pointer - (Vector2)view.WorldToScreenPoint(Target.transform.position);
+            if (Target != null)
+                previousOffset = pointer - (Vector2)view.WorldToScreenPoint(Target.transform.position);
         }
 
         public void Scroll(float amount, Vector2 pointer)
@@ -68,16 +69,18 @@ namespace BORis
             if (Target == null || repair == null || !float.IsFinite(amount) || amount == 0f) return;
             // Scroll is an impulse, not a rate; use the wheel direction across mouse delta units.
             ApplyTurn(Mathf.Sign(amount) * 45f);
+            if (Target == null) return;
             previousOffset = pointer - (Vector2)view.WorldToScreenPoint(Target.transform.position);
             hasPrevious = previousOffset.sqrMagnitude >= deadZone * deadZone;
         }
 
         void ApplyTurn(float degrees)
         {
-            float applied = repair.Turn(Target, degrees);
+            ScrewFastener target = Target;
+            float applied = repair.Turn(target, degrees);
             if (Mathf.Abs(applied) > .001f)
             {
-                bool reachedEnd = Target.IsLoose || Target.IsTight;
+                bool reachedEnd = target.IsRemoved || target.IsTight;
                 if (reachedEnd || !audioSource.loop) audioSource.Stop();
                 audioSource.loop = !reachedEnd;
                 audioSource.clip = reachedEnd ? stopSound : turnSound;
@@ -86,7 +89,8 @@ namespace BORis
                 if (audioSource.clip != null && !audioSource.isPlaying) audioSource.Play();
             }
             else if (audioSource.loop) audioSource.Stop();
-            FollowScrew();
+            if (target.IsRemoved) End();
+            else FollowScrew();
         }
 
         void FollowScrew()
