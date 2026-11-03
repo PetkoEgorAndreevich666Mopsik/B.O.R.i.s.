@@ -8,6 +8,8 @@ namespace BORis
         [SerializeField] string orderId;
         [SerializeField] string clientName;
         [SerializeField, TextArea] string symptom;
+        [SerializeField, TextArea] string personalRemark;
+        [SerializeField, TextArea] string farewell;
         [SerializeField, Min(0)] int reward;
         [SerializeField] RobotRepair robotPrefab;
         [SerializeField] bool requiresCleaning;
@@ -17,6 +19,8 @@ namespace BORis
         public string OrderId => orderId;
         public string ClientName => clientName;
         public string Symptom => symptom;
+        public string PersonalRemark => personalRemark;
+        public string Farewell => farewell;
         public int Reward => reward;
         public RobotRepair RobotPrefab => robotPrefab;
         public bool RequiresCleaning => requiresCleaning;

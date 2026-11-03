@@ -89,15 +89,11 @@ public sealed class OrderCompletionTests
         if (key == Key.E) yield return new WaitForSeconds(1.2f);
     }
 
-    IEnumerator OpenDesk()
+    IEnumerator WaitForVisitor()
     {
-        var body = player.GetComponent<CharacterController>();
-        body.enabled = false;
-        player.transform.SetPositionAndRotation(new Vector3(-2.6f, 0, -1.9f), Quaternion.identity);
-        body.enabled = true;
-        Physics.SyncTransforms();
-        yield return Press(Key.E);
-        Assert.That(interaction.IsAtOrderDesk, Is.True);
+        float deadline = Time.realtimeSinceStartup + 10f;
+        while (session.Window.Phase != ServiceWindowPhase.AwaitingConversation && Time.realtimeSinceStartup < deadline) yield return null;
+        Assert.That(session.Window.Phase, Is.EqualTo(ServiceWindowPhase.AwaitingConversation));
     }
 
     IEnumerator Click(string name)
@@ -113,42 +109,64 @@ public sealed class OrderCompletionTests
     }
 
     [UnityTest]
-    public IEnumerator TwoOrdersUseRealDeskButtonsAndShowReceiptBeforeNextAcceptance()
+    public IEnumerator TwoVisitorsUsePhysicalSendButtonAndPayOnceBeforeNextArrival()
     {
         string previousInstance = null;
         string firstTemplate = session.OfferedOrder.OrderId;
         int expectedBalance = 0;
         for (int i = 0; i < 2; i++)
         {
-            yield return OpenDesk();
-            yield return Click("AcceptOrderButton");
+            yield return WaitForVisitor();
+            Assert.That(session.Window.Talk(out string reason), Is.True, reason);
+            Assert.That(session.Window.TryTakeVisitor(out reason), Is.True, reason);
+            session.Transport.CancelCarry();
             Assert.That(session.ActiveOrderId, Is.Not.EqualTo(previousInstance));
             previousInstance = session.ActiveOrderId;
             int reward = session.ActiveOrderReward;
-            yield return Press(Key.Escape);
             Object.FindFirstObjectByType<Workbench>().PositionRobot(null);
             Repair();
             yield return TestRobot();
             Assert.That(session.Balance, Is.EqualTo(expectedBalance), "A passed test must not pay.");
             RobotTransportTestFlow.Deliver(session);
-            yield return OpenDesk();
-            yield return Click("DeliverOrderButton");
+            var body = player.GetComponent<CharacterController>();
+            body.enabled = false;
+            Vector3 button = session.Window.SendButton.bounds.center;
+            Vector3 standing = button + session.Window.transform.forward * 1.6f;
+            standing.y = 0f;
+            player.transform.position = standing;
+            Vector3 direction = button - standing;
+            direction.y = 0;
+            player.transform.rotation = Quaternion.LookRotation(direction);
+            player.View.transform.rotation = Quaternion.LookRotation(button - player.View.transform.position);
+            float pitch = player.View.transform.localEulerAngles.x;
+            SetField(player, "pitch", pitch > 180 ? pitch - 360 : pitch);
+            body.enabled = true;
+            Physics.SyncTransforms();
+            InputSystem.QueueStateEvent(mouse, new MouseState { buttons = 1 });
+            yield return null; yield return null;
+            InputSystem.QueueStateEvent(mouse, new MouseState());
+            yield return null;
+            Assert.That(session.Window.Phase, Is.EqualTo(ServiceWindowPhase.Departing), interaction.Feedback);
+            Assert.That(session.Window.TrySend(out _), Is.False, "Repeated button presses must not enqueue another delivery.");
+            Assert.That(session.Balance, Is.EqualTo(expectedBalance), "Payment waits until the robot has travelled outside.");
+            float deadline = Time.realtimeSinceStartup + 10f;
+            while (session.Window.IsBusy && Time.realtimeSinceStartup < deadline) yield return null;
+            Assert.That(session.Window.IsBusy, Is.False);
             expectedBalance += reward;
             Assert.That(session.Balance, Is.EqualTo(expectedBalance));
             Assert.That(session.CompletedOrders, Is.EqualTo(i + 1));
             Assert.That(session.ActiveOrder, Is.Null);
             Assert.That(workbench.HasRobot, Is.False);
-            var card = Object.FindObjectsByType<Text>(FindObjectsSortMode.None).Single(t => t.name == "OrderDescription");
-            Assert.That(card.text, Does.Contain("ВЫДАН").And.Contain("+" + reward));
+            var card = Object.FindObjectsByType<Text>(FindObjectsSortMode.None).Single(t => t.name == "WindowContract");
+            yield return null;
+            Assert.That(card.text, Does.Contain("ОПЛАЧЕНО").And.Contain("+" + reward));
             var progress = Object.FindObjectsByType<Text>(FindObjectsInactive.Include, FindObjectsSortMode.None).Single(t => t.name == "WorkshopProgress");
-            Assert.That(progress.gameObject.activeInHierarchy, Is.False, "The order receipt already shows the balance.");
             Assert.That(progress.text, Does.Contain(expectedBalance.ToString()));
-            yield return Click("AcceptOrderButton");
-            Assert.That(session.ActiveOrder, Is.Null, "Next-order button previews; it must not accept automatically.");
+            yield return WaitForVisitor();
+            Assert.That(session.ActiveOrder, Is.Null, "The next visitor must not be accepted automatically.");
             Assert.That(card.text, Does.Contain(session.OfferedOrder.ClientName));
             Assert.That(session.Balance, Is.EqualTo(expectedBalance));
             if (i == 0) Assert.That(session.OfferedOrder.OrderId, Is.Not.EqualTo(firstTemplate));
-            yield return Press(Key.Escape);
         }
         Assert.That(session.OfferedOrder.OrderId, Is.EqualTo(firstTemplate), "The two available jobs repeat.");
     }

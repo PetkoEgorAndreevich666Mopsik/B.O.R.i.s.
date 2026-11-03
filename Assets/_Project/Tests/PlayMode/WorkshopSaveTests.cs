@@ -365,7 +365,7 @@ public sealed class WorkshopSaveTests
     }
 
     [UnityTest]
-    public IEnumerator CorruptSaveBlocksTransactionsAndDeskOffersLoadRetry()
+    public IEnumerator CorruptSaveBlocksTransactionsAndWindowOffersLoadRetry()
     {
         Directory.CreateDirectory(System.IO.Path.GetDirectoryName(PathName));
         File.WriteAllText(PathName, "{ corrupted");
@@ -375,25 +375,10 @@ public sealed class WorkshopSaveTests
         Assert.That(session.TryAcceptOrder(out _), Is.False);
         Assert.That(session.TryBuySolderingStation(out _), Is.False);
         Assert.That(File.ReadAllText(PathName), Is.EqualTo("{ corrupted"));
-        var interaction = Object.FindAnyObjectByType<InteractionController>();
-        var body = interaction.GetComponent<CharacterController>();
-        body.enabled = false;
-        interaction.transform.SetPositionAndRotation(new Vector3(-2.6f, 0, -1.9f), Quaternion.identity);
-        body.enabled = true;
-        Physics.SyncTransforms();
-        InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.E));
-        yield return null; yield return null;
-        InputSystem.QueueStateEvent(keyboard, new KeyboardState());
-        yield return null; yield return null;
-        Assert.That(interaction.IsAtOrderDesk, Is.True);
-        var button = Object.FindObjectsByType<Button>().Single(b => b.name == "AcceptOrderButton");
-        Assert.That(button.GetComponentInChildren<Text>().text, Does.Contain("загрузку"));
+        Assert.That(session.Window.StatusText, Does.Contain("ЗАГРУЗКА"));
+        Assert.That(session.Window.Talk(out _), Is.False);
         File.WriteAllText(PathName, JsonUtility.ToJson(Data()));
-        Vector2 point = RectTransformUtility.WorldToScreenPoint(null, button.transform.position);
-        InputSystem.QueueStateEvent(mouse, new MouseState { position = point, buttons = 1 });
-        yield return null; yield return null;
-        InputSystem.QueueStateEvent(mouse, new MouseState { position = point });
-        yield return null; yield return null;
+        Assert.That(session.Window.Talk(out string reason), Is.True, reason);
         Assert.That(session.IsProgressReady, Is.True);
         Assert.That(session.Balance, Is.EqualTo(100));
         Assert.That(session.ActiveOrder, Is.Null, "Retrying a load must not silently accept a new order.");

@@ -25,6 +25,11 @@ namespace BORis
         InputActionMap bench;
         InputAction move, look, interact, cancel, carry;
         RobotRepair pointedRobot;
+        RobotRepair carryCandidate;
+        float carryPressedAt;
+        bool carryAttempted;
+        ServiceWindow pointedWindow;
+        bool pointedSendButton;
         InputAction point, primary, scroll, selectScrewdriver, selectHand, selectBrush, selectSoldering;
         InputAction orbit, orbitDelta, alignInspection;
         Workbench activeWorkbench;
@@ -169,6 +174,8 @@ namespace BORis
                 PointedOrderDesk = null;
                 PointedEquipmentShop = null;
                 pointedRobot = null;
+                pointedWindow = null;
+                pointedSendButton = false;
                 if (!PointerOverUI() && Physics.Raycast(player.View.transform.position, player.View.transform.forward,
                     out RaycastHit hit, reach, ~(1 << gameObject.layer), QueryTriggerInteraction.Ignore))
                 {
@@ -176,24 +183,71 @@ namespace BORis
                     PointedOrderDesk = hit.collider.GetComponentInParent<OrderDesk>();
                     PointedEquipmentShop = hit.collider.GetComponentInParent<EquipmentShop>();
                     pointedRobot = hit.collider.GetComponentInParent<RobotRepair>();
+                    pointedWindow = hit.collider.GetComponentInParent<ServiceWindow>();
+                    pointedSendButton = pointedWindow != null && hit.collider == pointedWindow.SendButton;
                 }
 
                 RobotTransport transport = session != null ? session.Transport : null;
                 bool carrying = transport != null && transport.IsCarrying;
+                ServiceWindow window = session != null ? session.Window : null;
                 if (carrying)
                 {
                     transport.Follow(player.View);
-                    if (!carry.IsPressed() && !transport.TryDrop(new Ray(player.View.transform.position, player.View.transform.forward), reach))
+                    Ray placementRay = new(player.View.transform.position, player.View.transform.forward);
+                    transport.PreviewDrop(placementRay, reach);
+                    if (Keyboard.current?.escapeKey.wasPressedThisFrame == true)
+                    {
+                        transport.CancelCarry();
                         Say("Робот возвращён на место");
+                    }
+                    else if (!carry.IsPressed() && !transport.TryDrop(placementRay, reach))
+                        Say("Робот возвращён на место");
+                    carryCandidate = null;
                 }
-                else if (transport != null && pointedRobot == transport.Robot && pointedRobot != null && carry.WasPressedThisFrame())
+                else if (transport != null)
                 {
-                    if (transport.TryPickUp(out string reason)) transport.Follow(player.View);
-                    else Say(reason);
+                    if (carry.WasPressedThisFrame())
+                    {
+                        carryCandidate = pointedRobot != null && pointedRobot == transport.Robot ? pointedRobot : null;
+                        carryPressedAt = Time.unscaledTime;
+                        carryAttempted = false;
+                        if (pointedSendButton)
+                        {
+                            if (!pointedWindow.TrySend(out string reason)) Say(reason);
+                        }
+                    }
+                    if (carryCandidate != null && carry.IsPressed() && !carryAttempted
+                        && Time.unscaledTime - carryPressedAt >= .3f)
+                    {
+                        carryAttempted = true;
+                        if (pointedRobot != carryCandidate) Say("Для подхвата удерживайте ЛКМ на корпусе робота");
+                        else
+                        {
+                            string reason = "";
+                            bool pickedUp = window != null && window.IsBusy ? false
+                                : window != null && window.IsVisitor(carryCandidate) ? window.TryTakeVisitor(out reason)
+                                : transport.TryPickUp(out reason);
+                            if (pickedUp) transport.Follow(player.View);
+                            else Say(window != null && window.IsBusy ? "Дождитесь остановки ленты и закрытия двери" : reason);
+                        }
+                    }
+                    if (!carry.IsPressed() && carryCandidate != null)
+                    {
+                        if (!carryAttempted && window != null && (window.IsVisitor(carryCandidate) || transport.IsAtDelivery))
+                        {
+                            if (!window.Talk(out string reason)) Say(reason);
+                        }
+                        carryCandidate = null;
+                    }
                     carrying = transport.IsCarrying;
                 }
                 if (carrying) { PointedWorkbench = null; PointedOrderDesk = null; PointedEquipmentShop = null; }
-                if (!carrying && PointedEquipmentShop != null && interact.WasPressedThisFrame() && PointedEquipmentShop.Open(this))
+                if (!carrying && pointedWindow != null && interact.WasPressedThisFrame())
+                {
+                    bool done = pointedSendButton ? pointedWindow.TrySend(out string reason) : pointedWindow.Talk(out reason);
+                    if (!done) Say(reason);
+                }
+                else if (!carrying && PointedEquipmentShop != null && interact.WasPressedThisFrame() && PointedEquipmentShop.Open(this))
                 {
                     activeEquipmentShop = PointedEquipmentShop;
                     shop.Disable();
@@ -208,7 +262,7 @@ namespace BORis
                     SetCursor(true);
                 }
                 else if (PointedWorkbench != null && interact.WasPressedThisFrame() && !PointedWorkbench.HasRobot)
-                    Say("Верстак пуст. Примите заказ на стойке приёма");
+                    Say("Верстак пуст. Поговорите с роботом у окна приёма и заберите его в ремонт");
                 else if (PointedWorkbench != null && interact.WasPressedThisFrame() && PointedWorkbench.Enter(player.View))
                 {
                     activeWorkbench = PointedWorkbench;
@@ -228,9 +282,15 @@ namespace BORis
                 {
                     string message = IsAtOrderDesk || IsAtEquipmentShop ? ""
                         : Feedback.Length > 0 ? Feedback
-                        : session != null && session.Transport != null && session.Transport.IsCarrying ? "Отпустите ЛКМ над верстаком или зоной выдачи"
+                        : session != null && session.Transport != null && session.Transport.IsCarrying ? "Отпустите ЛКМ над верстаком или лентой окна · ESC — вернуть"
+                        : pointedSendButton ? "ЛКМ / E — отправить робота"
+                        : pointedRobot != null && session != null && session.Window != null && session.Window.IsVisitor(pointedRobot)
+                            ? session.Window.IsBusy ? "Робот прибывает — дождитесь остановки ленты"
+                                : session.Window.HasHeardRequest ? "ЛКМ — продолжить разговор · удерживайте ЛКМ — принять и нести"
+                                    : "ЛКМ — поговорить с роботом"
                         : pointedRobot != null && session != null && pointedRobot == session.ActiveRobot
-                            ? PointedWorkbench != null && PointedWorkbench.HasRobot ? "ЛКМ — нести · E — верстак" : "ЛКМ — нести"
+                            ? PointedWorkbench != null && PointedWorkbench.HasRobot ? "Удерживайте ЛКМ — нести · E — верстак" : "Удерживайте ЛКМ — нести"
+                        : pointedWindow != null ? "E — окно обслуживания"
                         : PointedEquipmentShop != null ? "E — оборудование мастерской"
                         : PointedOrderDesk != null ? "E — стойка приёма заказов"
                         : PointedWorkbench != null ? PointedWorkbench.HasRobot ? "E — верстак" : "Верстак пуст" : "";
@@ -616,6 +676,7 @@ namespace BORis
         {
             if (!focused)
             {
+                carryCandidate = null;
                 if (PointedScrew != null) PointedScrew.SetHovered(false);
                 if (session != null && session.Transport != null) session.Transport.CancelCarry();
                 ClearObservation();

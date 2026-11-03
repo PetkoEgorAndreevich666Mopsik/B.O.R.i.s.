@@ -122,8 +122,7 @@ public sealed class RobotTransportTests
             ~(1 << player.gameObject.layer), QueryTriggerInteraction.Ignore), Is.True);
         Assert.That(hit.collider.GetComponentInParent<RobotRepair>(), Is.SameAs(robot), hit.collider.name);
         InputSystem.QueueStateEvent(mouse, new MouseState { position = new Vector2(Screen.width * .5f, Screen.height * .5f), buttons = 1 });
-        yield return null;
-        yield return null;
+        yield return new WaitForSeconds(.42f);
         Assert.That(session.Transport.IsCarrying, Is.True, player.GetComponent<InteractionController>().Feedback);
         AssertInstalledPartsAttached(robot, "mouse pickup");
         Vector3 start = robot.transform.position;

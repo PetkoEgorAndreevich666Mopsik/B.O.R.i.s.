@@ -114,7 +114,7 @@ namespace BORis
             if (assemblyState != null)
             {
                 string goal;
-                if (ready) goal = "Отнесите робота в зону выдачи у стойки";
+                if (ready) goal = "Отнесите робота на ленту окна и нажмите «ОТПРАВИТЬ»";
                 else if (!independent) goal = NextAction(robot, cleaning);
                 else if (robot != null && robot.IsTesting) goal = "Проверяем движение руки…";
                 else if (robot != null && robot.IsOnDriveStand) goal = robot.ActiveDriveStand.Status;
@@ -232,7 +232,7 @@ namespace BORis
 
         static string NextAction(RobotRepair robot, bool cleaning)
         {
-            if (robot == null) return "Примите заказ на стойке";
+            if (robot == null) return "Поговорите с посетителем у окна";
             if (robot.IsTesting) return "Проверяем движение руки…";
             if (cleaning && !robot.CheckCleaning(out _))
             {

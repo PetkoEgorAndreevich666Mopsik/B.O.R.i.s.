@@ -66,7 +66,7 @@ namespace BORis
             catch (Exception ex) when (ex is IOException || ex is InvalidDataException || ex is UnauthorizedAccessException
                 || ex is ArgumentException || ex is NotSupportedException)
             {
-                message = "Не удалось загрузить прогресс. На стойке можно повторить загрузку. Файл не изменён.";
+                message = "Не удалось загрузить прогресс. У окна можно повторить загрузку. Файл не изменён.";
                 Debug.LogWarning($"Workshop load failed: {ex.Message}");
                 return false;
             }

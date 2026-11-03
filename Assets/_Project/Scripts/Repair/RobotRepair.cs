@@ -17,6 +17,8 @@ namespace BORis
         [SerializeField, Min(.1f)] float testDuration = 1.8f;
         Coroutine testRoutine;
         Quaternion restingShoulder;
+        Transform serviceHead;
+        Quaternion restingHead;
         ScrewTray screwTray;
 
         public bool IsTesting => testRoutine != null;
@@ -89,6 +91,9 @@ namespace BORis
 
         void Awake()
         {
+            if (inspectionPivot != null)
+                foreach (Transform child in inspectionPivot.GetComponentsInChildren<Transform>())
+                    if (child.name == "Head") { serviceHead = child; restingHead = child.localRotation; break; }
             if (shoulder != null) restingShoulder = shoulder.localRotation;
             DirtPatches = GetComponentsInChildren<DirtPatch>(true);
         }
@@ -297,6 +302,31 @@ namespace BORis
             InvalidateTest();
             testRoutine = StartCoroutine(TestArm());
             return true;
+        }
+
+        public void ShowServiceGesture(float progress)
+        {
+            if (shoulder == null || IsTesting) return;
+            float gesture = Mathf.Sin(Mathf.Clamp01(progress) * Mathf.PI);
+            float angle = IsFunctional ? 55f * gesture
+                : solderJoint == null || solderJoint.IsRepaired ? 7f * Mathf.Sin(progress * 45f) * gesture : 0f;
+            shoulder.localRotation = restingShoulder * Quaternion.AngleAxis(angle, Vector3.forward);
+        }
+
+        public void FaceServiceVisitor(Vector3 position)
+        {
+            if (serviceHead == null) return;
+            Vector3 direction = serviceHead.parent.InverseTransformDirection(position - serviceHead.position);
+            float yaw = Mathf.Clamp(-Mathf.Atan2(direction.x, -direction.z) * Mathf.Rad2Deg, -28f, 28f);
+            float pitch = Mathf.Clamp(Mathf.Atan2(direction.y, new Vector2(direction.x, direction.z).magnitude) * Mathf.Rad2Deg, -14f, 14f);
+            serviceHead.localRotation = Quaternion.Slerp(serviceHead.localRotation, Quaternion.Euler(pitch, yaw, 0f) * restingHead,
+                1f - Mathf.Exp(-7f * Time.unscaledDeltaTime));
+        }
+
+        public void ResetServicePose()
+        {
+            ShowServiceGesture(0f);
+            if (serviceHead != null) serviceHead.localRotation = restingHead;
         }
 
         IEnumerator TestArm()

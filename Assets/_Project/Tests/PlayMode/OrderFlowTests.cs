@@ -55,9 +55,9 @@ public sealed class OrderFlowTests
         if (key == Key.E) yield return new WaitForSeconds(1.2f);
     }
 
-    IEnumerator Click(Button button)
+    IEnumerator ClickRobot()
     {
-        Vector2 position = RectTransformUtility.WorldToScreenPoint(null, button.transform.position);
+        Vector2 position = new(Screen.width * .5f, Screen.height * .5f);
         InputSystem.QueueStateEvent(mouse, new MouseState { position = position, buttons = 1 });
         yield return null;
         yield return null;
@@ -71,68 +71,101 @@ public sealed class OrderFlowTests
     {
         Assert.That(session.ActiveOrder, Is.Null);
         Assert.That(workbench.HasRobot, Is.False);
-        Assert.That(Object.FindObjectsByType<RobotRepair>(FindObjectsSortMode.None), Is.Empty);
+        Assert.That(session.ActiveRobot, Is.Null);
         Face(Object.FindAnyObjectByType<Workbench>().transform.TransformPoint(new Vector3(0f, 0f, -2.2f)));
         yield return Press(Key.E);
         Assert.That(interaction.PointedWorkbench, Is.SameAs(workbench));
         Assert.That(interaction.IsAtWorkbench, Is.False);
-        Assert.That(interaction.Feedback, Does.Contain("стойке"));
+        Assert.That(interaction.Feedback, Does.Contain("окна"));
     }
 
     [UnityTest]
-    public IEnumerator RealDeskInteractionFreezesPlayerAndAcceptsExactlyOneOrder()
+    public IEnumerator ShortClickTalksAndHoldAcceptsExactlyOneVisibleVisitor()
     {
-        Face(new Vector3(-2.6f, 0, -1.9f));
-        yield return Press(Key.E);
-        Assert.That(interaction.IsAtOrderDesk, Is.True);
+        yield return WaitForVisitor();
+        RobotRepair visitor = session.VisitorRobot;
+        AimAtVisitor();
+        yield return ClickRobot();
+        Assert.That(session.Window.HasHeardRequest, Is.True);
+        Assert.That(session.Window.SpeechText, Does.Contain(session.OfferedOrder.Symptom));
+        Assert.That(session.ActiveOrder, Is.Null, "Reading the request must not accept it.");
         Assert.That(interaction.IsAtWorkbench, Is.False);
-        Assert.That(Cursor.visible, Is.True);
+        Assert.That(Cursor.visible, Is.False);
         Vector3 position = player.transform.position;
-        Quaternion rotation = player.transform.rotation;
-        InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.W));
-        InputSystem.QueueStateEvent(mouse, new MouseState { delta = new Vector2(100, 100) });
+        InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.D));
         yield return new WaitForSeconds(.1f);
-        Assert.That(Vector3.Distance(position, player.transform.position), Is.LessThan(.001f));
-        Assert.That(Quaternion.Angle(rotation, player.transform.rotation), Is.LessThan(.001f));
+        Assert.That(Vector3.Distance(position, player.transform.position), Is.GreaterThan(.1f), "Conversation must leave walking available.");
         InputSystem.QueueStateEvent(keyboard, new KeyboardState());
-        Button accept = Object.FindObjectsByType<Button>(FindObjectsSortMode.None).Single(b => b.name == "AcceptOrderButton");
-        yield return Click(accept);
+        AimAtVisitor();
+        InputSystem.QueueStateEvent(mouse, new MouseState { buttons = 1 });
+        yield return new WaitForSeconds(.42f);
         Assert.That(session.ActiveOrder, Is.SameAs(session.OfferedOrder));
+        Assert.That(session.Transport.IsCarrying, Is.True, interaction.Feedback);
         Assert.That(session.ActiveOrderId, Is.Not.Empty);
         string instanceId = session.ActiveOrderId;
         RobotRepair robot = session.ActiveRobot;
         Assert.That(workbench.HasRobot, Is.False);
         Assert.That(robot.TestResult, Is.EqualTo(RobotTestResult.NotTested));
-        Assert.That(accept.interactable, Is.False);
+        Assert.That(robot, Is.SameAs(visitor), "Accept the visitor itself rather than replacing it.");
         Assert.That(session.TryAcceptOrder(out string reason), Is.False);
         Assert.That(reason, Does.Contain("активный заказ"));
         Assert.That(session.ActiveOrderId, Is.EqualTo(instanceId));
         Assert.That(session.ActiveRobot, Is.SameAs(robot));
         Assert.That(Object.FindObjectsByType<RobotRepair>(FindObjectsSortMode.None).Length, Is.EqualTo(1));
-        yield return Press(Key.Escape);
+        session.Transport.CancelCarry();
+        InputSystem.QueueStateEvent(mouse, new MouseState());
+        yield return null;
         Assert.That(interaction.IsAtOrderDesk, Is.False);
         Assert.That(Cursor.visible, Is.False);
     }
 
     [UnityTest]
-    public IEnumerator ClosingWithoutAcceptingDoesNotCreateRobotAndWallBlocksDesk()
+    public IEnumerator WallBlocksTalkingAndWalkingAwayDoesNotAcceptVisitor()
     {
-        Face(new Vector3(-2.6f, 0, -1.9f));
+        yield return WaitForVisitor();
+        AimAtVisitor();
         var wall = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        wall.transform.position = new Vector3(-2.6f, 1.5f, -1f);
+        wall.transform.position = Vector3.Lerp(player.View.transform.position, session.VisitorRobot.InspectionPivot.position, .5f);
+        wall.transform.rotation = Quaternion.LookRotation(session.VisitorRobot.InspectionPivot.position - player.View.transform.position);
         wall.transform.localScale = new Vector3(2, 3, .1f);
         Physics.SyncTransforms();
-        yield return Press(Key.E);
-        Assert.That(interaction.IsAtOrderDesk, Is.False);
+        yield return ClickRobot();
+        Assert.That(session.Window.HasHeardRequest, Is.False);
         Object.Destroy(wall);
         yield return null;
-        yield return Press(Key.E);
-        Assert.That(interaction.IsAtOrderDesk, Is.True);
-        Button close = Object.FindObjectsByType<Button>(FindObjectsSortMode.None).Single(b => b.name == "CloseOrderButton");
-        yield return Click(close);
+        AimAtVisitor();
+        yield return ClickRobot();
+        Assert.That(session.Window.HasHeardRequest, Is.True);
+        Face(Vector3.zero);
         Assert.That(interaction.IsAtOrderDesk, Is.False);
         Assert.That(workbench.HasRobot, Is.False);
         Assert.That(session.ActiveOrder, Is.Null);
+    }
+
+    IEnumerator WaitForVisitor()
+    {
+        float deadline = Time.realtimeSinceStartup + 9f;
+        while (session.Window.Phase != ServiceWindowPhase.AwaitingConversation && Time.realtimeSinceStartup < deadline) yield return null;
+        Assert.That(session.Window.Phase, Is.EqualTo(ServiceWindowPhase.AwaitingConversation));
+    }
+
+    void AimAtVisitor()
+    {
+        Vector3 target = session.VisitorRobot.InspectionPivot.GetComponentInChildren<Renderer>().bounds.center;
+        var controller = player.GetComponent<CharacterController>();
+        controller.enabled = false;
+        Vector3 position = target + session.Window.transform.forward * 1.8f;
+        position.y = 0f;
+        player.transform.position = position;
+        Vector3 forward = target - position;
+        forward.y = 0f;
+        player.transform.rotation = Quaternion.LookRotation(forward);
+        player.View.transform.rotation = Quaternion.LookRotation(target - player.View.transform.position);
+        float pitch = player.View.transform.localEulerAngles.x;
+        typeof(PlayerController).GetField("pitch", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+            .SetValue(player, pitch > 180 ? pitch - 360 : pitch);
+        controller.enabled = true;
+        Physics.SyncTransforms();
     }
 
     [UnityTest]
