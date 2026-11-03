@@ -103,9 +103,11 @@ namespace BORis
             }
         }
 
-        public bool TryReset(string firstOrderId, out string message)
+        public bool TryReset(string firstOrderId, out string message) =>
+            TryReset(new WorkshopProgress { version = 1, nextOrder = firstOrderId }, out message);
+
+        public bool TryReset(WorkshopProgress fresh, out string message)
         {
-            var fresh = new WorkshopProgress { version = 1, nextOrder = firstOrderId };
             if (!TrySave(fresh, out message))
             {
                 message = "Не удалось сбросить прогресс. Проверьте доступ к сохранению и повторите попытку.";

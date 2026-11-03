@@ -108,6 +108,31 @@ namespace BORis
             return saved;
         }
 
+        public bool TrySaveDebugCheckpoint(int orderIndex, out string reason)
+        {
+            reason = "";
+            if (orders == null || orderIndex < 0 || orderIndex >= orders.Length)
+                reason = "Такого заказа нет";
+            if (reason.Length > 0) return false;
+            long balance = 0;
+            bool station = false;
+            for (int i = 0; i <= orderIndex; i++)
+            {
+                OrderDefinition order = orders[i];
+                if (order == null || !order.IsValid) { reason = "Проверьте данные заказов"; return false; }
+                if (i < orderIndex) balance += order.Reward;
+                station |= order.RequiresSolderingStation;
+            }
+            if (station && !solderingRepairsReady) { reason = "Пайка пока недоступна в этой сцене"; return false; }
+            if (station) balance -= SolderingStationPrice;
+            if (balance < 0 || balance > int.MaxValue) { reason = "Не удалось рассчитать баланс для этого заказа"; return false; }
+            return new WorkshopProgressStore(SavePath).TryReset(new WorkshopProgress
+            {
+                version = 1, nextOrder = orders[orderIndex].OrderId, balance = (int)balance,
+                completedOrders = orderIndex, hasSolderingStation = station
+            }, out reason);
+        }
+
         public bool TryPrepareVisitor(out string reason)
         {
             reason = "";

@@ -777,6 +777,7 @@ GameObject:
   - component: {fileID: 129766048}
   - component: {fileID: 129766047}
   - component: {fileID: 8700000020}
+  - component: {fileID: 8700000021}
   m_Layer: 0
   m_Name: WorkshopSession
   m_TagString: Untagged
@@ -16783,6 +16784,18 @@ MonoBehaviour:
   deliveryZone: {fileID: 1561840657}
   tablePlacementHint: {fileID: 510000921}
   windowPlacementHint: {fileID: 869536228}
+--- !u!114 &8700000021
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 129766046}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 87c8b778fc3e16348962e6a83e0038cd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BORis.Runtime::BORis.WorkshopDebugPanel
 --- !u!1 &8700000030
 GameObject:
   m_ObjectHideFlags: 0
