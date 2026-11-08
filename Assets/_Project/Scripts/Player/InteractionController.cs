@@ -29,6 +29,8 @@ namespace BORis
         float carryPressedAt;
         bool carryAttempted;
         ServiceWindow pointedWindow;
+        WorkshopDoor pointedDoor;
+        VentilationSwitch pointedVentilationSwitch;
         bool pointedSendButton;
         InputAction point, primary, scroll, selectScrewdriver, selectHand, selectBrush, selectSoldering;
         InputAction orbit, orbitDelta, alignInspection;
@@ -175,6 +177,8 @@ namespace BORis
                 PointedEquipmentShop = null;
                 pointedRobot = null;
                 pointedWindow = null;
+                pointedDoor = null;
+                pointedVentilationSwitch = null;
                 pointedSendButton = false;
                 if (!PointerOverUI() && Physics.Raycast(player.View.transform.position, player.View.transform.forward,
                     out RaycastHit hit, reach, ~(1 << gameObject.layer), QueryTriggerInteraction.Ignore))
@@ -184,6 +188,8 @@ namespace BORis
                     PointedEquipmentShop = hit.collider.GetComponentInParent<EquipmentShop>();
                     pointedRobot = hit.collider.GetComponentInParent<RobotRepair>();
                     pointedWindow = hit.collider.GetComponentInParent<ServiceWindow>();
+                    pointedDoor = hit.collider.GetComponentInParent<WorkshopDoor>();
+                    pointedVentilationSwitch = hit.collider.GetComponentInParent<VentilationSwitch>();
                     pointedSendButton = pointedWindow != null && hit.collider == pointedWindow.SendButton;
                 }
 
@@ -242,7 +248,14 @@ namespace BORis
                     carrying = transport.IsCarrying;
                 }
                 if (carrying) { PointedWorkbench = null; PointedOrderDesk = null; PointedEquipmentShop = null; }
-                if (!carrying && pointedWindow != null && interact.WasPressedThisFrame())
+                if (!carrying && pointedDoor != null && interact.WasPressedThisFrame())
+                {
+                    if (!pointedDoor.TryToggle(GetComponent<CharacterController>()))
+                        Say("Освободите место перед дверью");
+                }
+                else if (!carrying && pointedVentilationSwitch != null && interact.WasPressedThisFrame())
+                    pointedVentilationSwitch.Toggle();
+                else if (!carrying && pointedWindow != null && interact.WasPressedThisFrame())
                 {
                     bool done = pointedSendButton ? pointedWindow.TrySend(out string reason) : pointedWindow.Talk(out reason);
                     if (!done) Say(reason);
@@ -290,6 +303,8 @@ namespace BORis
                                     : "ЛКМ — поговорить с роботом"
                         : pointedRobot != null && session != null && pointedRobot == session.ActiveRobot
                             ? PointedWorkbench != null && PointedWorkbench.HasRobot ? "Удерживайте ЛКМ — нести · E — верстак" : "Удерживайте ЛКМ — нести"
+                        : pointedDoor != null ? pointedDoor.Hint
+                        : pointedVentilationSwitch != null ? pointedVentilationSwitch.Hint
                         : pointedWindow != null ? "E — окно обслуживания"
                         : PointedEquipmentShop != null ? "E — оборудование мастерской"
                         : PointedOrderDesk != null ? "E — стойка приёма заказов"
