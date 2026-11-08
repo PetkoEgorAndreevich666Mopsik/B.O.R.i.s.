@@ -99,20 +99,24 @@ public sealed class WorkshopControlsTests
         var ventilation = ambience.Find("Ventilation").GetComponent<AudioSource>();
         var wind = ambience.Find("BalconyWind").GetComponent<AudioSource>();
         var particles = GameObject.Find("Extractor intake particles").GetComponent<ParticleSystem>();
+        var indicator = control.transform.Find("Power indicator").GetComponent<Renderer>();
         PlacePlayer(control.transform.position.x, control.transform.position.z - .9f, Vector3.forward);
         yield return null;
+        Assert.That(ventilation.mute, Is.True);
+        Assert.That(particles.isStopped, Is.True);
+        Assert.That(indicator.enabled, Is.False);
+
+        yield return PressInteract();
         Assert.That(ventilation.mute, Is.False);
-        Assert.That(particles.isPlaying, Is.True);
+        Assert.That(particles.particleCount, Is.GreaterThan(0));
+        Assert.That(indicator.enabled, Is.True);
 
         yield return PressInteract();
         Assert.That(ventilation.mute, Is.True);
         Assert.That(particles.particleCount, Is.Zero);
         Assert.That(particles.isStopped, Is.True);
+        Assert.That(indicator.enabled, Is.False);
         Assert.That(wind.mute, Is.False);
-
-        yield return PressInteract();
-        Assert.That(ventilation.mute, Is.False);
-        Assert.That(particles.particleCount, Is.GreaterThan(0));
     }
 
     void PlacePlayer(float x, float z, Vector3 facing)
