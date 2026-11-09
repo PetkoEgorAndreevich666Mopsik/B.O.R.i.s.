@@ -47,6 +47,7 @@ public sealed class RepairDiagnosisTests
         {
             typeof(WorkshopSession).GetField("<Balance>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(session, WorkshopSession.SolderingStationPrice);
             Assert.That(session.TryBuySolderingStation(out _), Is.True);
+            Assert.That(session.TryInstallSolderingStation(out _), Is.True);
         }
         if (independent)
         {

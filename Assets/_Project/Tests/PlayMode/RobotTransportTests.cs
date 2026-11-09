@@ -20,6 +20,40 @@ public static class RobotTransportTestFlow
     }
 }
 
+public static class EquipmentTestFlow
+{
+    public static void FaceTerminal(InteractionController interaction)
+    {
+        Transform terminal = Object.FindFirstObjectByType<EquipmentShop>().transform;
+        var body = interaction.GetComponent<CharacterController>();
+        body.enabled = false;
+        Vector3 point = terminal.position + terminal.forward * 1.75f;
+        point.y = 0;
+        interaction.transform.SetPositionAndRotation(point, Quaternion.LookRotation(-terminal.forward, Vector3.up));
+        body.enabled = true;
+        Physics.SyncTransforms();
+    }
+
+    public static IEnumerator InstallParcel(WorkshopSession session)
+    {
+        var window = session.Window;
+        float deadline = Time.realtimeSinceStartup + 9f;
+        while (window.Phase != ServiceWindowPhase.ParcelReady && Time.realtimeSinceStartup < deadline)
+            yield return null;
+        Assert.That(window.Phase, Is.EqualTo(ServiceWindowPhase.ParcelReady));
+        Assert.That(window.Robot, Is.Null);
+        var parcel = GameObject.Find("SolderingStationParcel").GetComponent<Collider>();
+        Assert.That(window.TryTakeParcel(parcel), Is.True);
+        window.CancelParcel();
+        Assert.That(window.Phase, Is.EqualTo(ServiceWindowPhase.ParcelReady));
+        Assert.That(window.TryTakeParcel(parcel), Is.True);
+        Vector3 destination = Object.FindFirstObjectByType<EquipmentShop>().InstallationPoint.position;
+        Assert.That(window.TryPlaceParcel(new Ray(destination + Vector3.up * .5f, Vector3.down),
+            1f, Physics.DefaultRaycastLayers, out string reason), Is.True, reason);
+        yield return null;
+    }
+}
+
 public sealed class RobotTransportTests
 {
     readonly InputTestFixture fixture = new();

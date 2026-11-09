@@ -3,7 +3,8 @@ using UnityEngine;
 
 namespace BORis
 {
-    public enum ServiceWindowPhase { Loading, Arriving, AwaitingConversation, AwaitingPickup, InRepair, Departing, WaitingForNext }
+    public enum ServiceWindowPhase { Loading, Arriving, AwaitingConversation, AwaitingPickup, InRepair, Departing, WaitingForNext,
+        ParcelArriving, ParcelReady, ParcelCarried }
 
     public sealed class ServiceWindow : MonoBehaviour
     {
@@ -35,6 +36,9 @@ namespace BORis
         float beltOffset, speechUntil, gestureStarted = -10f, nextArrival;
         int dialoguePage;
         string lastReceipt = "";
+        EquipmentParcel parcel;
+        EquipmentShop terminal;
+        UnityEngine.UI.Text buttonLabel;
 
         public ServiceWindowPhase Phase { get; private set; } = ServiceWindowPhase.Loading;
         public bool IsBusy => sequence != null;
@@ -47,8 +51,65 @@ namespace BORis
         public string StatusText => stateLabel != null ? stateLabel.text : "";
         public bool IsVisitor(RobotRepair robot) => robot != null && robot == session.VisitorRobot;
 
+        public OrderDefinition DisplayedOrder => displayedOrder;
+        public bool IsCarryingParcel => Phase == ServiceWindowPhase.ParcelCarried;
+        public bool CanCallVisitor => !IsBusy && (Phase == ServiceWindowPhase.WaitingForNext || Phase == ServiceWindowPhase.Loading)
+            && session.EquipmentOfferPending;
+        public string ParcelStatus => Phase switch
+        {
+            ServiceWindowPhase.ParcelArriving => "Коробка прибывает к окну",
+            ServiceWindowPhase.ParcelReady => "Заберите коробку с ленты",
+            ServiceWindowPhase.ParcelCarried => "Поставьте коробку справа на верстаке",
+            _ => Robot != null || IsBusy ? "Доставка после сдачи текущего заказа"
+                : terminal != null && terminal.IsOpen ? "Закройте терминал, чтобы получить коробку"
+                : "Коробка готовится к выдаче"
+        };
+
+        public bool IsParcel(Collider target) => parcel != null && Phase == ServiceWindowPhase.ParcelReady && target == parcel.Hitbox;
+
+        public bool TryTakeParcel(Collider target)
+        {
+            if (!IsParcel(target) || IsBusy || session.Transport.IsCarrying) return false;
+            Phase = ServiceWindowPhase.ParcelCarried;
+            parcel.Hitbox.enabled = false;
+            return true;
+        }
+
+        public void FollowParcel(Camera camera, Ray ray, float reach, int mask)
+        {
+            parcel.Follow(camera, mask);
+            parcel.Preview(ray, reach, mask);
+        }
+
+        public bool TryPlaceParcel(Ray ray, float reach, int mask, out string reason)
+        {
+            reason = "Коробка возвращена на ленту";
+            if (!IsCarryingParcel) return false;
+            if (!parcel.CanPlace(ray, reach, mask) || !session.TryInstallSolderingStation(out reason))
+            {
+                CancelParcel();
+                return false;
+            }
+            parcel.Hide();
+            signal.Play();
+            lastReceipt = "Станция установлена справа на верстаке.\nПайка доступна.";
+            Phase = ServiceWindowPhase.WaitingForNext;
+            nextArrival = Time.unscaledTime + 1.5f;
+            reason = "Станция установлена · пайка доступна";
+            return true;
+        }
+
+        public void CancelParcel()
+        {
+            if (!IsCarryingParcel) return;
+            parcel.SetOn(platform);
+            Phase = ServiceWindowPhase.ParcelReady;
+        }
+
         void Awake()
         {
+            terminal = GetComponentInChildren<EquipmentShop>();
+            buttonLabel = transform.Find("SendRobotLabel")?.GetComponentInChildren<UnityEngine.UI.Text>();
             shutterClosed = shutter.localPosition;
             slatOrigins = new Vector3[beltSlats.Length];
             for (int i = 0; i < beltSlats.Length; i++) slatOrigins[i] = beltSlats[i].localPosition;
@@ -78,10 +139,16 @@ namespace BORis
                 Phase = ServiceWindowPhase.WaitingForNext;
                 nextArrival = Time.unscaledTime + 2f;
             }
-            if (!IsBusy && session.ActiveOrder == null && session.IsProgressReady
-                && (Phase == ServiceWindowPhase.Loading || Phase == ServiceWindowPhase.WaitingForNext
-                    || displayedOrder != session.OfferedOrder) && Time.unscaledTime >= nextArrival)
-                sequence = StartCoroutine(Arrive());
+            if (!IsBusy && session.ActiveOrder == null && session.IsProgressReady && Robot == null
+                && (Phase == ServiceWindowPhase.Loading || Phase == ServiceWindowPhase.WaitingForNext))
+            {
+                if (session.SolderingStationOrdered)
+                {
+                    if (terminal != null && !terminal.IsOpen) sequence = StartCoroutine(DeliverParcel());
+                }
+                else if (!session.EquipmentOfferPending && Time.unscaledTime >= nextArrival)
+                    sequence = StartCoroutine(Arrive());
+            }
 
             if ((Phase == ServiceWindowPhase.AwaitingConversation || Phase == ServiceWindowPhase.AwaitingPickup)
                 && Robot != null && Time.unscaledTime - gestureStarted <= 1.3f)
@@ -138,6 +205,12 @@ namespace BORis
 
         public bool TrySend(out string reason)
         {
+            if (CanCallVisitor)
+            {
+                if (!session.TryContinueWithoutEquipment(out reason)) return false;
+                nextArrival = Time.unscaledTime;
+                return true;
+            }
             reason = "";
             if (IsBusy) reason = "Дождитесь окончания отправки";
             else if (Phase != ServiceWindowPhase.InRepair) reason = "Сначала примите и выполните заказ";
@@ -207,6 +280,22 @@ namespace BORis
             sequence = null;
         }
 
+        IEnumerator DeliverParcel()
+        {
+            Phase = ServiceWindowPhase.ParcelArriving;
+            if (parcel == null)
+                parcel = new EquipmentParcel(transform, terminal.InstallationPoint);
+            parcel.SetOn(outside);
+            parcel.Hitbox.enabled = false;
+            signal.Play();
+            yield return MoveDoor(true);
+            yield return Convey(outside, platform, parcel.Root);
+            yield return MoveDoor(false);
+            parcel.SetOn(platform);
+            Phase = ServiceWindowPhase.ParcelReady;
+            sequence = null;
+        }
+
         IEnumerator MoveDoor(bool open)
         {
             motor.Play();
@@ -220,23 +309,29 @@ namespace BORis
             motor.Stop();
         }
 
-        IEnumerator Convey(Transform from, Transform to)
+        IEnumerator Convey(Transform from, Transform to, Transform cargo = null)
         {
-            workbench.PositionRobot(from);
-            Vector3 start = Robot.transform.position;
+            bool movingRobot = cargo == null;
+            if (movingRobot)
+            {
+                workbench.PositionRobot(from);
+                cargo = Robot.transform;
+            }
+            Vector3 start = cargo.position;
             Vector3 travel = to.position - from.position;
             BeltDirection = Vector3.Dot(travel, transform.forward) >= 0f ? 1f : -1f;
             motor.Play();
             for (float elapsed = 0f; elapsed < transitDuration; elapsed += Time.unscaledDeltaTime)
             {
                 Vector3 position = start + travel * Mathf.SmoothStep(0f, 1f, elapsed / transitDuration);
-                MoveBelt(Vector3.Dot(position - Robot.transform.position, transform.forward));
-                Robot.transform.position = position;
-                workbench.SynchronizeRobotPhysics();
+                MoveBelt(Vector3.Dot(position - cargo.position, transform.forward));
+                cargo.position = position;
+                if (movingRobot) workbench.SynchronizeRobotPhysics();
                 yield return null;
             }
-            MoveBelt(Vector3.Dot(start + travel - Robot.transform.position, transform.forward));
-            workbench.PositionRobot(to);
+            MoveBelt(Vector3.Dot(start + travel - cargo.position, transform.forward));
+            if (movingRobot) workbench.PositionRobot(to);
+            else cargo.position = start + travel;
             BeltDirection = 0f;
             motor.Stop();
         }
@@ -281,10 +376,18 @@ namespace BORis
                 details = "Дождитесь остановки ленты\nи закрытия двери";
                 light = new Color(1f, .6f, .15f);
             }
+            else if (Phase == ServiceWindowPhase.ParcelArriving || Phase == ServiceWindowPhase.ParcelReady || IsCarryingParcel)
+            {
+                state = "СНАБЖЕНИЕ · ОПЛАЧЕНО";
+                details = ParcelStatus;
+                light = new Color(1f, .65f, .22f);
+            }
             else if (Phase == ServiceWindowPhase.WaitingForNext || Phase == ServiceWindowPhase.Loading)
             {
                 state = "ОКНО СВОБОДНО";
-                details = lastReceipt;
+                details = session.EquipmentOfferPending
+                    ? lastReceipt + "\n\nХватает на станцию.\nE на терминале — оборудование.\nКнопка у ленты — следующий посетитель."
+                    : lastReceipt + "\n\nE на терминале — заказы и оборудование";
             }
             else
             {
@@ -300,6 +403,11 @@ namespace BORis
             }
             if (stateLabel.text != state) stateLabel.text = state;
             if (contractLabel.text != details) contractLabel.text = details;
+            if (buttonLabel != null)
+            {
+                string action = CanCallVisitor ? "ВЫЗВАТЬ" : "ОТПРАВИТЬ";
+                if (buttonLabel.text != action) buttonLabel.text = action;
+            }
             lightProperties.SetColor("_BaseColor", light);
             lightProperties.SetColor("_EmissionColor", light * 1.5f);
             indicator.SetPropertyBlock(lightProperties);
@@ -341,6 +449,7 @@ namespace BORis
         {
             if (!Application.isPlaying) return;
             StopSequence();
+            parcel?.Hide();
             if (Robot != null)
             {
                 Robot.ResetServicePose();
@@ -356,6 +465,7 @@ namespace BORis
         {
             if (bellClip != null) Destroy(bellClip);
             if (motorClip != null) Destroy(motorClip);
+            parcel?.Dispose();
         }
     }
 }

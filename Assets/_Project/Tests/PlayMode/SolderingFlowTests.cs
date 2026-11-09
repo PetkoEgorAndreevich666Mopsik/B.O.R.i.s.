@@ -91,6 +91,7 @@ public sealed class SolderingFlowTests
         {
             SetField(session, "<Balance>k__BackingField", 180);
             Assert.That(session.TryBuySolderingStation(out _), Is.True);
+            Assert.That(session.TryInstallSolderingStation(out _), Is.True);
             SetField(session, "nextOrder", 2);
         }
         Assert.That(session.OfferedOrder.OrderId, Is.EqualTo("C"));
@@ -257,9 +258,13 @@ public sealed class SolderingFlowTests
         yield return CompleteBasicOrder();
         Assert.That(session.Balance, Is.EqualTo(220));
         Assert.That(session.OfferedOrder.OrderId, Does.StartWith("A"), "C stays locked before the purchase.");
-        Face(new Vector3(2.6f, 0, -1.9f));
+        EquipmentTestFlow.FaceTerminal(interaction);
         yield return Press(Key.E);
         Assert.That(interaction.IsAtEquipmentShop, Is.True);
+        var tab = Object.FindObjectsByType<Button>().Single(b => b.name == "EquipmentTab");
+        var tabRect = (RectTransform)tab.transform;
+        Vector2 tabPoint = RectTransformUtility.WorldToScreenPoint(null, tabRect.TransformPoint(tabRect.rect.center));
+        yield return Pointer(tabPoint, true); yield return Pointer(tabPoint);
         var buy = Object.FindObjectsByType<Button>().Single(b => b.name == "BuyStationButton");
         Vector2 point = RectTransformUtility.WorldToScreenPoint(null, buy.transform.position);
         Assert.That(buy.interactable, Is.True, session.SaveStatus);
@@ -267,8 +272,10 @@ public sealed class SolderingFlowTests
             "The purchase button must be the frontmost UI target. " + PointerState(point));
         yield return Pointer(point, true); yield return Pointer(point);
         Assert.That(session.Balance, Is.EqualTo(40), PointerState(point));
-        Assert.That(session.CanOfferSolderingOrders, Is.True);
+        Assert.That(session.CanOfferSolderingOrders, Is.False);
         yield return Press(Key.Escape);
+        yield return EquipmentTestFlow.InstallParcel(session);
+        Assert.That(session.CanOfferSolderingOrders, Is.True);
         yield return EnterC(false);
         Assert.That(robot.InstalledDrive.Faulty, Is.False);
         Assert.That(robot.IsFunctional, Is.False);

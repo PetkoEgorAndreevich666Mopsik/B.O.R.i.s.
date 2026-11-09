@@ -85,19 +85,13 @@ public sealed class WorkshopProgressTests
         if (key == Key.E) yield return new WaitForSeconds(1.2f);
     }
 
-    void FaceShop()
-    {
-        var body = interaction.GetComponent<CharacterController>();
-        body.enabled = false;
-        interaction.transform.SetPositionAndRotation(new Vector3(2.6f, 0, -1.9f), Quaternion.identity);
-        body.enabled = true;
-        Physics.SyncTransforms();
-    }
+    void FaceShop() => EquipmentTestFlow.FaceTerminal(interaction);
 
     IEnumerator Click(string name)
     {
         Button button = Object.FindObjectsByType<Button>(FindObjectsSortMode.None).Single(b => b.name == name);
-        Vector2 position = RectTransformUtility.WorldToScreenPoint(null, button.transform.position);
+        var rect = (RectTransform)button.transform;
+        Vector2 position = RectTransformUtility.WorldToScreenPoint(null, rect.TransformPoint(rect.rect.center));
         InputSystem.QueueStateEvent(mouse, new MouseState { position = position, buttons = 1 });
         yield return null;
         yield return null;
@@ -107,7 +101,7 @@ public sealed class WorkshopProgressTests
     }
 
     [UnityTest]
-    public IEnumerator TwoPaidOrdersBuyStationThroughRealTerminalWithoutResettingActiveRepair()
+    public IEnumerator TwoPaidOrdersOrderStationThroughRealTerminalWithoutResettingActiveRepair()
     {
         yield return CompleteOrder();
         Assert.That(session.Balance, Is.EqualTo(100));
@@ -123,14 +117,15 @@ public sealed class WorkshopProgressTests
         FaceShop();
         yield return Press(Key.E);
         Assert.That(interaction.IsAtEquipmentShop, Is.True);
+        yield return Click("EquipmentTab");
         var card = Object.FindObjectsByType<Text>(FindObjectsSortMode.None).Single(t => t.name == "EquipmentDescription");
         Assert.That(card.text, Does.Contain("180").And.Contain("40").And.Contain("откроет паяльник"));
         yield return Click("BuyStationButton");
-        Assert.That(session.HasSolderingStation, Is.True);
+        Assert.That(session.SolderingStationOrdered, Is.True);
         Assert.That(session.Balance, Is.EqualTo(40));
-        Assert.That(GameObject.Find("SolderingStationInstalled"), Is.Not.Null);
-        Assert.That(GameObject.Find("SolderingStationPreview"), Is.Null);
-        Assert.That(session.CanOfferSolderingOrders, Is.True);
+        Assert.That(GameObject.Find("SolderingStationInstalled"), Is.Null);
+        Assert.That(session.CanOfferSolderingOrders, Is.False);
+        Assert.That(session.Window.ParcelStatus, Does.Contain("после сдачи"));
         Assert.That(session.ActiveRobot, Is.SameAs(robot));
         Assert.That(session.ActiveOrderId, Is.EqualTo(orderId));
         Assert.That(screw.Tightness, Is.EqualTo(tightness));
@@ -177,6 +172,7 @@ public sealed class WorkshopProgressTests
         yield return CompleteOrder();
         yield return CompleteOrder();
         Assert.That(session.TryBuySolderingStation(out _), Is.True);
+        Assert.That(session.TryInstallSolderingStation(out _), Is.True);
         Assert.That(session.OfferedOrder, Is.SameAs(basics[0]), "Ownership alone cannot expose unfinished soldering.");
         SetField(session, "solderingRepairsReady", true);
         Assert.That(session.CanOfferSolderingOrders, Is.True);
@@ -186,11 +182,34 @@ public sealed class WorkshopProgressTests
     }
 
     [UnityTest]
+    public IEnumerator PaidDeliveryWaitsForAlreadyArrivedVisitor()
+    {
+        yield return CompleteOrder();
+        yield return CompleteOrder();
+        Assert.That(session.EquipmentOfferPending, Is.True);
+        Assert.That(session.Window.TrySend(out string reason), Is.True, reason);
+        float deadline = Time.realtimeSinceStartup + 9f;
+        while (session.Window.Phase != ServiceWindowPhase.AwaitingConversation && Time.realtimeSinceStartup < deadline)
+            yield return null;
+        Assert.That(session.Window.Phase, Is.EqualTo(ServiceWindowPhase.AwaitingConversation));
+        var visitor = session.VisitorRobot;
+        var offered = session.OfferedOrder;
+        Assert.That(session.TryBuySolderingStation(out reason), Is.True, reason);
+        yield return null;
+        Assert.That(session.VisitorRobot, Is.SameAs(visitor));
+        Assert.That(session.OfferedOrder, Is.SameAs(offered));
+        Assert.That(session.Window.Phase, Is.EqualTo(ServiceWindowPhase.AwaitingConversation));
+        Assert.That(GameObject.Find("SolderingStationParcel"), Is.Null);
+        Assert.That(session.CanOfferSolderingOrders, Is.False);
+    }
+
+    [UnityTest]
     public IEnumerator EquipmentPanelBlocksMovementClosesWithoutSpendingAndRespectsWalls()
     {
         FaceShop();
         var wall = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        wall.transform.position = new Vector3(2.6f, 1.5f, -1f);
+        wall.transform.position = interaction.View.transform.position + interaction.transform.forward * .5f;
+        wall.transform.rotation = interaction.transform.rotation;
         wall.transform.localScale = new Vector3(2, 3, .1f);
         Physics.SyncTransforms();
         yield return Press(Key.E);
@@ -199,6 +218,7 @@ public sealed class WorkshopProgressTests
         yield return null;
         yield return Press(Key.E);
         Assert.That(interaction.IsAtEquipmentShop, Is.True);
+        yield return Click("EquipmentTab");
         Assert.That(Object.FindObjectsByType<Button>(FindObjectsSortMode.None).Single(b => b.name == "BuyStationButton").interactable, Is.False);
         Vector3 position = interaction.transform.position;
         InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.W));

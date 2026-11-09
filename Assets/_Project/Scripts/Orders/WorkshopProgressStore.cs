@@ -11,6 +11,8 @@ namespace BORis
         public int version;
         public int balance;
         public bool hasSolderingStation;
+        public bool solderingStationOrdered;
+        public bool equipmentOfferPending;
         public int completedOrders;
         public string nextOrder;
         public string activeOrder;
@@ -19,6 +21,7 @@ namespace BORis
         public string lastDeliveredInstance;
 
         public bool IsValid => version == 1 && balance >= 0 && completedOrders >= 0 && activeReward >= 0
+            && !(hasSolderingStation && solderingStationOrdered)
             && !string.IsNullOrWhiteSpace(nextOrder)
             && (string.IsNullOrEmpty(activeOrder) ? string.IsNullOrEmpty(activeInstance) && activeReward == 0
                 : Guid.TryParseExact(activeInstance, "N", out _) && activeInstance != lastDeliveredInstance)

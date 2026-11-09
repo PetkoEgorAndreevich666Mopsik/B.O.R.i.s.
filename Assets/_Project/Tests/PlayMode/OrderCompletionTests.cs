@@ -162,6 +162,15 @@ public sealed class OrderCompletionTests
             Assert.That(card.text, Does.Contain("ОПЛАЧЕНО").And.Contain("+" + reward));
             var progress = Object.FindObjectsByType<Text>(FindObjectsInactive.Include, FindObjectsSortMode.None).Single(t => t.name == "WorkshopProgress");
             Assert.That(progress.text, Does.Contain(expectedBalance.ToString()));
+            if (session.EquipmentOfferPending)
+            {
+                Assert.That(session.Window.CanCallVisitor, Is.True);
+                InputSystem.QueueStateEvent(mouse, new MouseState { buttons = 1 });
+                yield return null; yield return null;
+                InputSystem.QueueStateEvent(mouse, new MouseState());
+                yield return null;
+                Assert.That(session.EquipmentOfferPending, Is.False, interaction.Feedback);
+            }
             yield return WaitForVisitor();
             Assert.That(session.ActiveOrder, Is.Null, "The next visitor must not be accepted automatically.");
             Assert.That(card.text, Does.Contain(session.OfferedOrder.ClientName));

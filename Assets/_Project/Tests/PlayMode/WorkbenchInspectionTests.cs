@@ -37,11 +37,20 @@ public sealed class WorkbenchInspectionTests
         robot = workbench.Robot;
         var body = player.GetComponent<CharacterController>();
         body.enabled = false;
-        player.transform.position = Object.FindAnyObjectByType<Workbench>().transform.TransformPoint(new Vector3(0f, 0f, -2.2f));
+        Vector3 standing = workbench.transform.TransformPoint(new Vector3(0f, 0f, -2.2f));
+        Vector3 target = robot.InspectionPivot.GetComponentInChildren<Collider>().bounds.center;
+        Vector3 direction = target - standing;
+        direction.y = 0f;
+        player.transform.SetPositionAndRotation(standing, Quaternion.LookRotation(direction));
+        player.View.transform.rotation = Quaternion.LookRotation(target - player.View.transform.position);
+        float pitch = player.View.transform.localEulerAngles.x;
+        typeof(PlayerController).GetField("pitch", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+            .SetValue(player, pitch > 180f ? pitch - 360f : pitch);
         body.enabled = true;
+        Physics.SyncTransforms();
         yield return null;
         yield return Press(Key.E);
-        Assert.That(interaction.IsAtWorkbench, Is.True);
+        Assert.That(interaction.IsAtWorkbench, Is.True, $"Ray at {target}. Workbench pointed: {interaction.PointedWorkbench != null}. {interaction.Feedback}");
     }
 
     IEnumerator Press(Key key)
@@ -189,9 +198,12 @@ public sealed class WorkbenchInspectionTests
         workbench.gameObject.SetActive(true);
         Assert.That(workbench.Enter(player.View), Is.True);
         player.gameObject.SetActive(false);
+        var temporaryListener = new GameObject("Test audio listener", typeof(AudioListener));
         yield return null;
         workbench.Exit();
         Assert.That(camera.parent, Is.SameAs(player.transform));
+        temporaryListener.SetActive(false);
+        Object.Destroy(temporaryListener);
         player.gameObject.SetActive(true);
         LogAssert.NoUnexpectedReceived();
     }

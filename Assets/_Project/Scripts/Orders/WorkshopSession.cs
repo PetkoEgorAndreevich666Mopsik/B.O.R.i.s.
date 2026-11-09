@@ -20,12 +20,16 @@ namespace BORis
 
         public const int SolderingStationPrice = 180;
         public bool HasSolderingStation { get; private set; }
+        public bool SolderingStationOrdered { get; private set; }
+        public bool EquipmentOfferPending { get; private set; }
+        public System.Collections.Generic.IReadOnlyList<OrderDefinition> Orders => orders;
         public bool SolderingRepairsReady => solderingRepairsReady;
         public bool CanOfferSolderingOrders => HasSolderingStation && solderingRepairsReady;
         public OrderDefinition OfferedOrder
         {
             get
             {
+                if (VisitorRobot != null && workbench != null && workbench.Robot == visitorRobot) return visitorOrder;
                 if (orders == null) return null;
                 for (int i = 0; i < orders.Length; i++)
                 {
@@ -76,6 +80,8 @@ namespace BORis
             {
                 Balance = data != null ? data.balance : 0;
                 HasSolderingStation = data != null && data.hasSolderingStation;
+                SolderingStationOrdered = data != null && data.solderingStationOrdered;
+                EquipmentOfferPending = data != null && data.equipmentOfferPending;
                 CompletedOrders = data != null ? data.completedOrders : 0;
                 nextOrder = restoredNext;
                 ActiveOrder = restoredOrder;
@@ -96,6 +102,7 @@ namespace BORis
         WorkshopProgress Snapshot() => new WorkshopProgress
         {
             version = 1, balance = Balance, hasSolderingStation = HasSolderingStation, completedOrders = CompletedOrders,
+            solderingStationOrdered = SolderingStationOrdered, equipmentOfferPending = EquipmentOfferPending,
             nextOrder = orders != null && orders.Length > 0 && orders[nextOrder] != null ? orders[nextOrder].OrderId : "",
             activeOrder = ActiveOrder != null ? ActiveOrder.OrderId : "", activeInstance = ActiveOrderId,
             activeReward = ActiveOrderReward, lastDeliveredInstance = lastDeliveredInstance
@@ -166,6 +173,7 @@ namespace BORis
                 reason = "Освободите верстак перед приёмом заказа";
             if (reason.Length > 0) return false;
             var snapshot = Snapshot();
+            snapshot.equipmentOfferPending = false;
             snapshot.activeOrder = offeredOrder.OrderId;
             snapshot.activeInstance = System.Guid.NewGuid().ToString("N");
             snapshot.activeReward = offeredOrder.Reward;
@@ -175,6 +183,7 @@ namespace BORis
                 return false;
             }
             ActiveOrder = offeredOrder;
+            EquipmentOfferPending = false;
             ActiveOrderId = snapshot.activeInstance;
             ActiveOrderReward = offeredOrder.Reward;
             visitorOrder = null;
@@ -189,14 +198,41 @@ namespace BORis
             if (!isActiveAndEnabled) reason = "Мастерская недоступна";
             else if (!IsProgressReady) reason = SaveStatus;
             else if (HasSolderingStation) reason = "Паяльная станция уже установлена";
+            else if (SolderingStationOrdered) reason = "Станция уже оплачена";
             else if (Balance < SolderingStationPrice) reason = $"Не хватает {SolderingStationPrice - Balance} ед. Выполняйте заказы у окна";
             if (reason.Length > 0) return false;
             var snapshot = Snapshot();
             snapshot.balance -= SolderingStationPrice;
+            snapshot.solderingStationOrdered = true;
+            snapshot.equipmentOfferPending = false;
+            if (!Save(snapshot, "Заказ оборудования и баланс сохранены.", out reason)) return false;
+            Balance = snapshot.balance;
+            SolderingStationOrdered = true;
+            EquipmentOfferPending = false;
+            return true;
+        }
+
+        public bool TryInstallSolderingStation(out string reason)
+        {
+            reason = "Сначала закажите станцию";
+            if (!isActiveAndEnabled || !IsProgressReady || !SolderingStationOrdered) return false;
+            var snapshot = Snapshot();
+            snapshot.solderingStationOrdered = false;
             snapshot.hasSolderingStation = true;
-            if (!Save(snapshot, "Покупка и баланс сохранены.", out reason)) return false;
-            Balance -= SolderingStationPrice;
+            if (!Save(snapshot, "Установка оборудования сохранена.", out reason)) return false;
+            SolderingStationOrdered = false;
             HasSolderingStation = true;
+            return true;
+        }
+
+        public bool TryContinueWithoutEquipment(out string reason)
+        {
+            reason = "";
+            if (!EquipmentOfferPending) return true;
+            var snapshot = Snapshot();
+            snapshot.equipmentOfferPending = false;
+            if (!Save(snapshot, "Очередь продолжена.", out reason)) return false;
+            EquipmentOfferPending = false;
             return true;
         }
 
@@ -234,6 +270,8 @@ namespace BORis
             int followingOrder = orders != null && orders.Length > 0 ? (completedIndex + 1) % orders.Length : 0;
             var snapshot = Snapshot();
             snapshot.balance += ActiveOrderReward;
+            snapshot.equipmentOfferPending = !HasSolderingStation && !SolderingStationOrdered && solderingRepairsReady
+                && Balance < SolderingStationPrice && snapshot.balance >= SolderingStationPrice;
             snapshot.completedOrders++;
             snapshot.activeOrder = snapshot.activeInstance = "";
             snapshot.activeReward = 0;
@@ -244,6 +282,7 @@ namespace BORis
             workbench.ClearRobot();
             lastDeliveredInstance = ActiveOrderId;
             Balance += ActiveOrderReward;
+            EquipmentOfferPending = snapshot.equipmentOfferPending;
             CompletedOrders++;
             ActiveOrder = null;
             ActiveOrderId = null;

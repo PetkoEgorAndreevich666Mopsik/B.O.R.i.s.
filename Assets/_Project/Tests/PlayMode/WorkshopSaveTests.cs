@@ -113,6 +113,12 @@ public sealed class WorkshopSaveTests
         Assert.That(session.TryBuySolderingStation(out string reason), Is.True, reason);
         yield return Reload();
         Assert.That(session.Balance, Is.EqualTo(40));
+        Assert.That(session.SolderingStationOrdered, Is.True);
+        Assert.That(session.HasSolderingStation, Is.False);
+        Assert.That(session.CanOfferSolderingOrders, Is.False);
+        Assert.That(session.TryBuySolderingStation(out _), Is.False);
+        yield return EquipmentTestFlow.InstallParcel(session);
+        yield return Reload();
         Assert.That(session.HasSolderingStation, Is.True);
         Assert.That(session.CanOfferSolderingOrders, Is.True);
         Assert.That(GameObject.Find("SolderingStationInstalled"), Is.Not.Null);
@@ -324,7 +330,8 @@ public sealed class WorkshopSaveTests
         Assert.That(session.Balance, Is.EqualTo(40));
         yield return Reload();
         Assert.That(session.Balance, Is.EqualTo(40));
-        Assert.That(session.HasSolderingStation, Is.True);
+        Assert.That(session.SolderingStationOrdered, Is.True);
+        Assert.That(session.HasSolderingStation, Is.False);
         Assert.That(session.ActiveOrderId, Is.EqualTo(id));
     }
 
