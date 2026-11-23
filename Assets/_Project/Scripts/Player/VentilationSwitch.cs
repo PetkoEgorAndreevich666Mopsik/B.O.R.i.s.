@@ -10,7 +10,6 @@ namespace BORis
         [SerializeField] Renderer indicator;
 
         public bool IsOn => !ventilation.mute;
-        public string Hint => IsOn ? "E — выключить вентиляцию" : "E — включить вентиляцию";
 
         void Start() => UpdateEffects();
 

@@ -84,7 +84,7 @@ namespace BORis
             panel.SetActive(false);
             menu.SetActive(true);
             if (UnityEngine.EventSystems.EventSystem.current != null)
-                UnityEngine.EventSystems.EventSystem.current.SetSelectedGameObject(menu.GetComponentInChildren<Button>().gameObject);
+                UnityEngine.EventSystems.EventSystem.current.SetSelectedGameObject(null);
         }
 
         void PreviewVolume(float value)

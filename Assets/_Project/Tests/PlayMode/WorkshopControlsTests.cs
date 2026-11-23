@@ -92,6 +92,42 @@ public sealed class WorkshopControlsTests
     }
 
     [UnityTest]
+    public IEnumerator CornerReticleExpandsOnlyForReachableActionsAndEIsUnused()
+    {
+        var control = Object.FindAnyObjectByType<VentilationSwitch>();
+        var interaction = body.GetComponent<InteractionController>();
+        var reticle = body.GetComponentInChildren<InteractionReticle>();
+        var playerField = typeof(InteractionController).GetField("player",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        playerField.SetValue(interaction, null);
+        try { Assert.That(reticle.IsVisible, Is.False); }
+        finally { playerField.SetValue(interaction, body.GetComponent<PlayerController>()); }
+        PlacePlayer(control.transform.position.x, control.transform.position.z - .9f, Vector3.forward);
+        yield return new WaitForSeconds(.3f);
+        Assert.That(interaction.CanInteract, Is.True);
+        Assert.That(reticle.IsVisible, Is.True);
+        Assert.That(reticle.Spread, Is.GreaterThan(9f));
+        Assert.That(reticle.rectTransform.anchoredPosition, Is.EqualTo(Vector2.zero));
+        Assert.That(reticle.raycastTarget, Is.False);
+        Assert.That(reticle.canvasRenderer.GetMesh().vertexCount, Is.GreaterThan(0));
+        InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.E));
+        yield return null;
+        InputSystem.QueueStateEvent(keyboard, new KeyboardState());
+        yield return null;
+        Assert.That(control.IsOn, Is.False);
+        yield return PressInteract();
+        Assert.That(control.IsOn, Is.True);
+        var blocker = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        blocker.transform.position = interaction.View.transform.position + interaction.View.transform.forward * .3f;
+        blocker.transform.localScale = Vector3.one * .2f;
+        Physics.SyncTransforms();
+        yield return new WaitForSeconds(.3f);
+        Assert.That(interaction.CanInteract, Is.False);
+        Assert.That(reticle.Spread, Is.LessThan(6.2f));
+        Object.Destroy(blocker);
+    }
+
+    [UnityTest]
     public IEnumerator VentilationSwitchControlsOnlyItsLoopAndIntakeEffect()
     {
         var control = Object.FindAnyObjectByType<VentilationSwitch>();
@@ -129,11 +165,7 @@ public sealed class WorkshopControlsTests
 
     IEnumerator PressInteract()
     {
-        InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.E));
-        yield return null;
-        yield return null;
-        InputSystem.QueueStateEvent(keyboard, new KeyboardState());
-        yield return new WaitForSeconds(.65f);
+        yield return WorkshopTestInput.Interact(.65f);
         Physics.SyncTransforms();
     }
 

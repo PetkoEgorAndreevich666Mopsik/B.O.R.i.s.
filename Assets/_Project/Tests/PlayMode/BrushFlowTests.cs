@@ -36,7 +36,7 @@ public sealed class BrushFlowTests
         player.transform.position = Object.FindAnyObjectByType<Workbench>().transform.TransformPoint(new Vector3(0f, 0f, -2.2f));
         body.enabled = true;
         yield return null;
-        yield return Press(Key.E);
+        yield return WorkshopTestInput.Interact();
         Assert.That(interaction.IsAtWorkbench, Is.True);
     }
 
@@ -47,7 +47,7 @@ public sealed class BrushFlowTests
         InputSystem.QueueStateEvent(keyboard, new KeyboardState());
         yield return null; yield return null;
         if (key == Key.Escape) yield return new WaitForSeconds(.5f);
-        if (key == Key.E) yield return new WaitForSeconds(1.2f);
+
     }
 
     Vector2 ScreenUV(DirtPatch target, Vector2 uv) => player.View.WorldToScreenPoint(
@@ -63,7 +63,7 @@ public sealed class BrushFlowTests
     public IEnumerator RealMouseSelectsBrushAndLocallyCleans_StationaryHoldDoesNothing()
     {
         Assert.That(robot.GetComponentsInChildren<DirtPatch>().Length, Is.EqualTo(3));
-        yield return Press(Key.Digit3);
+        yield return Press(Key.Digit1);
         Assert.That(interaction.BrushSelected, Is.True);
         yield return Pointer(ScreenUV(patch, new Vector2(.2f, .5f)), true);
         Assert.That(brush.Target, Is.SameAs(patch));
@@ -92,7 +92,7 @@ public sealed class BrushFlowTests
         surface.transform.position = player.View.ScreenPointToRay(start).GetPoint(.4f);
         surface.transform.localScale = Vector3.one * .05f;
         Physics.SyncTransforms();
-        yield return Press(Key.Digit3);
+        yield return Press(Key.Digit1);
         yield return Pointer(start, true);
         Assert.That(brush.IsActive, Is.True);
         Assert.That(brush.HasContact, Is.True);
@@ -140,7 +140,7 @@ public sealed class BrushFlowTests
         Assert.That(dustRoot.GetComponentInChildren<ParticleSystem>(true), Is.Not.Null);
         Assert.That(brush.IsDustEmitting, Is.False);
 
-        yield return Press(Key.Digit3);
+        yield return Press(Key.Digit1);
         brush.Begin(robot, player.View, ScreenUV(patch, new Vector2(.2f, .5f)));
         Assert.That(brush.IsDustEmitting, Is.False, "Initial contact does not remove dirt.");
 
@@ -160,7 +160,7 @@ public sealed class BrushFlowTests
     [UnityTest]
     public IEnumerator LeavingSurfaceBreaksStrokeAndOccluderPreventsCleaning()
     {
-        yield return Press(Key.Digit3);
+        yield return Press(Key.Digit1);
         yield return Pointer(ScreenUV(patch, new Vector2(.2f, .5f)), true);
         yield return Pointer(new Vector2(-1000f, -1000f), true);
         Assert.That(brush.HasContact, Is.False);
@@ -196,12 +196,12 @@ public sealed class BrushFlowTests
         Assert.That(patch.Cleanliness, Is.EqualTo(cleaned));
         yield return Pointer(ScreenUV(patch, new Vector2(.4f, .5f)), false);
         yield return Pointer(ScreenUV(patch, new Vector2(.4f, .5f)), true);
-        yield return Press(Key.Digit2);
+        yield return Press(Key.Digit1);
         Assert.That(brush.IsActive, Is.False);
-        Assert.That(interaction.ScrewdriverSelected, Is.True);
+        Assert.That(interaction.BrushSelected, Is.False);
         yield return Press(Key.Escape);
         yield return Pointer(Vector2.zero, false);
-        yield return Press(Key.E);
+        yield return WorkshopTestInput.Interact();
         Assert.That(patch.Cleanliness, Is.EqualTo(cleaned));
     }
 
@@ -211,7 +211,7 @@ public sealed class BrushFlowTests
         var frame = robot.GetComponentsInChildren<DirtPatch>().Single(p => p.name == "FrameDirt");
         Assert.That(robot.Cover.IsInstalled, Is.True);
         Assert.That(robot.CanClean(frame, out _), Is.True);
-        yield return Press(Key.Digit3);
+        yield return Press(Key.Digit1);
         yield return Pointer(ScreenUV(frame, new Vector2(.5f, .3f)), true);
         Assert.That(brush.Target, Is.SameAs(frame));
         yield return Pointer(ScreenUV(frame, new Vector2(.5f, .7f)), true);
@@ -237,7 +237,7 @@ public sealed class BrushFlowTests
         yield return new WaitForFixedUpdate();
         yield return null;
         Physics.SyncTransforms();
-        yield return Press(Key.Digit3);
+        yield return Press(Key.Digit1);
         yield return Pointer(ScreenUV(inner, new Vector2(.2f, .5f)), true);
         Assert.That(brush.Target, Is.SameAs(inner));
         yield return Pointer(ScreenUV(inner, new Vector2(.8f, .5f)), true);
@@ -248,10 +248,10 @@ public sealed class BrushFlowTests
         yield return Press(Key.Escape);
         Assert.That(brush.IsActive, Is.False);
         yield return Pointer(Vector2.zero, false);
-        yield return Press(Key.E);
+        yield return WorkshopTestInput.Interact();
         Assert.That(inner.Cleanliness, Is.EqualTo(cleaned));
         var frame = robot.GetComponentsInChildren<DirtPatch>().Single(p => p.name == "FrameDirt");
-        yield return Press(Key.Digit3);
+        yield return Press(Key.Digit1);
         yield return Pointer(ScreenUV(frame, new Vector2(.3f, .5f)), true);
         Assert.That(brush.Target, Is.SameAs(frame), "Third patch must be physically reachable inside the robot.");
         yield return Pointer(ScreenUV(frame, new Vector2(.7f, .5f)), true);
@@ -265,7 +265,7 @@ public sealed class BrushFlowTests
             patch.CleanStroke(new Vector2(.01f, .025f + y * .1f), new Vector2(.99f, .025f + y * .1f), .035f);
         Assert.That(patch.IsClean, Is.True);
         Assert.That(patch.Cleanliness, Is.InRange(.99f, 1f));
-        yield return Press(Key.Digit3);
+        yield return Press(Key.Digit1);
         yield return Pointer(ScreenUV(patch, Vector2.one * .5f), true);
         var canvas = new GameObject("BlockingBrushUI", typeof(Canvas), typeof(UnityEngine.UI.GraphicRaycaster));
         canvas.GetComponent<Canvas>().renderMode = RenderMode.ScreenSpaceOverlay;

@@ -381,7 +381,7 @@ namespace BORis
             if (!session.IsProgressReady)
             {
                 state = "ЗАГРУЗКА ПРИОСТАНОВЛЕНА";
-                details = session.SaveStatus + "\nE — повторить загрузку";
+                details = session.SaveStatus + "\nНажмите на кнопку, чтобы повторить загрузку";
                 light = new Color(1f, .35f, .12f);
             }
             else if (Phase == ServiceWindowPhase.Arriving || Phase == ServiceWindowPhase.Departing)

@@ -86,7 +86,7 @@ public sealed class OrderCompletionTests
         yield return null;
         yield return null;
         if (key == Key.Escape) yield return new WaitForSeconds(.5f);
-        if (key == Key.E) yield return new WaitForSeconds(1.2f);
+
     }
 
     IEnumerator WaitForVisitor()
@@ -400,7 +400,7 @@ public sealed class OrderCompletionTests
         player.transform.SetPositionAndRotation(Object.FindAnyObjectByType<Workbench>().transform.TransformPoint(new Vector3(0f, 0f, -2.2f)), Quaternion.identity);
         body.enabled = true;
         Physics.SyncTransforms();
-        yield return Press(Key.E);
+        yield return WorkshopTestInput.Interact();
         Assert.That(interaction.IsAtWorkbench, Is.True);
         var hud = Object.FindAnyObjectByType<RepairHUD>();
         Text assembly = (Text)typeof(RepairHUD).GetField("assemblyState", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(hud);
@@ -417,7 +417,7 @@ public sealed class OrderCompletionTests
         outer.CleanStroke(new Vector2(.2f, .5f), new Vector2(.8f, .5f), .035f);
         float progress = outer.Cleanliness;
         yield return Press(Key.Escape);
-        yield return Press(Key.E);
+        yield return WorkshopTestInput.Interact();
         Assert.That(outer.Cleanliness, Is.EqualTo(progress));
         Assert.That(assembly.text, Does.Contain(Mathf.RoundToInt(RepairHUD.CleaningAmount(session.ActiveRobot) * 100f) + "%"));
         yield return new WaitForSeconds(.4f);

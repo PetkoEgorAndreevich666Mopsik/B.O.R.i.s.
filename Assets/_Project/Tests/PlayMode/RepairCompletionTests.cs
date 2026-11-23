@@ -33,7 +33,7 @@ public sealed class RepairCompletionTests
         var body = player.GetComponent<CharacterController>();
         body.enabled = false; player.transform.position = Object.FindAnyObjectByType<Workbench>().transform.TransformPoint(new Vector3(0f, 0f, -2.2f)); body.enabled = true;
         yield return null;
-        yield return Press(Key.E);
+        yield return WorkshopTestInput.Interact();
         Assert.That(interaction.IsAtWorkbench, Is.True);
     }
 
@@ -44,7 +44,7 @@ public sealed class RepairCompletionTests
         InputSystem.QueueStateEvent(keyboard, new KeyboardState());
         yield return null; yield return null;
         if (key == Key.Escape) yield return new WaitForSeconds(.5f);
-        if (key == Key.E) yield return new WaitForSeconds(1.2f);
+
     }
 
     IEnumerator Pointer(Vector2 position, bool down)
@@ -149,7 +149,7 @@ public sealed class RepairCompletionTests
         Assert.That(robot.Turn(robot.Cover.Screws[0], 20f), Is.Zero);
         Assert.That(robot.TestResult, Is.EqualTo(RobotTestResult.Passed), "An end-stop is not a repair change.");
         yield return Press(Key.Escape);
-        yield return Press(Key.E);
+        yield return WorkshopTestInput.Interact();
         Assert.That(robot.TestResult, Is.EqualTo(RobotTestResult.Passed), "Completed result survives a visit.");
         robot.Turn(robot.Cover.Screws[0], -20f);
         Assert.That(robot.TestResult, Is.EqualTo(RobotTestResult.NotTested));
@@ -167,7 +167,7 @@ public sealed class RepairCompletionTests
         Assert.That(robot.TestResult, Is.EqualTo(RobotTestResult.NotTested));
         yield return new WaitForSecondsRealtime(2f);
         Assert.That(robot.TestResult, Is.EqualTo(RobotTestResult.NotTested));
-        yield return Press(Key.E);
+        yield return WorkshopTestInput.Interact();
         Assert.That(robot.RunTest(out _), Is.True);
         interaction.SendMessage("OnApplicationFocus", false);
         Assert.That(robot.IsTesting, Is.False);

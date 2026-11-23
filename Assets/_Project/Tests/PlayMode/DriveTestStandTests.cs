@@ -39,7 +39,7 @@ public sealed class DriveTestStandTests
         interaction.transform.SetPositionAndRotation(Object.FindAnyObjectByType<Workbench>().transform.TransformPoint(new Vector3(0f, 0f, -2.2f)), Quaternion.identity);
         body.enabled = true;
         yield return null;
-        yield return KeyPress(Key.E);
+        yield return WorkshopTestInput.Interact();
         Assert.That(interaction.IsAtWorkbench, Is.True);
         typeof(DriveTestStand).GetField("duration", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(stand, .2f);
     }
@@ -51,7 +51,7 @@ public sealed class DriveTestStandTests
         InputSystem.QueueStateEvent(keyboard, new KeyboardState());
         yield return null; yield return null;
         if (key == Key.Escape) yield return new WaitForSeconds(.5f);
-        if (key == Key.E) yield return new WaitForSeconds(1.2f);
+
     }
 
     IEnumerator Pointer(Vector2 p, bool down)
@@ -164,8 +164,8 @@ public sealed class DriveTestStandTests
         bench.Focus(spare);
         Assert.That(bench.IsFocused, Is.True);
         Assert.That(bench.FocusedPart, Is.Null, "The active stand must not switch the inspected object.");
-        interaction.SelectToolShortcut(1);
-        Assert.That(interaction.ScrewdriverSelected, Is.False);
+        interaction.ToggleBrush();
+        Assert.That(interaction.BrushSelected, Is.False);
         yield return KeyPress(Key.Escape);
         Assert.That(interaction.IsAtWorkbench, Is.True);
         Assert.That(stand.Part, Is.Null);
@@ -194,7 +194,7 @@ public sealed class DriveTestStandTests
             stand.enabled = true;
         }
         yield return null;
-        yield return KeyPress(Key.E);
+        yield return WorkshopTestInput.Interact();
         Assert.That(interaction.IsAtWorkbench, Is.True);
         Assert.That(stand.TryLoad(robot, spare, out _), Is.True);
         interaction.ResetRepair();
@@ -240,7 +240,6 @@ public sealed class DriveTestStandTests
         yield return new WaitForSeconds(.5f);
         foreach (var part in new[] { original, spare })
         {
-            yield return KeyPress(Key.Digit1);
             Vector3 pickupPosition = part.Body.position;
             Vector2 source = interaction.View.WorldToScreenPoint(part.transform.position);
             yield return Pointer(source, true);

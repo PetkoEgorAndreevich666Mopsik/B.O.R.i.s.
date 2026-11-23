@@ -82,7 +82,7 @@ public sealed class WorkshopProgressTests
         yield return null;
         yield return null;
         if (key == Key.Escape) yield return new WaitForSeconds(.5f);
-        if (key == Key.E) yield return new WaitForSeconds(1.2f);
+
     }
 
     void FaceShop() => EquipmentTestFlow.FaceTerminal(interaction);
@@ -115,7 +115,7 @@ public sealed class WorkshopProgressTests
         robot.Turn(screw, -180f);
         float tightness = screw.Tightness;
         FaceShop();
-        yield return Press(Key.E);
+        yield return WorkshopTestInput.Interact();
         Assert.That(interaction.IsAtEquipmentShop, Is.True);
         yield return Click("EquipmentTab");
         var card = Object.FindObjectsByType<Text>(FindObjectsSortMode.None).Single(t => t.name == "EquipmentDescription");
@@ -212,11 +212,11 @@ public sealed class WorkshopProgressTests
         wall.transform.rotation = interaction.transform.rotation;
         wall.transform.localScale = new Vector3(2, 3, .1f);
         Physics.SyncTransforms();
-        yield return Press(Key.E);
+        yield return WorkshopTestInput.Interact();
         Assert.That(interaction.IsAtEquipmentShop, Is.False);
         Object.Destroy(wall);
         yield return null;
-        yield return Press(Key.E);
+        yield return WorkshopTestInput.Interact();
         Assert.That(interaction.IsAtEquipmentShop, Is.True);
         yield return Click("EquipmentTab");
         Assert.That(Object.FindObjectsByType<Button>(FindObjectsSortMode.None).Single(b => b.name == "BuyStationButton").interactable, Is.False);

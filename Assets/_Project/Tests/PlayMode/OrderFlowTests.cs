@@ -52,7 +52,7 @@ public sealed class OrderFlowTests
         yield return null;
         yield return null;
         if (key == Key.Escape) yield return new WaitForSeconds(.5f);
-        if (key == Key.E) yield return new WaitForSeconds(1.2f);
+
     }
 
     IEnumerator ClickRobot()
@@ -73,7 +73,7 @@ public sealed class OrderFlowTests
         Assert.That(workbench.HasRobot, Is.False);
         Assert.That(session.ActiveRobot, Is.Null);
         Face(Object.FindAnyObjectByType<Workbench>().transform.TransformPoint(new Vector3(0f, 0f, -2.2f)));
-        yield return Press(Key.E);
+        yield return WorkshopTestInput.Interact();
         Assert.That(interaction.PointedWorkbench, Is.SameAs(workbench));
         Assert.That(interaction.IsAtWorkbench, Is.False);
         Assert.That(interaction.Feedback, Does.Contain("окна"));
@@ -176,12 +176,12 @@ public sealed class OrderFlowTests
         string orderId = session.ActiveOrderId;
         RobotRepair robot = session.ActiveRobot;
         Face(Object.FindAnyObjectByType<Workbench>().transform.TransformPoint(new Vector3(0f, 0f, -2.2f)));
-        yield return Press(Key.E);
+        yield return WorkshopTestInput.Interact();
         Assert.That(interaction.IsAtWorkbench, Is.True);
         robot.Turn(robot.Cover.Screws[0], -180f);
         float progress = robot.Cover.Screws[0].Tightness;
         yield return Press(Key.Escape);
-        yield return Press(Key.E);
+        yield return WorkshopTestInput.Interact();
         Assert.That(interaction.Robot, Is.SameAs(robot));
         Assert.That(robot.Cover.Screws[0].Tightness, Is.EqualTo(progress));
         Assert.That(session.ActiveOrderId, Is.EqualTo(orderId));

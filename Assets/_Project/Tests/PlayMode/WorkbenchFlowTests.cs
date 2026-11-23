@@ -46,7 +46,7 @@ public sealed class WorkbenchFlowTests
         yield return null;
         yield return null;
         if (key == Key.Escape) yield return new WaitForSeconds(.5f);
-        if (key == Key.E) yield return new WaitForSeconds(1.2f);
+
     }
 
     [UnityTest]
@@ -60,15 +60,15 @@ public sealed class WorkbenchFlowTests
         Assert.That(Quaternion.Angle(view.localRotation, Quaternion.identity), Is.GreaterThan(.5f));
         Vector3 originalLocal = view.localPosition;
         Quaternion originalRotation = view.localRotation;
-        yield return KeyPress(Key.E);
+        yield return WorkshopTestInput.Interact();
         Assert.That(interaction.IsAtWorkbench, Is.True);
         Assert.That(workbench.IsOccupied, Is.True);
         Assert.That(view.parent, Is.SameAs(player.transform));
         Assert.That(Cursor.visible, Is.True);
         Assert.That(workbench.IsFocused, Is.True);
         yield return new WaitForSeconds(1.5f);
-        var quest = Object.FindObjectsByType<Image>(FindObjectsSortMode.None).Single(i => i.name == "RepairQuest");
-        Assert.That(quest.rectTransform.anchorMin, Is.EqualTo(new Vector2(0, 1)));
+        var quest = Object.FindObjectsByType<Image>(FindObjectsInactive.Include, FindObjectsSortMode.None).Single(i => i.name == "RepairQuest");
+        Assert.That(quest.rectTransform.anchorMin, Is.EqualTo(Vector2.one));
         Assert.That(quest.raycastTarget, Is.False);
         Vector3 position = player.transform.position;
         Quaternion rotation = player.transform.rotation;
@@ -95,7 +95,7 @@ public sealed class WorkbenchFlowTests
     {
         Vector3 originalPosition = player.View.transform.localPosition;
         Quaternion originalRotation = player.View.transform.localRotation;
-        yield return KeyPress(Key.E);
+        yield return WorkshopTestInput.Interact();
         Vector3 start = player.View.transform.localPosition;
         Vector3 playerPosition = player.transform.position;
         interaction.ExitWorkbench();
@@ -118,7 +118,7 @@ public sealed class WorkbenchFlowTests
     {
         for (int i = 0; i < 10; i++)
         {
-            yield return KeyPress(Key.E);
+            yield return WorkshopTestInput.Interact();
             Assert.That(interaction.IsAtWorkbench, Is.True, "Visit " + i);
             yield return KeyPress(Key.Escape);
             Assert.That(interaction.IsAtWorkbench, Is.False, "Exit " + i);
@@ -139,14 +139,14 @@ public sealed class WorkbenchFlowTests
         wall.transform.position = player.View.transform.position + player.View.transform.forward * .5f;
         wall.transform.localScale = new Vector3(3, 3, .2f);
         Physics.SyncTransforms();
-        yield return KeyPress(Key.E);
+        yield return WorkshopTestInput.Interact();
         Assert.That(interaction.PointedWorkbench, Is.Null);
         Assert.That(interaction.IsAtWorkbench, Is.False);
         Object.Destroy(wall);
     }
 
     [UnityTest]
-    public IEnumerator UIBlocksSceneInput_ExitButtonReturnsToShop()
+    public IEnumerator UIBlocksSceneInput_AndEscapeReturnsToShop()
     {
         var overlay = new GameObject("BlockingUI", typeof(RectTransform), typeof(Image));
         overlay.transform.SetParent(Object.FindFirstObjectByType<Canvas>().transform, false);
@@ -154,29 +154,24 @@ public sealed class WorkbenchFlowTests
         rect.anchorMin = Vector2.zero;
         rect.anchorMax = Vector2.one;
         rect.offsetMin = rect.offsetMax = Vector2.zero;
-        yield return KeyPress(Key.E);
+        yield return WorkshopTestInput.Interact();
         Assert.That(interaction.PointedWorkbench, Is.Null);
         Assert.That(interaction.IsAtWorkbench, Is.False);
         Object.Destroy(overlay);
         yield return null;
-        yield return KeyPress(Key.E);
+        yield return WorkshopTestInput.Interact();
         Assert.That(interaction.IsAtWorkbench, Is.True);
-        var button = Object.FindObjectsByType<Button>(FindObjectsSortMode.None).Single(b => b.name == "ExitBenchButton");
-        Vector2 position = RectTransformUtility.WorldToScreenPoint(null, button.transform.position);
-        InputSystem.QueueStateEvent(mouse, new MouseState { position = position, buttons = 1 });
-        yield return null;
-        yield return null;
-        InputSystem.QueueStateEvent(mouse, new MouseState { position = position });
-        yield return null;
-        yield return null;
-        Assert.That(interaction.IsAtWorkbench, Is.False, "Actual UI pointer click must leave bench.");
+        var button = Object.FindObjectsByType<Button>(FindObjectsInactive.Include, FindObjectsSortMode.None).Single(b => b.name == "ExitBenchButton");
+        Assert.That(button.gameObject.activeInHierarchy, Is.False);
+        yield return KeyPress(Key.Escape);
+        Assert.That(interaction.IsAtWorkbench, Is.False);
         Assert.That(player.View.transform.parent, Is.EqualTo(player.transform));
     }
 
     [UnityTest]
     public IEnumerator DisabledWorkbenchRestoresCameraAndInput()
     {
-        yield return KeyPress(Key.E);
+        yield return WorkshopTestInput.Interact();
         Assert.That(interaction.IsAtWorkbench, Is.True);
         workbench.gameObject.SetActive(false);
         yield return null;
@@ -188,7 +183,7 @@ public sealed class WorkbenchFlowTests
     [UnityTest]
     public IEnumerator DestroyedWorkbenchRestoresCameraAndWalking()
     {
-        yield return KeyPress(Key.E);
+        yield return WorkshopTestInput.Interact();
         Assert.That(interaction.IsAtWorkbench, Is.True);
         Object.Destroy(workbench.gameObject);
         yield return null;

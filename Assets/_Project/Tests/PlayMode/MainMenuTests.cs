@@ -106,6 +106,54 @@ public sealed class MainMenuFlowTests
     }
 
     [UnityTest]
+    public IEnumerator MenuHoverFollowsMouseWithoutLeavingPreviousButtonHighlighted()
+    {
+        var start = ButtonNamed("NewGameButton");
+        var settings = ButtonNamed("SettingsButton");
+        var quit = ButtonNamed("QuitButton");
+        foreach (var button in new[] { start, settings, quit })
+        {
+            yield return Hover(button);
+            var label = button.GetComponentInChildren<Text>();
+            Vector2 local = label.rectTransform.rect.center + Vector2.right * (label.preferredWidth * .5f + 12f);
+            Vector2 besideText = RectTransformUtility.WorldToScreenPoint(null, label.rectTransform.TransformPoint(local));
+            InputSystem.QueueStateEvent(mouse, new MouseState { position = besideText, delta = besideText - mouse.position.ReadValue() });
+            yield return new WaitForSecondsRealtime(.2f);
+            Assert.That(button.targetGraphic.canvasRenderer.GetColor(), Is.EqualTo(button.colors.normalColor),
+                "Empty space beside " + button.name + " must not highlight it.");
+        }
+        EventSystem.current.SetSelectedGameObject(start.gameObject);
+        yield return Hover(settings);
+        Assert.That(EventSystem.current.currentSelectedGameObject, Is.Null);
+        Assert.That(start.targetGraphic.canvasRenderer.GetColor(), Is.EqualTo(start.colors.normalColor));
+        Assert.That(settings.targetGraphic.canvasRenderer.GetColor(), Is.EqualTo(settings.colors.highlightedColor));
+        yield return Hover(ButtonNamed("ContinueButton"));
+        Assert.That(settings.targetGraphic.canvasRenderer.GetColor(), Is.EqualTo(settings.colors.normalColor));
+        Assert.That(ButtonNamed("ContinueButton").interactable, Is.False);
+        EventSystem.current.SetSelectedGameObject(start.gameObject);
+        ExecuteEvents.Execute(start.gameObject,
+            new AxisEventData(EventSystem.current) { moveDir = MoveDirection.Down, moveVector = Vector2.down }, ExecuteEvents.moveHandler);
+        Assert.That(EventSystem.current.currentSelectedGameObject, Is.EqualTo(settings.gameObject));
+        yield return Hover(quit);
+        Assert.That(settings.targetGraphic.canvasRenderer.GetColor(), Is.EqualTo(settings.colors.normalColor));
+        Assert.That(quit.targetGraphic.canvasRenderer.GetColor(), Is.EqualTo(quit.colors.highlightedColor));
+        Click(settings);
+        yield return null;
+        Click(ButtonNamed("BackButton"));
+        yield return new WaitForSecondsRealtime(.2f);
+        Assert.That(EventSystem.current.currentSelectedGameObject, Is.Null);
+        Assert.That(start.targetGraphic.canvasRenderer.GetColor(), Is.EqualTo(start.colors.normalColor));
+    }
+
+    IEnumerator Hover(Button button)
+    {
+        Vector2 position = RectTransformUtility.WorldToScreenPoint(null, button.transform.position);
+        InputSystem.QueueStateEvent(mouse, new MouseState { position = position, delta = position - mouse.position.ReadValue() });
+        yield return null;
+        yield return new WaitForSecondsRealtime(.2f);
+    }
+
+    [UnityTest]
     public IEnumerator SettingsDropdownRowsAreReadableAndSelectAnOption()
     {
         Click(ButtonNamed("SettingsButton"));

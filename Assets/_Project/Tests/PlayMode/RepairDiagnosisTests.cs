@@ -67,7 +67,7 @@ public sealed class RepairDiagnosisTests
         player.transform.SetPositionAndRotation(Object.FindAnyObjectByType<Workbench>().transform.TransformPoint(new Vector3(0f, 0f, -2.2f)), Quaternion.identity);
         body.enabled = true;
         yield return null;
-        yield return Press(Key.E);
+        yield return WorkshopTestInput.Interact();
         Assert.That(interaction.IsAtWorkbench, Is.True);
 
     }
@@ -82,7 +82,7 @@ public sealed class RepairDiagnosisTests
         yield return null; yield return null;
         yield return new WaitForSecondsRealtime(.05f);
         if (key == Key.Escape) yield return new WaitForSeconds(.5f);
-        if (key == Key.E) yield return new WaitForSeconds(1.2f);
+
     }
 
     IEnumerator Point(Vector2 position)
@@ -153,7 +153,7 @@ public sealed class RepairDiagnosisTests
         Assert.That(TextNamed("DiagnosisText").text, Does.Contain("видимых повреждений"));
         yield return Press(Key.H);
         yield return Press(Key.Escape);
-        yield return Press(Key.E);
+        yield return WorkshopTestInput.Interact();
         yield return Press(Key.H);
         Assert.That(TextNamed("DiagnosisText").text, Does.Contain("видимых повреждений"));
         yield return Press(Key.H);
@@ -335,7 +335,7 @@ public sealed class RepairDiagnosisTests
         yield return new WaitForSeconds(.3f);
         Assert.That(TextNamed("Hint").text, Is.Empty);
         yield return Press(Key.Digit2);
-        Assert.That(interaction.ScrewdriverSelected, Is.True);
+        Assert.That(interaction.ScrewdriverSelected, Is.False);
         Assert.That(buttons.Single(b => b.name == "ToolSlot2").gameObject.activeInHierarchy, Is.False);
         Assert.That(TextNamed("ToolShortcuts").gameObject.activeInHierarchy, Is.False);
         yield return Press(Key.F1);

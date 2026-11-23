@@ -34,7 +34,7 @@ public sealed class ScrewdriverFlowTests
         player.transform.position = Object.FindAnyObjectByType<Workbench>().transform.TransformPoint(new Vector3(0f, 0f, -2.2f));
         body.enabled = true;
         yield return null;
-        yield return Press(Key.E);
+        yield return WorkshopTestInput.Interact();
         Assert.That(interaction.IsAtWorkbench, Is.True);
     }
 
@@ -47,7 +47,7 @@ public sealed class ScrewdriverFlowTests
         yield return null;
         yield return null;
         if (key == Key.Escape) yield return new WaitForSeconds(.5f);
-        if (key == Key.E) yield return new WaitForSeconds(1.2f);
+
     }
 
     Vector2 Center => player.View.WorldToScreenPoint(screw.transform.position);
@@ -121,9 +121,9 @@ public sealed class ScrewdriverFlowTests
         Assert.That(screw.Tightness, Is.LessThan(1f));
         yield return Pointer(Center, false);
         Assert.That(tool.IsTurning, Is.False);
-        yield return Press(Key.B);
+        yield return Press(Key.Digit1);
         Assert.That(interaction.BrushSelected, Is.True);
-        yield return Press(Key.B);
+        yield return Press(Key.Digit1);
         Assert.That(interaction.BrushSelected, Is.False);
         yield return Pointer(Center, true);
         Assert.That(tool.Target, Is.SameAs(screw));
@@ -139,113 +139,56 @@ public sealed class ScrewdriverFlowTests
     }
 
     [UnityTest]
-    public IEnumerator WheelUsesCapturedScrew_AndSelectedToolFollowsPointer()
+    public IEnumerator RemovedToolKeysDoNothingAndHoldingScrewNeedsNoWheel()
     {
-        yield return Press(Key.Digit2);
-        yield return Pointer(new Vector2(Screen.width * .5f, Screen.height * .4f), false);
-        Vector3 heldPosition = tool.transform.position;
-        yield return Pointer(new Vector2(Screen.width * .6f, Screen.height * .4f), false);
-        Assert.That(Vector3.Distance(heldPosition, tool.transform.position), Is.GreaterThan(.01f));
-        Assert.That(tool.IsSelected, Is.True);
-        Assert.That(tool.GetComponentsInChildren<Collider>().All(c => !c.enabled), Is.True);
+        Vector3 home = tool.transform.position;
+        foreach (var key in new[] { Key.B, Key.Digit2, Key.Digit3, Key.Digit4 }) yield return Press(key);
+        Assert.That(tool.IsSelected, Is.False);
+        Assert.That(interaction.BrushSelected, Is.False);
+        Assert.That(tool.transform.position, Is.EqualTo(home));
         yield return Pointer(Center, true);
-        Assert.That(tool.Target, Is.SameAs(screw));
-        for (int i = 0; i < 16; i++)
-        {
-            InputSystem.QueueStateEvent(mouse, new MouseState { position = Center, buttons = 1, scroll = new Vector2(0, -120) });
-            yield return null; yield return null;
-        }
-        Assert.That(screw.IsLoose, Is.True);
+        InputSystem.QueueStateEvent(mouse, new MouseState { position = Center, buttons = 1, scroll = new Vector2(0, 120) });
+        yield return new WaitForSeconds(1.1f);
         Assert.That(screw.IsRemoved, Is.True);
         Assert.That(screw.GetComponentInParent<RobotRepair>().ScrewTray.Count, Is.EqualTo(1));
-        Assert.That(tool.Target, Is.Null, "Extraction must release the screwdriver capture.");
-        Assert.That(tool.GetComponent<AudioSource>().loop, Is.False, "Completion sound must start on reaching the endpoint.");
-        yield return Pointer(Center, false);
-        Assert.That(tool.IsSelected, Is.True);
-        InputSystem.QueueStateEvent(mouse, new MouseState { position = Center, scroll = new Vector2(0, 120) });
-        yield return null; yield return null;
-        Assert.That(screw.IsLoose, Is.True, "Uncaptured wheel input must not change a screw.");
-        yield return Pointer(Center, true);
-        Assert.That(screw.IsRemoved, Is.False, "The ghost click must return the collected screw.");
-        Assert.That(screw.IsTight, Is.False);
-        Assert.That(screw.GetComponentInParent<RobotRepair>().ScrewTray.Count, Is.Zero);
-        Assert.That(tool.Target, Is.SameAs(screw), "The insertion press must also capture the screw for tightening.");
-        float insertedTightness = screw.Tightness;
-        InputSystem.QueueStateEvent(mouse, new MouseState { position = Center, buttons = 1, scroll = new Vector2(0, 120) });
-        yield return null; yield return null;
-        Assert.That(screw.Tightness, Is.GreaterThan(insertedTightness));
-        yield return Pointer(Center, false);
-        yield return Pointer(Center, true);
-        Assert.That(tool.Target, Is.SameAs(screw));
-        for (int i = 0; i < 16; i++)
-        {
-            InputSystem.QueueStateEvent(mouse, new MouseState { position = Center, buttons = 1, scroll = new Vector2(0, 120) });
-            yield return null; yield return null;
-        }
-        Assert.That(screw.IsTight, Is.True);
-        yield return Press(Key.Digit1);
         Assert.That(tool.IsSelected, Is.False);
+        yield return Pointer(Center, false);
+        yield return Pointer(Center, true);
+        yield return new WaitForSeconds(1.1f);
+        Assert.That(screw.IsTight, Is.True);
+        Assert.That(tool.Target, Is.Null);
+        Assert.That(tool.transform.position, Is.EqualTo(home));
         Assert.That(tool.GetComponentsInChildren<Collider>().All(c => c.enabled), Is.True);
     }
 
     [UnityTest]
-    public IEnumerator MouseGestureSelectsTool_ReleasesScrew_AndReverses()
+    public IEnumerator MovingPointerWhileHoldingKeepsCapturedScrew()
     {
-        yield return Press(Key.Digit2);
-        Assert.That(interaction.ScrewdriverSelected, Is.True);
         yield return Pointer(Center, true);
-        Assert.That(tool.IsTurning, Is.True, "Actual pointer press must hit the screw.");
-        yield return Pointer(Center + Vector2.right * 60f, true);
-        for (int i = 1; i <= 52; i++)
-        {
-            float angle = i * 15f * Mathf.Deg2Rad;
-            yield return Pointer(Center + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * 60f, true);
-        }
-        Assert.That(screw.Tightness, Is.Zero.Within(.001f));
-        Assert.That(screw.IsRemoved, Is.True);
-        Assert.That(tool.IsTurning, Is.False);
-        yield return Pointer(Center, false);
-        Assert.That(tool.IsTurning, Is.False);
-        yield return Pointer(Center, true);
-        Assert.That(screw.IsRemoved, Is.False);
-        Assert.That(screw.IsTight, Is.False);
-        Assert.That(tool.IsTurning, Is.True);
-        yield return Pointer(Center, false);
-        yield return Pointer(Center, true);
-        yield return Pointer(Center + Vector2.right * 60f, true);
-        for (int i = 1; i <= 52; i++)
-        {
-            float angle = -i * 15f * Mathf.Deg2Rad;
-            yield return Pointer(Center + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * 60f, true);
-        }
+        Assert.That(tool.Target, Is.SameAs(screw));
+        yield return Pointer(Center + new Vector2(100f, 80f), true);
         yield return new WaitForSeconds(1.1f);
-        Assert.That(screw.Tightness, Is.EqualTo(1f).Within(.001f));
+        Assert.That(screw.IsRemoved, Is.True);
+        yield return Pointer(Center, false);
+        yield return Pointer(Center, true);
+        Assert.That(tool.IsTurning, Is.True);
+        yield return Pointer(Center - new Vector2(100f, 80f), true);
+        yield return new WaitForSeconds(1.1f);
+        Assert.That(screw.IsTight, Is.True);
     }
 
     [UnityTest]
     public IEnumerator PartialTurnSurvivesReleaseAndWorkbenchVisits()
     {
-        yield return Press(Key.Digit2);
         yield return Pointer(Center, true);
-        yield return Pointer(Center + Vector2.right * 60f, true);
-        for (int i = 1; i <= 12; i++)
-        {
-            float angle = i * 15f * Mathf.Deg2Rad;
-            yield return Pointer(Center + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * 60f, true);
-            Assert.That(tool.IsTurning, Is.True, $"Sample {i}; screen={Screen.width}x{Screen.height}; center={Center}; pointer={mouse.position.ReadValue()}");
-        }
-        Assert.That(screw.Tightness, Is.EqualTo(.75f).Within(.005f));
+        yield return new WaitForSeconds(.1f);
+        yield return Pointer(Center, false);
         float progress = screw.Tightness;
         Vector3 position = screw.transform.localPosition;
-        yield return Pointer(Center, false);
+        Assert.That(progress, Is.InRange(.1f, .95f));
         Assert.That(tool.IsTurning, Is.False);
-        Assert.That(screw.Tightness, Is.EqualTo(progress));
-        yield return Pointer(Center, true);
-        Assert.That(tool.IsTurning, Is.True);
         yield return Press(Key.Escape);
-        Assert.That(tool.IsTurning, Is.False);
-        yield return Pointer(Vector2.zero, false);
-        yield return Press(Key.E);
+        yield return WorkshopTestInput.Interact();
         Assert.That(screw.Tightness, Is.EqualTo(progress));
         Assert.That(screw.transform.localPosition, Is.EqualTo(position));
     }
@@ -275,26 +218,28 @@ public sealed class ScrewdriverFlowTests
     }
 
     [UnityTest]
-    public IEnumerator HandSelectionCancelsTool_AndOccluderBlocksScrew()
+    public IEnumerator BrushToggleCancelsScrewAndOccluderBlocksCapture()
     {
         Vector2 handle = player.View.WorldToScreenPoint(tool.transform.Find("Handle").position);
         yield return Pointer(handle, true);
-        Assert.That(interaction.ScrewdriverSelected, Is.True, "Tool on the table must be clickable.");
+        Assert.That(tool.IsSelected, Is.False);
         yield return Pointer(handle, false);
         yield return Pointer(Center, true);
         Assert.That(tool.IsTurning, Is.True);
         yield return Press(Key.Digit1);
         Assert.That(tool.IsTurning, Is.False);
-        Assert.That(interaction.ScrewdriverSelected, Is.False);
+        Assert.That(interaction.BrushSelected, Is.True);
         yield return Pointer(Center, false);
-        yield return Press(Key.Digit2);
+        yield return Press(Key.Digit1);
+        float progress = screw.Tightness;
         var blocker = GameObject.CreatePrimitive(PrimitiveType.Cube);
         blocker.transform.position = Vector3.Lerp(player.View.transform.position, screw.transform.position, .5f);
         blocker.transform.localScale = Vector3.one * .2f;
         Physics.SyncTransforms();
         yield return Pointer(Center, true);
         Assert.That(tool.IsTurning, Is.False);
-        Assert.That(screw.Tightness, Is.EqualTo(1f));
+        Assert.That(screw.Tightness, Is.EqualTo(progress));
+        Object.Destroy(blocker);
     }
 
     [UnityTest]

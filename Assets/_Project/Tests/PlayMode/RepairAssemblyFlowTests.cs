@@ -38,7 +38,7 @@ public sealed class RepairAssemblyFlowTests
         player.transform.position = Object.FindAnyObjectByType<Workbench>().transform.TransformPoint(new Vector3(0f, 0f, -2.2f));
         body.enabled = true;
         yield return null;
-        yield return KeyPress(Key.E);
+        yield return WorkshopTestInput.Interact();
         Assert.That(interaction.IsAtWorkbench, Is.True);
     }
 
@@ -49,7 +49,7 @@ public sealed class RepairAssemblyFlowTests
         InputSystem.QueueStateEvent(keyboard, new KeyboardState());
         yield return null; yield return null;
         if (key == Key.Escape) yield return new WaitForSeconds(.5f);
-        if (key == Key.E) yield return new WaitForSeconds(1.2f);
+
     }
 
     Vector2 Screen(Transform target) => player.View.WorldToScreenPoint(target.position);
@@ -120,37 +120,20 @@ public sealed class RepairAssemblyFlowTests
 
     IEnumerator Turn(ScrewFastener screw, bool loosen)
     {
-        yield return KeyPress(Key.Digit2);
-        if (!loosen && screw.IsRemoved)
-        {
-            yield return Pointer(Screen(screw.transform), true);
-            Assert.That(screw.IsRemoved, Is.False, "The first click must insert " + screw.name);
-            Assert.That(screw.IsTight, Is.False, "Insertion must not tighten the screw automatically.");
-            Assert.That(interaction.Screwdriver.Target, Is.Null);
-            yield return Pointer(Screen(screw.transform), false);
-        }
-        yield return Pointer(Screen(screw.transform),true);
-        Assert.That(interaction.Screwdriver.Target, Is.SameAs(screw), "Pointer must reach " + screw.name);
-        yield return Pointer(Screen(screw.transform)+Vector2.right*45f,true);
-        for(int i=1;i<=52;i++)
-        {
-            float angle = i*15f*Mathf.Deg2Rad*(loosen ? 1 : -1);
-            yield return Pointer(Screen(screw.transform)+new Vector2(Mathf.Cos(angle),Mathf.Sin(angle))*45f,true);
-            if (loosen && screw.IsRemoved)
-            {
-                Assert.That(interaction.Screwdriver.Target, Is.Null, "Extraction ends the captured gesture.");
-                break;
-            }
-            Assert.That(interaction.Screwdriver.Target, Is.SameAs(screw), $"{screw.name}, sample {i}, screen {UnityEngine.Screen.width}x{UnityEngine.Screen.height}, pointer {mouse.position.ReadValue()}");
-        }
-        yield return Pointer(Screen(screw.transform),false);
+        if (interaction.BrushSelected) yield return KeyPress(Key.Digit1);
+        yield return Pointer(Screen(screw.transform), false);
+        yield return Pointer(Screen(screw.transform), true);
+        Assert.That(interaction.Screwdriver.Target, Is.SameAs(screw));
+        yield return new WaitForSeconds(1.1f);
+        yield return Pointer(Screen(screw.transform), false);
         Assert.That(screw.Tightness, Is.EqualTo(loosen ? 0f : 1f).Within(.001f), screw.name);
     }
 
+
     IEnumerator Move(RepairPart part, bool install)
     {
+        if (interaction.BrushSelected) yield return KeyPress(Key.Digit1);
         int step = ++moveStep;
-        yield return KeyPress(Key.Digit1);
         Vector2 source = part.IsInstalled ? Screen(part.transform) : VisiblePartScreen(part);
         string before = PointerDiagnostics(part,source);
         yield return Pointer(source,true);
@@ -177,7 +160,7 @@ public sealed class RepairAssemblyFlowTests
 
     IEnumerator ToggleConnector()
     {
-        yield return KeyPress(Key.Digit1);
+        if (interaction.BrushSelected) yield return KeyPress(Key.Digit1);
         Transform plug = robot.Connector.transform.Find("Plug");
         bool connected = robot.Connector.IsConnected;
         yield return Pointer(Screen(plug),true);
@@ -255,7 +238,7 @@ public sealed class RepairAssemblyFlowTests
         yield return TestButton();
         Assert.That(robot.TestResult,Is.EqualTo(RobotTestResult.Faulty));
         var dirt = robot.Cover.GetComponentsInChildren<DirtPatch>().Single(p=>!p.RequiresOpenCover);
-        yield return KeyPress(Key.Digit3);
+        yield return KeyPress(Key.Digit1);
         Vector2 DirtPoint(float u) => player.View.WorldToScreenPoint(dirt.transform.TransformPoint(new Vector3(u-.5f,0,0)));
         yield return Pointer(DirtPoint(.2f),true);
         yield return Pointer(DirtPoint(.8f),true);
@@ -268,7 +251,7 @@ public sealed class RepairAssemblyFlowTests
         foreach(var screw in oldDrive.Screws) yield return Turn(screw,true);
         yield return Move(oldDrive,false);
         yield return KeyPress(Key.Escape);
-        yield return KeyPress(Key.E);
+        yield return WorkshopTestInput.Interact();
         Assert.That(robot.Cover.IsInstalled,Is.False);
         Assert.That(oldDrive.IsInstalled,Is.False);
         Assert.That(robot.InstalledDrive,Is.Null);
@@ -285,7 +268,7 @@ public sealed class RepairAssemblyFlowTests
         Assert.That(RobotRepair.FullyTightened(robot.Cover),Is.True);
         Assert.That(robot.AssemblyHint,Does.Contain("Сборка завершена"));
         yield return KeyPress(Key.Escape);
-        yield return KeyPress(Key.E);
+        yield return WorkshopTestInput.Interact();
         Assert.That(robot.InstalledDrive,Is.SameAs(newDrive));
         Assert.That(robot.Cover.IsInstalled,Is.True);
         yield return TestButton();
@@ -378,7 +361,7 @@ public sealed class RepairAssemblyFlowTests
         Assert.That(robot.Cover.Body.isKinematic,Is.False);
         Assert.That(robot.Cover.Screws.All(s=>s.Tightness == 0f),Is.True);
         yield return Pointer(Vector2.zero,false);
-        if (!interaction.IsAtWorkbench) yield return KeyPress(Key.E);
+        if (!interaction.IsAtWorkbench) yield return WorkshopTestInput.Interact();
         robot.Cover.RecoverToTable();
         yield return new WaitForSeconds(.3f);
         yield return Pointer(Screen(robot.Cover.transform),true);
@@ -392,12 +375,12 @@ public sealed class RepairAssemblyFlowTests
         robot.Cover.RecoverToTable();
         yield return new WaitForSeconds(.3f);
         yield return Pointer(Screen(robot.Cover.transform),true);
-        yield return KeyPress(Key.Digit2);
+        yield return KeyPress(Key.Digit1);
         Assert.That(interaction.HeldPart,Is.Null);
         Assert.That(robot.Cover.IsInstalled,Is.False);
         Assert.That(robot.Cover.IsDragging,Is.False);
         Assert.That(robot.Cover.Body.isKinematic,Is.False);
-        Assert.That(interaction.ScrewdriverSelected,Is.True);
+        Assert.That(interaction.BrushSelected,Is.True);
         Assert.That(newDrive.IsInstalled,Is.False);
     }
 

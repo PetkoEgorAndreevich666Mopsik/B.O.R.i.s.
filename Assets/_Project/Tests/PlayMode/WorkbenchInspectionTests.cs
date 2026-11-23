@@ -49,7 +49,7 @@ public sealed class WorkbenchInspectionTests
         body.enabled = true;
         Physics.SyncTransforms();
         yield return null;
-        yield return Press(Key.E);
+        yield return WorkshopTestInput.Interact(0f);
         Assert.That(interaction.IsAtWorkbench, Is.True, $"Ray at {target}. Workbench pointed: {interaction.PointedWorkbench != null}. {interaction.Feedback}");
     }
 

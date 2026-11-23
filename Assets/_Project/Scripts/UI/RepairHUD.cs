@@ -125,8 +125,8 @@ namespace BORis
                 for (int i = 0; i < toolSlots.Length; i++)
                     if (toolSlots[i] != null)
                     {
-                        toolSlots[i].gameObject.SetActive(i == 2 || i == 3 && interaction.SolderingAvailable);
-                        if (i == 2) toolSlots[i].rectTransform.anchoredPosition = new Vector2(interaction.SolderingAvailable ? -32f : 0f, 0f);
+                        toolSlots[i].gameObject.SetActive(i == 2);
+                        if (i == 2) toolSlots[i].rectTransform.anchoredPosition = Vector2.zero;
                         var button = toolSlots[i].GetComponent<UnityEngine.UI.Button>();
                         if (button != null) button.interactable = robot == null || !robot.IsTesting && !robot.IsOnDriveStand;
                         bool selected = i == 2 ? interaction.BrushSelected : interaction.SolderingSelected;

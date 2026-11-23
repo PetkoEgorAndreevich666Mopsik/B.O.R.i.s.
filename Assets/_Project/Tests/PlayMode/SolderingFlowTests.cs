@@ -45,7 +45,7 @@ public sealed class SolderingFlowTests
         InputSystem.QueueStateEvent(keyboard, new KeyboardState());
         yield return null; yield return null;
         if (key == Key.Escape) yield return new WaitForSeconds(.5f);
-        if (key == Key.E) yield return new WaitForSeconds(1.2f);
+
     }
 
     IEnumerator Pointer(Vector2 position, bool down = false)
@@ -89,6 +89,12 @@ public sealed class SolderingFlowTests
     {
         if (seedEconomy)
         {
+            if (session.VisitorRobot != null)
+            {
+                Object.FindFirstObjectByType<Workbench>().ClearRobot();
+                SetField(session, "visitorRobot", null);
+                SetField(session, "visitorOrder", null);
+            }
             SetField(session, "<Balance>k__BackingField", 180);
             Assert.That(session.TryBuySolderingStation(out _), Is.True);
             Assert.That(session.TryInstallSolderingStation(out _), Is.True);
@@ -102,7 +108,7 @@ public sealed class SolderingFlowTests
         tool = Object.FindObjectsByType<SolderingTool>(FindObjectsInactive.Include).Single();
         Face(Object.FindAnyObjectByType<Workbench>().transform.TransformPoint(new Vector3(0f, 0f, -2.2f)));
         yield return null;
-        yield return Press(Key.E);
+        yield return WorkshopTestInput.Interact();
         Assert.That(interaction.IsAtWorkbench, Is.True);
         Assert.That(joint, Is.Not.Null);
     }
@@ -120,7 +126,6 @@ public sealed class SolderingFlowTests
         yield return Pointer(interaction.View.WorldToScreenPoint(robot.Connector.transform.position));
         Assert.That(robot.Connector.IsConnected, Is.False);
         Assert.That(interaction.IsInspecting, Is.True);
-        yield return Press(Key.Digit4);
         yield return Pointer(ScreenPosition(.01f), true);
         Assert.That(tool.IsActive, Is.True);
         for (int i = 1; i <= 30; i++)
@@ -259,7 +264,7 @@ public sealed class SolderingFlowTests
         Assert.That(session.Balance, Is.EqualTo(220));
         Assert.That(session.OfferedOrder.OrderId, Does.StartWith("A"), "C stays locked before the purchase.");
         EquipmentTestFlow.FaceTerminal(interaction);
-        yield return Press(Key.E);
+        yield return WorkshopTestInput.Interact();
         Assert.That(interaction.IsAtEquipmentShop, Is.True);
         var tab = Object.FindObjectsByType<Button>().Single(b => b.name == "EquipmentTab");
         var tabRect = (RectTransform)tab.transform;
@@ -284,8 +289,7 @@ public sealed class SolderingFlowTests
         yield return Pointer(ScreenPosition(.5f));
         yield return new WaitForSeconds(.65f);
         Assert.That(robot.JointFaultFound, Is.True, "An exposed seam can be diagnosed by observation.");
-        yield return Press(Key.Digit4);
-        Assert.That(interaction.SolderingSelected, Is.True);
+        Assert.That(tool.IsSelected, Is.False);
         yield return Pointer(ScreenPosition(.01f), true);
         Assert.That(tool.Target, Is.SameAs(joint), "The seam must be reachable through the real camera ray.");
         for (int i = 1; i <= 20; i++) yield return Pointer(ScreenPosition(.01f + i * .049f), true);
@@ -307,7 +311,7 @@ public sealed class SolderingFlowTests
         yield return WaitForOpenSeam();
         Vector2 handle = interaction.View.WorldToScreenPoint(tool.transform.Find("Handle").position);
         yield return Pointer(handle, true); yield return Pointer(handle);
-        Assert.That(interaction.SolderingSelected, Is.True, "The physical iron must be visible and selectable on its station.");
+        Assert.That(tool.IsSelected, Is.False, "The iron works directly on the seam without selection.");
         yield return Pointer(ScreenPosition(.05f), true);
         Assert.That(tool.HasContact, Is.True, "Initial seam contact. " + PointerState(ScreenPosition(.05f)));
         yield return new WaitForSeconds(.2f);
@@ -322,15 +326,15 @@ public sealed class SolderingFlowTests
         Assert.That(tool.GetComponent<AudioSource>().isPlaying, Is.False);
         yield return Pointer(ScreenPosition(.35f));
         yield return Pointer(ScreenPosition(.4f), true);
-        yield return Press(Key.Digit2);
+        yield return Press(Key.Digit1);
         Assert.That(tool.IsActive, Is.False);
         Assert.That(joint.Progress, Is.EqualTo(progress));
         yield return Press(Key.Escape);
         yield return Pointer(Vector2.zero);
-        yield return Press(Key.E);
+        yield return WorkshopTestInput.Interact();
         Assert.That(joint.Progress, Is.EqualTo(progress));
-        interaction.SelectToolShortcut(3);
-        Assert.That(interaction.SolderingSelected, Is.True);
+
+        Assert.That(tool.IsSelected, Is.False);
         yield return Pointer(ScreenPosition(.99f), true);
         yield return Pointer(ScreenPosition(.01f), true);
         yield return Pointer(ScreenPosition(.01f));
@@ -342,7 +346,6 @@ public sealed class SolderingFlowTests
     {
         yield return EnterC(); PrepareSeam();
         yield return WaitForOpenSeam();
-        yield return Press(Key.Digit4);
         yield return Pointer(ScreenPosition(.05f), true);
         Assert.That(tool.HasContact, Is.True, "Initial seam contact. " + PointerState(ScreenPosition(.05f)));
         yield return Pointer(ScreenPosition(-1f), true);
@@ -381,7 +384,6 @@ public sealed class SolderingFlowTests
         joint.enabled = true;
         SetField(session, "<HasSolderingStation>k__BackingField", false);
         Assert.That(robot.CanSolder(joint, session, out _), Is.False);
-        yield return Press(Key.Digit4);
         Assert.That(interaction.SolderingSelected, Is.False);
         Assert.That(tool.Begin(joint, interaction.View, ScreenPosition(.1f)), Is.False);
         Assert.That(robot.SolderStroke(joint, session, 0, 1), Is.Zero);
@@ -446,7 +448,6 @@ public sealed class SolderingFlowTests
         Assert.That(session.CanDeliverOrder(out _), Is.False);
         PrepareSeam();
         yield return new WaitForSeconds(.6f);
-        yield return Press(Key.Digit4);
         yield return Pointer(ScreenPosition(.1f), true);
         var overlay = new GameObject("SolderBlockingUI", typeof(RectTransform), typeof(Image));
         overlay.transform.SetParent(Object.FindAnyObjectByType<Canvas>().transform, false);

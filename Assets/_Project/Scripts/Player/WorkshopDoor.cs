@@ -18,7 +18,6 @@ namespace BORis
         float travel;
 
         public float OpenFraction => Mathf.SmoothStep(0f, 1f, travel);
-        public string Hint => targetOpen ? "E — закрыть дверь" : "E — открыть дверь";
 
         void Awake()
         {

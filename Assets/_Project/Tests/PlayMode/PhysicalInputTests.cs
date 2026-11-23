@@ -37,7 +37,7 @@ public sealed class PhysicalInputTests
         player.transform.position = bench.transform.TransformPoint(new Vector3(0f, 0f, -2.2f));
         controller.enabled = true;
         yield return null;
-        yield return Press(Key.E);
+        yield return WorkshopTestInput.Interact();
         Assert.That(interaction.IsAtWorkbench, Is.True);
     }
 
@@ -47,7 +47,7 @@ public sealed class PhysicalInputTests
         yield return null; yield return null;
         InputSystem.QueueStateEvent(keyboard, new KeyboardState());
         yield return null; yield return null;
-        if (key == Key.E) yield return new WaitForSeconds(1.2f);
+
     }
 
     Vector2 Screen(Vector3 position) => player.View.WorldToScreenPoint(position);
@@ -60,7 +60,6 @@ public sealed class PhysicalInputTests
 
     IEnumerator Grab(RepairPart part)
     {
-        yield return Press(Key.Digit1);
         yield return Pointer(Screen(part.transform.position), 1);
         Assert.That(interaction.HeldPart, Is.SameAs(part), interaction.Feedback);
     }
@@ -172,7 +171,7 @@ public sealed class PhysicalInputTests
     [UnityTest]
     public IEnumerator RecoveryEndsBrushAndRestoresCameraInspection()
     {
-        yield return Press(Key.Digit3);
+        yield return Press(Key.Digit1);
         DirtPatch patch = robot.GetComponentsInChildren<DirtPatch>().Single(p => p.name == "OuterDirt");
         Vector2 point = Screen(patch.transform.TransformPoint(new Vector3(-.3f, 0f, 0f)));
         yield return Pointer(point, 1);

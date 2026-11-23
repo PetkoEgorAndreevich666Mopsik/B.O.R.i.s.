@@ -5051,7 +5051,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &220912500
 RectTransform:
   m_ObjectHideFlags: 0
@@ -5116,19 +5116,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 220912502}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 1639666792}
-        m_TargetAssemblyTypeName: BORis.InteractionController, BORis.Runtime
-        m_MethodName: SelectToolShortcut
-        m_Mode: 3
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: 
-          m_IntArgument: 3
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
+      m_Calls: []
 --- !u!114 &220912502
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -40452,17 +40440,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1636628936}
   m_Mesh: {fileID: 4300000, guid: 2826ba9e5aa28ef4295c84905578610a, type: 2}
---- !u!114 &1639666792 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 6158185207941830300, guid: 8035b147d8bde1d46a38c8de22f569d2, type: 3}
-  m_PrefabInstance: {fileID: 7127076914682599789}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e9291d4c45c970646a83dd90792e8d4d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: BORis.Runtime::BORis.InteractionController
 --- !u!1001 &1659411689
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -52749,7 +52726,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2397858976772754471, guid: 8035b147d8bde1d46a38c8de22f569d2, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: -32
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2583210573910351553, guid: 8035b147d8bde1d46a38c8de22f569d2, type: 3}
       propertyPath: m_AnchoredPosition.x

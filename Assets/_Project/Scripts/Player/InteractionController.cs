@@ -23,7 +23,8 @@ namespace BORis
         InputActionAsset actions;
         InputActionMap shop;
         InputActionMap bench;
-        InputAction move, look, interact, cancel, carry;
+        InputAction move, look, interact, cancel;
+        bool waitForPrimaryRelease;
         RobotRepair pointedRobot;
         RobotRepair carryCandidate;
         float carryPressedAt;
@@ -33,7 +34,7 @@ namespace BORis
         VentilationSwitch pointedVentilationSwitch;
         bool pointedSendButton;
         Collider pointedParcel;
-        InputAction point, primary, scroll, selectScrewdriver, selectHand, selectBrush, selectSoldering;
+        InputAction point, primary, scroll, selectBrush;
         InputAction orbit, orbitDelta, alignInspection;
         Workbench activeWorkbench;
         OrderDesk activeOrderDesk;
@@ -65,6 +66,9 @@ namespace BORis
         public bool IsAtWorkbench => activeWorkbench != null && bench != null && bench.enabled;
         public bool IsAtOrderDesk => activeOrderDesk != null;
         public bool IsAtEquipmentShop => activeEquipmentShop != null;
+        public bool CanInteract { get; private set; }
+        public bool ShowReticle => player != null && isActiveAndEnabled && !IsAtWorkbench && !IsAtOrderDesk && !IsAtEquipmentShop
+            && !player.IsReturning;
         public bool IsInspecting => IsAtWorkbench && activeWorkbench.IsFocused;
         float RepairReach => reach + (activeWorkbench != null ? activeWorkbench.CameraOffset : 0f);
         public string InspectionName => IsInspecting ? activeWorkbench.InspectionName : "";
@@ -79,7 +83,7 @@ namespace BORis
         public BrushTool Brush => brush;
         public SolderingTool Soldering => soldering;
         public bool SolderingAvailable => soldering != null && soldering.IsAvailable;
-        public bool SolderingSelected => soldering != null && selectedTool == soldering;
+        public bool SolderingSelected => soldering != null && soldering.IsActive;
         public SolderJoint PointedJoint { get; private set; }
         public bool BrushSelected => brush != null && selectedTool == brush;
         public DirtPatch PointedDirt { get; private set; }
@@ -110,15 +114,11 @@ namespace BORis
             move = shop.FindAction("Move", true);
             look = shop.FindAction("Look", true);
             interact = shop.FindAction("Interact", true);
-            carry = shop.AddAction("CarryRobot", InputActionType.Button, "<Mouse>/leftButton");
             cancel = bench.FindAction("Cancel", true);
             point = bench.FindAction("Point", true);
             primary = bench.FindAction("Primary", true);
             scroll = bench.FindAction("Scroll", true);
-            selectScrewdriver = bench.FindAction("Screwdriver", true);
-            selectHand = bench.FindAction("Hand", true);
             selectBrush = bench.FindAction("Brush", true);
-            selectSoldering = bench.FindAction("Soldering");
             orbit = bench.FindAction("Orbit", true);
             orbitDelta = bench.FindAction("OrbitDelta", true);
             alignInspection = bench.FindAction("AlignInspection", true);
@@ -137,6 +137,7 @@ namespace BORis
 
         void Update()
         {
+            CanInteract = false;
             if (player.IsReturning) return;
             if (saveStatus != null && session != null)
             {
@@ -165,10 +166,12 @@ namespace BORis
                 {
                     if (repairHUD != null && repairHUD.CloseOverlay()) { }
                     else if (DriveStand != null && DriveStand.Part != null) DriveStand.Cancel();
-                    else if (HeldPart != null || selectedTool != null && selectedTool.IsActive || screwdriver != null && screwdriver.IsTurning)
+                    else if (HeldPart != null || selectedTool != null && selectedTool.IsActive || screwdriver != null && screwdriver.IsTurning
+                        || soldering != null && soldering.IsActive)
                     {
                         CancelPart();
                         if (screwdriver != null) screwdriver.End();
+                        if (soldering != null) soldering.End();
                         if (selectedTool != null) selectedTool.End();
                     }
                     else ExitWorkbench();
@@ -205,6 +208,14 @@ namespace BORis
                 bool carrying = transport != null && transport.IsCarrying;
                 ServiceWindow window = session != null ? session.Window : null;
                 bool carryingParcel = window != null && window.IsCarryingParcel;
+                bool enterWorkbench = false;
+                CanInteract = !carrying && !carryingParcel && (pointedDoor != null || pointedVentilationSwitch != null
+                    || PointedEquipmentShop != null || PointedOrderDesk != null
+                    || PointedWorkbench != null && PointedWorkbench.HasRobot
+                    || pointedParcel != null
+                    || pointedSendButton && !pointedWindow.IsBusy
+                    || pointedRobot != null && (window == null || !window.IsBusy)
+                        && (transport != null && pointedRobot == transport.Robot || window != null && window.IsVisitor(pointedRobot)));
                 if (carryingParcel)
                 {
                     Ray placementRay = new(player.View.transform.position, player.View.transform.forward);
@@ -215,14 +226,14 @@ namespace BORis
                         window.CancelParcel();
                         Say("Коробка возвращена на ленту");
                     }
-                    else if (!carry.IsPressed())
+                    else if (!interact.IsPressed())
                     {
                         window.TryPlaceParcel(placementRay, reach, mask, out string reason);
                         Say(reason);
                     }
                     carryCandidate = null;
                 }
-                else if (pointedParcel != null && !carrying && carry.WasPressedThisFrame() && window.TryTakeParcel(pointedParcel))
+                else if (pointedParcel != null && !carrying && interact.WasPressedThisFrame() && window.TryTakeParcel(pointedParcel))
                 {
                     carryingParcel = true;
                     carryCandidate = null;
@@ -237,23 +248,20 @@ namespace BORis
                         transport.CancelCarry();
                         Say("Робот возвращён на место");
                     }
-                    else if (!carry.IsPressed() && !transport.TryDrop(placementRay, reach))
+                    else if (!interact.IsPressed() && !transport.TryDrop(placementRay, reach))
                         Say("Робот возвращён на место");
                     carryCandidate = null;
                 }
                 else if (transport != null)
                 {
-                    if (carry.WasPressedThisFrame())
+                    if (interact.WasPressedThisFrame())
                     {
-                        carryCandidate = pointedRobot != null && pointedRobot == transport.Robot ? pointedRobot : null;
+                        carryCandidate = pointedRobot != null && (pointedRobot == transport.Robot
+                            || window != null && window.IsVisitor(pointedRobot)) ? pointedRobot : null;
                         carryPressedAt = Time.unscaledTime;
                         carryAttempted = false;
-                        if (pointedSendButton)
-                        {
-                            if (!pointedWindow.TrySend(out string reason)) Say(reason);
-                        }
                     }
-                    if (carryCandidate != null && carry.IsPressed() && !carryAttempted
+                    if (carryCandidate != null && interact.IsPressed() && !carryAttempted
                         && Time.unscaledTime - carryPressedAt >= .3f)
                     {
                         carryAttempted = true;
@@ -268,9 +276,11 @@ namespace BORis
                             else Say(window != null && window.IsBusy ? "Дождитесь остановки ленты и закрытия двери" : reason);
                         }
                     }
-                    if (!carry.IsPressed() && carryCandidate != null)
+                    if (!interact.IsPressed() && carryCandidate != null)
                     {
-                        if (!carryAttempted && window != null && (window.IsVisitor(carryCandidate) || transport.IsAtDelivery))
+                        if (!carryAttempted && PointedWorkbench != null && PointedWorkbench.HasRobot)
+                            enterWorkbench = true;
+                        else if (!carryAttempted && window != null && (window.IsVisitor(carryCandidate) || transport.IsAtDelivery))
                         {
                             if (!window.Talk(out string reason)) Say(reason);
                         }
@@ -281,13 +291,11 @@ namespace BORis
                 carrying |= carryingParcel;
                 if (carrying) { PointedWorkbench = null; PointedOrderDesk = null; PointedEquipmentShop = null; }
                 if (!carrying && pointedDoor != null && interact.WasPressedThisFrame())
-                {
-                    if (!pointedDoor.TryToggle(GetComponent<CharacterController>()))
-                        Say("Освободите место перед дверью");
-                }
+                    pointedDoor.TryToggle(GetComponent<CharacterController>());
                 else if (!carrying && pointedVentilationSwitch != null && interact.WasPressedThisFrame())
                     pointedVentilationSwitch.Toggle();
-                else if (!carrying && pointedWindow != null && PointedEquipmentShop == null && interact.WasPressedThisFrame())
+                else if (!carrying && pointedWindow != null && PointedEquipmentShop == null && pointedParcel == null
+                    && (pointedRobot == null || pointedSendButton) && interact.WasPressedThisFrame())
                 {
                     bool done = pointedSendButton ? pointedWindow.TrySend(out string reason) : pointedWindow.Talk(out reason);
                     if (!done) Say(reason);
@@ -306,10 +314,13 @@ namespace BORis
                     bench.Enable();
                     SetCursor(true);
                 }
-                else if (PointedWorkbench != null && interact.WasPressedThisFrame() && !PointedWorkbench.HasRobot)
+                else if (PointedWorkbench != null && pointedRobot == null && interact.WasPressedThisFrame() && !PointedWorkbench.HasRobot)
                     Say("Верстак пуст. Поговорите с роботом у окна приёма и заберите его в ремонт");
-                else if (PointedWorkbench != null && interact.WasPressedThisFrame() && PointedWorkbench.Enter(player.View))
+                else if (PointedWorkbench != null && (enterWorkbench
+                    || (transport == null || pointedRobot == null) && interact.WasPressedThisFrame()) && PointedWorkbench.Enter(player.View))
                 {
+                    carryCandidate = null;
+                    waitForPrimaryRelease = true;
                     activeWorkbench = PointedWorkbench;
                     screwdriver = activeWorkbench.GetComponentInChildren<ScrewdriverTool>();
                     brush = activeWorkbench.GetComponentInChildren<BrushTool>();
@@ -325,25 +336,7 @@ namespace BORis
                 if (IsAtWorkbench && repairHUD != null) repairHUD.Show(this);
                 else
                 {
-                    string message = IsAtOrderDesk || IsAtEquipmentShop ? ""
-                        : Feedback.Length > 0 ? Feedback
-                        : session != null && session.Transport != null && session.Transport.IsCarrying ? "Отпустите ЛКМ"
-                        : session != null && session.Window != null && session.Window.IsCarryingParcel
-                            ? "Отпустите ЛКМ"
-                        : pointedParcel != null ? "ЛКМ · Взять"
-                        : pointedSendButton ? pointedWindow.CanCallVisitor ? "E · Вызвать" : "E · Отправить"
-                        : pointedRobot != null && session != null && session.Window != null && session.Window.IsVisitor(pointedRobot)
-                            ? session.Window.IsBusy ? "Подождите…"
-                                : session.Window.HasHeardRequest ? "ЛКМ · Взять"
-                                    : "ЛКМ · Разговор"
-                        : pointedRobot != null && session != null && pointedRobot == session.ActiveRobot
-                            ? PointedWorkbench != null && PointedWorkbench.HasRobot ? "E · Верстак" : "ЛКМ · Взять"
-                        : pointedDoor != null ? pointedDoor.Hint
-                        : pointedVentilationSwitch != null ? pointedVentilationSwitch.Hint
-                        : PointedEquipmentShop != null ? "E · Терминал"
-                        : pointedWindow != null ? "E · Окно"
-                        : PointedOrderDesk != null ? "E · Заказы"
-                        : PointedWorkbench != null ? PointedWorkbench.HasRobot ? "E · Верстак" : "Верстак пуст" : "";
+                    string message = IsAtOrderDesk || IsAtEquipmentShop ? "" : Feedback;
                     if (repairHUD != null) repairHUD.ShowShop(message);
                     else hint.text = message;
                 }
@@ -356,6 +349,13 @@ namespace BORis
 
         void TickBench()
         {
+            if (waitForPrimaryRelease)
+            {
+                waitForPrimaryRelease = primary.IsPressed();
+                IsViewMoving = activeWorkbench.UpdateView(Vector2.zero, 0f);
+                ClearObservation();
+                return;
+            }
             if (PointedScrew != null) PointedScrew.SetHovered(false);
             PointedScrew = null;
             IsViewMoving = false;
@@ -385,14 +385,7 @@ namespace BORis
                 }
                 return;
             }
-            if (selectHand.WasPressedThisFrame())
-                SelectTool(null);
-            if (selectScrewdriver.WasPressedThisFrame() && screwdriver != null)
-                SelectTool(screwdriver);
-            if ((selectBrush.WasPressedThisFrame() || Keyboard.current?.bKey.wasPressedThisFrame == true) && brush != null)
-                SelectToolShortcut(2);
-            if (selectSoldering != null && selectSoldering.WasPressedThisFrame())
-                SelectToolShortcut(3);
+            if (selectBrush.WasPressedThisFrame() && brush != null) ToggleBrush();
             if (Keyboard.current?.gKey.wasPressedThisFrame == true) RecoverLooseParts();
             Vector2 pointer = point.ReadValue<Vector2>();
             PointedPart = null;
@@ -456,14 +449,13 @@ namespace BORis
                 }
                 return;
             }
-            RepairTool activeTool = screwdriver != null && screwdriver.IsTurning ? screwdriver : selectedTool;
+            RepairTool activeTool = screwdriver != null && screwdriver.IsTurning ? screwdriver
+                : soldering != null && soldering.IsActive ? soldering : selectedTool;
             if (activeTool != null && activeTool.IsActive)
             {
                 ClearObservation();
                 if (!primary.IsPressed() || overUI) activeTool.End();
-                else if (activeTool == screwdriver && scroll.ReadValue<Vector2>().y != 0f)
-                    screwdriver.Scroll(scroll.ReadValue<Vector2>().y, pointer);
-                else if (activeTool == screwdriver && selectedTool == null) screwdriver.Hold(Time.deltaTime);
+                else if (activeTool == screwdriver) screwdriver.Hold(Time.deltaTime);
                 else activeTool.Drag(pointer);
                 if (!activeTool.IsActive) activeTool.FollowPointer(pointer);
                 return;
@@ -507,13 +499,9 @@ namespace BORis
                 else Say("");
             }
             else if (PointedStand != null) Say("Рукой перенесите снятый привод в гнездо стенда, затем нажмите на стенд");
-            else if (hit.collider.GetComponentInParent<ScrewdriverTool>() == screwdriver && screwdriver != null)
-                SelectTool(screwdriver);
             else if (hit.collider.GetComponentInParent<BrushTool>() == brush && brush != null)
-                SelectToolShortcut(2);
-            else if (hit.collider.GetComponentInParent<SolderingTool>() == soldering && SolderingAvailable)
-                SelectTool(soldering);
-            else if (SolderingSelected && PointedJoint != null)
+                ToggleBrush();
+            else if (!BrushSelected && PointedJoint != null && SolderingAvailable)
             {
                 if (robot.CanSolder(PointedJoint, session, out string reason)) soldering.Begin(PointedJoint, player.View, pointer);
                 else Say(reason);
@@ -605,6 +593,7 @@ namespace BORis
         void SelectTool(RepairTool tool)
         {
             if (screwdriver != null) screwdriver.End();
+            if (soldering != null) soldering.End();
             if (PointedScrew != null) PointedScrew.SetHovered(false);
             CancelPart();
             if (selectedTool != null) selectedTool.Select(null);
@@ -616,12 +605,10 @@ namespace BORis
             }
         }
 
-        public void SelectToolShortcut(int slot)
+        public void ToggleBrush()
         {
-            if (!IsAtWorkbench || robot == null || robot.IsTesting || robot.IsOnDriveStand || slot < 0 || slot > 3) return;
-            if (slot == 3 && !SolderingAvailable) { Say("Сначала приобретите паяльную станцию"); return; }
-            RepairTool tool = slot == 1 ? screwdriver : slot == 2 ? brush : slot == 3 ? soldering : null;
-            SelectTool(tool != null && selectedTool == tool ? null : tool);
+            if (!IsAtWorkbench || robot == null || robot.IsTesting || robot.IsOnDriveStand) return;
+            SelectTool(BrushSelected ? null : brush);
         }
 
         public void AlignInspection()
@@ -760,6 +747,7 @@ namespace BORis
                 if (session != null && session.Window != null) session.Window.CancelParcel();
                 ClearObservation();
                 if (screwdriver != null) screwdriver.End();
+                if (soldering != null) soldering.End();
                 if (selectedTool != null) selectedTool.End();
                 CancelPart();
                 if (activeWorkbench != null) activeWorkbench.AlignInspection();
@@ -781,6 +769,7 @@ namespace BORis
 
         public void ExitWorkbench()
         {
+            waitForPrimaryRelease = false;
             PointedStand = null;
             PointedObject = null;
             IsViewMoving = false;
