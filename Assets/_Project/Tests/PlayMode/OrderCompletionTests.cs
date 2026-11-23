@@ -404,15 +404,26 @@ public sealed class OrderCompletionTests
         Assert.That(interaction.IsAtWorkbench, Is.True);
         var hud = Object.FindAnyObjectByType<RepairHUD>();
         Text assembly = (Text)typeof(RepairHUD).GetField("assemblyState", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(hud);
+        Image fill = (Image)typeof(RepairHUD).GetField("cleaningProgress", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(hud);
+        var exit = (Button)typeof(InteractionController).GetField("exitButton", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(interaction);
+        Assert.That(exit.gameObject.activeInHierarchy, Is.False);
+        Assert.That(fill.type, Is.EqualTo(Image.Type.Simple));
+        Assert.That(fill.sprite, Is.Null);
+        Canvas.ForceUpdateCanvases();
+        Assert.That(fill.rectTransform.rect.width, Is.Zero.Within(.01f));
         Assert.That(assembly.text, Does.Contain("0%").Or.Contain("0 %"));
         Assert.That(assembly.text, Does.Not.Contain("СЕЙЧАС"));
-        DirtPatch outer = session.ActiveRobot.DirtPatches.Single(p => !p.RequiresOpenCover);
+        DirtPatch outer = session.ActiveRobot.DirtPatches.Single(p => p.name == "OuterDirt");
         outer.CleanStroke(new Vector2(.2f, .5f), new Vector2(.8f, .5f), .035f);
         float progress = outer.Cleanliness;
         yield return Press(Key.Escape);
         yield return Press(Key.E);
         Assert.That(outer.Cleanliness, Is.EqualTo(progress));
         Assert.That(assembly.text, Does.Contain(Mathf.RoundToInt(RepairHUD.CleaningAmount(session.ActiveRobot) * 100f) + "%"));
+        yield return new WaitForSeconds(.4f);
+        Canvas.ForceUpdateCanvases();
+        Assert.That(fill.rectTransform.rect.width,
+            Is.EqualTo(((RectTransform)fill.transform.parent).rect.width * fill.fillAmount).Within(.01f));
     }
 
     [UnityTearDown]

@@ -120,7 +120,8 @@ namespace BORis
             foreach (Renderer renderer in target.GetComponentsInChildren<Renderer>())
             {
                 var material = renderer.sharedMaterial;
-                if (renderer.GetComponent<DirtPatch>() != null || material == null || !material.HasProperty("_BaseColor")) continue;
+                if (renderer.GetComponent<DirtPatch>() != null || renderer.GetComponentInParent<ScrewFastener>() != null
+                    || material == null || !material.HasProperty("_BaseColor")) continue;
                 var original = new MaterialPropertyBlock(); renderer.GetPropertyBlock(original);
                 var tint = new MaterialPropertyBlock(); renderer.GetPropertyBlock(tint);
                 tint.SetColor("_BaseColor", Color.Lerp(material.GetColor("_BaseColor"), Warm, .24f));

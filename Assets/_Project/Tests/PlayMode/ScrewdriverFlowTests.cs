@@ -53,6 +53,46 @@ public sealed class ScrewdriverFlowTests
     Vector2 Center => player.View.WorldToScreenPoint(screw.transform.position);
 
     [UnityTest]
+    public IEnumerator HighlightDoesNotOverwriteRemovedScrewTransparency()
+    {
+        var robot = screw.GetComponentInParent<RobotRepair>();
+        var feedback = interaction.GetComponent<RepairFeedback>();
+        var highlight = typeof(RepairFeedback).GetMethod("Highlight",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        highlight.Invoke(feedback, new object[] { screw.transform });
+        robot.Turn(screw, -10000f);
+        highlight.Invoke(feedback, new object[] { null });
+        var renderer = screw.GetComponentInChildren<MeshRenderer>();
+        var properties = new MaterialPropertyBlock();
+        renderer.GetPropertyBlock(properties);
+        Assert.That(properties.GetColor("_BaseColor").a, Is.EqualTo(.4f).Within(.001f));
+        highlight.Invoke(feedback, new object[] { robot.Cover.transform });
+        screw.SetHovered(true);
+        highlight.Invoke(feedback, new object[] { null });
+        renderer.GetPropertyBlock(properties);
+        Assert.That(properties.GetColor("_BaseColor").a, Is.EqualTo(.85f).Within(.001f));
+        screw.SetHovered(false);
+        renderer.GetPropertyBlock(properties);
+        Assert.That(properties.GetColor("_BaseColor").a, Is.EqualTo(.4f).Within(.001f));
+        yield return null;
+    }
+
+    [UnityTest]
+    public IEnumerator HoldUsesElapsedTimeIndependentlyOfFrameRate()
+    {
+        var robot = screw.GetComponentInParent<RobotRepair>();
+        Assert.That(tool.Begin(screw, player.View, Center), Is.True);
+        tool.Hold(.12f);
+        float singleFrame = screw.Tightness;
+        tool.End();
+        robot.Turn(screw, 10000f);
+        Assert.That(tool.Begin(screw, player.View, Center), Is.True);
+        for (int i = 0; i < 3; i++) tool.Hold(.04f);
+        Assert.That(screw.Tightness, Is.EqualTo(singleFrame).Within(.001f));
+        yield return null;
+    }
+
+    [UnityTest]
     public IEnumerator HoldCompletesUnscrewingAndTighteningWithoutWheel()
     {
         yield return Pointer(Center, true);
@@ -64,8 +104,7 @@ public sealed class ScrewdriverFlowTests
         yield return Pointer(Center, false);
         yield return Pointer(Center, true);
         Assert.That(screw.IsRemoved, Is.False);
-        yield return Pointer(Center, false);
-        yield return Pointer(Center, true);
+        Assert.That(tool.Target, Is.SameAs(screw));
         yield return new WaitForSeconds(1.1f);
         Assert.That(screw.IsTight, Is.True);
         Assert.That(tool.IsTurning, Is.False);
@@ -130,11 +169,11 @@ public sealed class ScrewdriverFlowTests
         Assert.That(screw.IsRemoved, Is.False, "The ghost click must return the collected screw.");
         Assert.That(screw.IsTight, Is.False);
         Assert.That(screw.GetComponentInParent<RobotRepair>().ScrewTray.Count, Is.Zero);
-        Assert.That(tool.Target, Is.Null, "Insertion is separate from the turning gesture.");
+        Assert.That(tool.Target, Is.SameAs(screw), "The insertion press must also capture the screw for tightening.");
         float insertedTightness = screw.Tightness;
         InputSystem.QueueStateEvent(mouse, new MouseState { position = Center, buttons = 1, scroll = new Vector2(0, 120) });
         yield return null; yield return null;
-        Assert.That(screw.Tightness, Is.EqualTo(insertedTightness), "Holding the insertion click must not start tightening.");
+        Assert.That(screw.Tightness, Is.GreaterThan(insertedTightness));
         yield return Pointer(Center, false);
         yield return Pointer(Center, true);
         Assert.That(tool.Target, Is.SameAs(screw));
@@ -170,7 +209,7 @@ public sealed class ScrewdriverFlowTests
         yield return Pointer(Center, true);
         Assert.That(screw.IsRemoved, Is.False);
         Assert.That(screw.IsTight, Is.False);
-        Assert.That(tool.IsTurning, Is.False);
+        Assert.That(tool.IsTurning, Is.True);
         yield return Pointer(Center, false);
         yield return Pointer(Center, true);
         yield return Pointer(Center + Vector2.right * 60f, true);
@@ -179,6 +218,7 @@ public sealed class ScrewdriverFlowTests
             float angle = -i * 15f * Mathf.Deg2Rad;
             yield return Pointer(Center + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * 60f, true);
         }
+        yield return new WaitForSeconds(1.1f);
         Assert.That(screw.Tightness, Is.EqualTo(1f).Within(.001f));
     }
 
@@ -294,7 +334,7 @@ public sealed class ScrewdriverFlowTests
         Assert.That(screw.IsRemoved, Is.False);
         Assert.That(screw.IsTight, Is.False);
         Assert.That(robot.ScrewTray.Count, Is.Zero);
-        Assert.That(tool.IsTurning, Is.False);
+        Assert.That(tool.IsTurning, Is.True);
     }
 
     [UnityTest]

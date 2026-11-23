@@ -348,7 +348,7 @@ namespace BORis
                     else hint.text = message;
                 }
             }
-            if (exitButton != null) exitButton.gameObject.SetActive(IsAtWorkbench);
+            if (exitButton != null) exitButton.gameObject.SetActive(false);
             bool showHelpActions = IsAtWorkbench && repairHUD != null && repairHUD.IsHelpOpen;
             if (restartButton != null) restartButton.gameObject.SetActive(showHelpActions);
             if (alignInspectionButton != null) alignInspectionButton.gameObject.SetActive(showHelpActions);
@@ -527,7 +527,12 @@ namespace BORis
             {
                 if (PointedScrew.IsRemoved)
                 {
-                    if (robot.TryInsertScrew(PointedScrew, out string reason)) Say("");
+                    if (robot.TryInsertScrew(PointedScrew, out string reason))
+                    {
+                        SelectTool(null);
+                        screwdriver.Begin(PointedScrew, player.View, pointer);
+                        Say("");
+                    }
                     else Say(reason);
                 }
                 else if (robot.CanTurn(PointedScrew, out string reason))

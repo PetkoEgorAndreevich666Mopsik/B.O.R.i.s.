@@ -30,7 +30,7 @@ public sealed class BrushFlowTests
         interaction = player.GetComponent<InteractionController>();
         robot = Object.FindFirstObjectByType<RobotRepair>();
         brush = Object.FindFirstObjectByType<BrushTool>();
-        patch = robot.GetComponentsInChildren<DirtPatch>().Single(p => !p.RequiresOpenCover);
+        patch = robot.GetComponentsInChildren<DirtPatch>().Single(p => p.name == "OuterDirt");
         var body = player.GetComponent<CharacterController>();
         body.enabled = false;
         player.transform.position = Object.FindAnyObjectByType<Workbench>().transform.TransformPoint(new Vector3(0f, 0f, -2.2f));
@@ -117,7 +117,7 @@ public sealed class BrushFlowTests
     public IEnumerator MasksAreIndependentAndStrokeSamplingDoesNotChangeCleanedArea()
     {
         var copy = Object.Instantiate(robot.gameObject);
-        var other = copy.GetComponentsInChildren<DirtPatch>().Single(p => !p.RequiresOpenCover);
+        var other = copy.GetComponentsInChildren<DirtPatch>().Single(p => p.name == "OuterDirt");
         Assert.That(other.Mask, Is.Not.SameAs(patch.Mask));
         Assert.That(patch.CleanStroke(new Vector2(.2f, .5f), new Vector2(.8f, .5f), .035f), Is.GreaterThan(0));
         float cleaned = patch.Cleanliness;
@@ -203,6 +203,20 @@ public sealed class BrushFlowTests
         yield return Pointer(Vector2.zero, false);
         yield return Press(Key.E);
         Assert.That(patch.Cleanliness, Is.EqualTo(cleaned));
+    }
+
+    [UnityTest]
+    public IEnumerator FrameCanBeCleanedWithCoverInstalled()
+    {
+        var frame = robot.GetComponentsInChildren<DirtPatch>().Single(p => p.name == "FrameDirt");
+        Assert.That(robot.Cover.IsInstalled, Is.True);
+        Assert.That(robot.CanClean(frame, out _), Is.True);
+        yield return Press(Key.Digit3);
+        yield return Pointer(ScreenUV(frame, new Vector2(.5f, .3f)), true);
+        Assert.That(brush.Target, Is.SameAs(frame));
+        yield return Pointer(ScreenUV(frame, new Vector2(.5f, .7f)), true);
+        Assert.That(frame.Cleanliness, Is.GreaterThan(0f));
+        Assert.That(robot.Cover.IsInstalled, Is.True);
     }
 
     [UnityTest]

@@ -106,6 +106,52 @@ public sealed class MainMenuFlowTests
     }
 
     [UnityTest]
+    public IEnumerator SettingsDropdownRowsAreReadableAndSelectAnOption()
+    {
+        Click(ButtonNamed("SettingsButton"));
+        yield return null;
+        foreach (var dropdown in Object.FindObjectsByType<Dropdown>())
+        {
+            ExecuteEvents.Execute(dropdown.gameObject,
+                new PointerEventData(EventSystem.current) { button = PointerEventData.InputButton.Left }, ExecuteEvents.pointerClickHandler);
+            yield return new WaitForSecondsRealtime(.2f);
+            var list = GameObject.Find("Dropdown List");
+            Assert.That(list, Is.Not.Null);
+            var rows = list.GetComponentsInChildren<Toggle>();
+            Assert.That(rows.Length, Is.EqualTo(dropdown.options.Count));
+            var scroll = list.GetComponent<ScrollRect>();
+            if (scroll.content.rect.height > scroll.viewport.rect.height + 96f)
+            {
+                scroll.verticalNormalizedPosition = 1f;
+                Canvas.ForceUpdateCanvases();
+                float before = scroll.content.anchoredPosition.y;
+                ExecuteEvents.Execute(scroll.gameObject,
+                    new PointerEventData(EventSystem.current) { scrollDelta = new Vector2(0f, -6f) }, ExecuteEvents.scrollHandler);
+                Assert.That(scroll.content.anchoredPosition.y - before, Is.InRange(64f, 128f),
+                    "One wheel notch should move two to four rows.");
+            }
+            foreach (var row in rows)
+            {
+                var label = row.GetComponentInChildren<Text>();
+                Assert.That(label.text, Is.Not.Empty);
+                Assert.That(label.font, Is.Not.Null);
+                Assert.That(label.preferredHeight, Is.LessThanOrEqualTo(label.rectTransform.rect.height));
+                var selection = row.graphic.rectTransform;
+                Assert.That(selection.rect.width, Is.EqualTo(((RectTransform)row.transform).rect.width).Within(.1f));
+                Assert.That(selection.rect.height, Is.EqualTo(((RectTransform)row.transform).rect.height).Within(.1f));
+                Assert.That(row.graphic.transform.GetSiblingIndex(), Is.LessThan(label.transform.GetSiblingIndex()));
+            }
+            int selected = dropdown.value == 0 && rows.Length > 1 ? 1 : 0;
+            ExecuteEvents.Execute(rows[selected].gameObject,
+                new PointerEventData(EventSystem.current) { button = PointerEventData.InputButton.Left }, ExecuteEvents.pointerClickHandler);
+            float deadline = Time.realtimeSinceStartup + 1f;
+            while (GameObject.Find("Dropdown List") != null && Time.realtimeSinceStartup < deadline) yield return null;
+            Assert.That(dropdown.value, Is.EqualTo(selected));
+            Assert.That(GameObject.Find("Dropdown List"), Is.Null);
+        }
+    }
+
+    [UnityTest]
     public IEnumerator SettingsPreviewCancelAndApplyRememberVolume()
     {
         const string key = "BORis.Audio.Volume";

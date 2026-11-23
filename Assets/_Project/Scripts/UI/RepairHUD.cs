@@ -48,6 +48,7 @@ namespace BORis
                 previousRobot = robot;
                 diagnosisHelpLevel = 0;
                 showHelp = showDiagnosis = false;
+                if (cleaningProgress != null) cleaningProgress.fillAmount = CleaningAmount(robot);
             }
 
             if (controls != null) controls.gameObject.SetActive(false);
@@ -90,6 +91,7 @@ namespace BORis
             {
                 cleaningProgress.transform.parent.gameObject.SetActive(cleaning);
                 cleaningProgress.fillAmount = Mathf.MoveTowards(cleaningProgress.fillAmount, cleanliness, Time.unscaledDeltaTime * 1.2f);
+                cleaningProgress.rectTransform.anchorMax = new Vector2(cleaningProgress.fillAmount, 1f);
             }
 
             if (hint != null)

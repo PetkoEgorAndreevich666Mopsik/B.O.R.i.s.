@@ -13627,7 +13627,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: BORis.Runtime::BORis.DirtPatch
   displayName: "\u0420\u0430\u043C\u043A\u0430 \u043A\u043E\u0440\u043F\u0443\u0441\u0430"
-  requiresOpenCover: 1
+  requiresOpenCover: 0
 --- !u!1 &8377435692456704488
 GameObject:
   m_ObjectHideFlags: 0

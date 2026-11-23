@@ -173,7 +173,7 @@ public sealed class PhysicalInputTests
     public IEnumerator RecoveryEndsBrushAndRestoresCameraInspection()
     {
         yield return Press(Key.Digit3);
-        DirtPatch patch = robot.GetComponentsInChildren<DirtPatch>().Single(p => !p.RequiresOpenCover);
+        DirtPatch patch = robot.GetComponentsInChildren<DirtPatch>().Single(p => p.name == "OuterDirt");
         Vector2 point = Screen(patch.transform.TransformPoint(new Vector3(-.3f, 0f, 0f)));
         yield return Pointer(point, 1);
         Assert.That(interaction.Brush.IsActive, Is.True);

@@ -85,7 +85,7 @@ namespace BORis
         {
             if (Target == null || repair == null || !float.IsFinite(deltaTime) || deltaTime <= 0f) return;
             ScrewFastener screw = Target;
-            ApplyTurn(autoDirection * 900f * Mathf.Min(deltaTime, .05f));
+            ApplyTurn(autoDirection * 900f * deltaTime);
             if (Target != null && autoDirection > 0f && screw.IsTight) End();
         }
 
