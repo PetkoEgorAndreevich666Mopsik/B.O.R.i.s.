@@ -82,6 +82,7 @@ namespace BORis
                 || !robot.isActiveAndEnabled || robot.ActiveDriveStand != this) reason = "Перенесите снятый привод в гнездо стенда";
             else if (IsTesting) reason = "Проверка уже выполняется";
             if (reason.Length > 0) return false;
+            WorkshopAudio.Play(WorkshopSound.StandStart, .22f, transform.position);
             routine = StartCoroutine(TestDrive());
             return true;
         }
@@ -100,6 +101,7 @@ namespace BORis
                 yield return null;
             }
             Part.StandResult = Part.Faulty ? DriveTestResult.Interrupted : DriveTestResult.Smooth;
+            WorkshopAudio.Play(Part.Faulty ? WorkshopSound.StandFailed : WorkshopSound.StandPassed, .25f, transform.position);
             LastTestedPart = Part;
             routine = null;
             ReleasePart();

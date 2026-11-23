@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Linq;
 using BORis;
 using NUnit.Framework;
@@ -67,6 +67,32 @@ public sealed class BrushFlowTests
     }
 
     [UnityTest]
+    public IEnumerator WorkbenchPointerFollowsMouseUsesHandAndHidesForTools()
+    {
+        var pointer = player.GetComponentInChildren<WorkbenchPointer>();
+        Assert.That(pointer, Is.Not.Null);
+        yield return Pointer(new Vector2(24f, 24f), false);
+        Assert.That(pointer.Mode, Is.EqualTo(WorkbenchPointerMode.Dot));
+        Assert.That(Cursor.visible, Is.False);
+        Assert.That(Cursor.lockState, Is.EqualTo(CursorLockMode.Confined));
+        var canvas = pointer.GetComponentInParent<Canvas>().GetComponent<RectTransform>();
+        RectTransformUtility.ScreenPointToLocalPointInRectangle(canvas, new Vector2(24f, 24f), null, out var local);
+        Assert.That(Vector2.Distance(pointer.rectTransform.anchoredPosition, local), Is.LessThan(.1f));
+        var screw = robot.Cover.Screws[0];
+        yield return Pointer(player.View.WorldToScreenPoint(screw.transform.position), false);
+        Assert.That(pointer.Mode, Is.EqualTo(WorkbenchPointerMode.Hand));
+        yield return Pointer(player.View.WorldToScreenPoint(screw.transform.position), true);
+        Assert.That(interaction.Screwdriver.IsTurning, Is.True);
+        Assert.That(pointer.Mode, Is.EqualTo(WorkbenchPointerMode.Hidden));
+        yield return Pointer(player.View.WorldToScreenPoint(screw.transform.position), false);
+        yield return Press(Key.Digit1);
+        Assert.That(pointer.Mode, Is.EqualTo(WorkbenchPointerMode.Hidden));
+        yield return Press(Key.Digit1);
+        Assert.That(pointer.Mode, Is.Not.EqualTo(WorkbenchPointerMode.Hidden));
+        Assert.That(pointer.raycastTarget, Is.False);
+    }
+
+    [UnityTest]
     public IEnumerator RealMouseSelectsBrushAndLocallyCleans_StationaryHoldDoesNothing()
     {
         float bristleHalfWidth = brush.transform.Find("Bristles").localScale.x * .5f;
@@ -92,7 +118,12 @@ public sealed class BrushFlowTests
         float cleaned = patch.Cleanliness;
         yield return new WaitForSeconds(.15f);
         Assert.That(patch.Cleanliness, Is.EqualTo(cleaned));
-        Assert.That(brush.GetComponent<AudioSource>().isPlaying, Is.False);
+        var scrub = brush.GetComponent<AudioSource>();
+        Assert.That(scrub.volume, Is.LessThan(.18f), "The brush should fade out when movement stops.");
+        float silenceDeadline = Time.realtimeSinceStartup + .4f;
+        while (scrub.isPlaying && Time.realtimeSinceStartup < silenceDeadline) yield return null;
+        Assert.That(scrub.isPlaying, Is.False);
+        Assert.That(patch.Cleanliness, Is.EqualTo(cleaned));
         yield return Pointer(ScreenUV(patch, new Vector2(.8f, .5f)), false);
         Assert.That(brush.IsActive, Is.False);
     }

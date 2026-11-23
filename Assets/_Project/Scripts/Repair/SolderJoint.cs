@@ -10,6 +10,8 @@ namespace BORis
         [SerializeField] bool initiallyRepaired;
         bool[] repaired;
         int repairedCount;
+        MaterialPropertyBlock seamTint;
+        RobotRepair robot;
 
         public float Progress => repaired != null && repaired.Length > 0 ? (float)repairedCount / repaired.Length : 0f;
         public bool IsRepaired => repaired != null && repaired.Length > 0 && repairedCount == repaired.Length;
@@ -18,6 +20,8 @@ namespace BORis
 
         void Awake()
         {
+            robot = GetComponentInParent<RobotRepair>();
+            seamTint = new MaterialPropertyBlock();
             repaired = new bool[segments.Length];
             if (!initiallyRepaired) return;
             for (int i = 0; i < segments.Length; i++)
@@ -26,6 +30,26 @@ namespace BORis
                 if (segments[i] != null) segments[i].sharedMaterial = repairedMaterial;
             }
             repairedCount = segments.Length;
+        }
+
+        void LateUpdate()
+        {
+            bool visible = robot != null && robot.Cover != null && !robot.Cover.IsInstalled && !IsRepaired;
+            for (int i = 0; i < segments.Length; i++)
+            {
+                if (segments[i] == null) continue;
+                if (!visible || repaired[i]) { segments[i].SetPropertyBlock(null); continue; }
+                var material = segments[i].sharedMaterial;
+                if (material == null || !material.HasProperty("_BaseColor")) continue;
+                seamTint.SetColor("_BaseColor", Color.Lerp(material.GetColor("_BaseColor"), new Color(1f, .65f, .22f),
+                    .35f + Mathf.Sin(Time.unscaledTime * 3f) * .15f));
+                segments[i].SetPropertyBlock(seamTint);
+            }
+        }
+
+        void OnDisable()
+        {
+            foreach (var segment in segments) if (segment != null) segment.SetPropertyBlock(null);
         }
 
         internal int ApplyStroke(float from, float to)

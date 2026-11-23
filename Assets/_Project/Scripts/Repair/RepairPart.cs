@@ -263,8 +263,10 @@ namespace BORis
                     transform.rotation = Quaternion.AngleAxis(-12f, installationAnchor.right) * transform.rotation;
             }
             RestorePose();
+            if (extracted) WorkshopAudio.Play(WorkshopSound.PartPickUp, .2f, transform.position);
             if (inserted)
             {
+                WorkshopAudio.Play(WorkshopSound.PartInstall, .24f, transform.position);
                 AudioClip sound = releaseSound;
                 if (sound == null) sound = GetComponentInParent<RobotRepair>()?.Cover?.releaseSound;
                 if (sound != null) audioSource.PlayOneShot(sound, .45f);

@@ -1,20 +1,18 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 namespace BORis
 {
-    [RequireComponent(typeof(InteractionController), typeof(AudioSource))]
+    [RequireComponent(typeof(InteractionController))]
     public sealed class RepairFeedback : MonoBehaviour
     {
         [SerializeField] InteractionRing ring;
         [SerializeField] Image icon;
         [SerializeField] Text result;
         [SerializeField] Sprite hand, screwdriver;
-        [SerializeField] AudioClip click;
         InteractionController interaction;
-        AudioSource sound;
         CanvasGroup group;
         RectTransform canvas;
         Transform highlighted, pulseTarget;
@@ -35,8 +33,6 @@ namespace BORis
         void Awake()
         {
             interaction = GetComponent<InteractionController>();
-            sound = GetComponent<AudioSource>();
-            sound.playOnAwake = false;
             group = ring.GetComponent<CanvasGroup>();
             group.blocksRaycasts = group.interactable = false;
             canvas = ring.GetComponentInParent<Canvas>().GetComponent<RectTransform>();
@@ -48,7 +44,7 @@ namespace BORis
             pulseTarget = target;
             pulseUntil = Time.unscaledTime + .4f;
             successful = success;
-            if (click != null) { sound.pitch = success ? 1.2f : .65f; sound.PlayOneShot(click, success ? .35f : .2f); }
+
         }
 
         void LateUpdate()
@@ -61,8 +57,8 @@ namespace BORis
             previousScrew = screw;
             if (interaction.Brush != null && interaction.Brush.Target != null && interaction.Brush.Target.IsClean
                 && completedPatches.Add(interaction.Brush.Target)) Pulse(interaction.Brush.Target.transform, true);
-            if (previousHeld == null && interaction.HeldPart != null && click != null)
-            { sound.pitch = .9f; sound.PlayOneShot(click, .14f); }
+            if (previousHeld == null && interaction.HeldPart != null)
+            { WorkshopAudio.Play(WorkshopSound.PartPickUp, .16f); }
             previousHeld = interaction.HeldPart;
             var connector = interaction.PointedConnector;
             if (connector != null && previousConnector == connector && connectorConnected != connector.IsConnected) Pulse(connector.transform, true);
@@ -86,15 +82,19 @@ namespace BORis
                 if (!allowed && previousFeedback.Length > 0) Pulse(target, false);
             }
             bool pulse = Time.unscaledTime < pulseUntil && pulseTarget != null;
-            bool visible = target != null && !interaction.BrushSelected && !interaction.SolderingSelected || pulse;
+            bool brushing = interaction.Brush != null && interaction.Brush.IsActive && interaction.Brush.HasContact
+                && interaction.Brush.Target != null && !interaction.Brush.Target.IsClean;
+            bool soldering = interaction.Soldering != null && interaction.Soldering.IsActive && interaction.Soldering.HasContact;
+            bool visible = pulse || screw != null || brushing || soldering
+                || interaction.HeldPart != null && interaction.StowProgress > 0f;
+            Highlight(!interaction.BrushSelected && !interaction.SolderingSelected && allowed ? target : null);
             group.alpha = Mathf.MoveTowards(group.alpha, visible ? 1f : 0f, Time.unscaledDeltaTime * 12f);
-            if (!visible) { Highlight(null); return; }
-            bool driving = screw != null || interaction.PointedScrew != null;
-            Highlight(pulse ? null : target);
+            if (!visible) return;
+            if (pulse) Highlight(null);
             ring.color = pulse ? successful ? Good : Blocked : allowed ? Warm : Blocked;
-            ring.Progress = pulse ? 1f : screw != null ? driver.ActionProgress : interaction.HeldPart != null ? interaction.StowProgress : 0f;
-            icon.sprite = driving ? screwdriver : hand;
-            icon.gameObject.SetActive(!pulse);
+            ring.Progress = pulse ? 1f : screw != null ? driver.ActionProgress
+                : brushing ? interaction.Brush.Target.Cleanliness : soldering ? interaction.Soldering.Target.Progress : interaction.StowProgress;
+            icon.gameObject.SetActive(false);
             result.gameObject.SetActive(pulse);
             result.text = successful ? "✓" : "×";
             result.color = ring.color;
@@ -107,8 +107,8 @@ namespace BORis
             }
             RectTransformUtility.ScreenPointToLocalPointInRectangle(canvas, screen, null, out Vector2 local);
             var size = canvas.rect;
-            ring.rectTransform.anchoredPosition = new Vector2(Mathf.Clamp(local.x + 42f, size.xMin + 32f, size.xMax - 32f),
-                Mathf.Clamp(local.y + 16f, size.yMin + 32f, size.yMax - 32f));
+            ring.rectTransform.anchoredPosition = new Vector2(Mathf.Clamp(local.x + 26f, size.xMin + 32f, size.xMax - 32f),
+                Mathf.Clamp(local.y + 18f, size.yMin + 32f, size.yMax - 32f));
         }
 
         void Highlight(Transform target)

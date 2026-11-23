@@ -1894,6 +1894,7 @@ GameObject:
   - component: {fileID: 295769149}
   - component: {fileID: 295769148}
   - component: {fileID: 295769147}
+  - component: {fileID: 295769150}
   m_Layer: 5
   m_Name: BackButton
   m_TagString: Untagged
@@ -2015,6 +2016,18 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 295769145}
   m_CullTransparentMesh: 1
+--- !u!114 &295769150
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 295769145}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 61831d83ba5eed043869895f1f0b6d60, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: BORis.Runtime::BORis.UiSoundFeedback
 --- !u!1 &296708172
 GameObject:
   m_ObjectHideFlags: 0
@@ -2618,6 +2631,7 @@ GameObject:
   - component: {fileID: 724379344}
   - component: {fileID: 724379343}
   - component: {fileID: 724379342}
+  - component: {fileID: 724379346}
   m_Layer: 0
   m_Name: Resolution
   m_TagString: Untagged
@@ -2744,6 +2758,18 @@ RectTransform:
   m_AnchoredPosition: {x: 77, y: 58}
   m_SizeDelta: {x: 250, y: 38}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &724379346
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 724379341}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 61831d83ba5eed043869895f1f0b6d60, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: BORis.Runtime::BORis.UiSoundFeedback
 --- !u!114 &737870662
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3257,6 +3283,7 @@ GameObject:
   - component: {fileID: 969035274}
   - component: {fileID: 969035273}
   - component: {fileID: 969035272}
+  - component: {fileID: 969035275}
   m_Layer: 5
   m_Name: SettingsButton
   m_TagString: Untagged
@@ -3380,6 +3407,18 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 969035270}
   m_CullTransparentMesh: 1
+--- !u!114 &969035275
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 969035270}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 61831d83ba5eed043869895f1f0b6d60, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: BORis.Runtime::BORis.UiSoundFeedback
 --- !u!1 &1006415116
 GameObject:
   m_ObjectHideFlags: 0
@@ -3500,6 +3539,7 @@ GameObject:
   - component: {fileID: 1063579818}
   - component: {fileID: 1063579817}
   - component: {fileID: 1063579816}
+  - component: {fileID: 1063579819}
   m_Layer: 0
   m_Name: Scrollbar
   m_TagString: Untagged
@@ -3614,6 +3654,18 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1063579814}
   m_CullTransparentMesh: 1
+--- !u!114 &1063579819
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1063579814}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 61831d83ba5eed043869895f1f0b6d60, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: BORis.Runtime::BORis.UiSoundFeedback
 --- !u!1 &1075592661
 GameObject:
   m_ObjectHideFlags: 0
@@ -3624,6 +3676,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1075592662}
   - component: {fileID: 1075592663}
+  - component: {fileID: 1075592664}
   m_Layer: 0
   m_Name: Item
   m_TagString: Untagged
@@ -3701,6 +3754,18 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_IsOn: 1
+--- !u!114 &1075592664
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1075592661}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 61831d83ba5eed043869895f1f0b6d60, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: BORis.Runtime::BORis.UiSoundFeedback
 --- !u!1 &1079636217
 GameObject:
   m_ObjectHideFlags: 0
@@ -3790,6 +3855,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1177017120}
   - component: {fileID: 1177017119}
+  - component: {fileID: 1177017121}
   m_Layer: 0
   m_Name: Volume
   m_TagString: Untagged
@@ -3870,6 +3936,18 @@ RectTransform:
   m_AnchoredPosition: {x: 43, y: -58}
   m_SizeDelta: {x: 192, y: 28}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &1177017121
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1177017118}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 61831d83ba5eed043869895f1f0b6d60, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: BORis.Runtime::BORis.UiSoundFeedback
 --- !u!1 &1182876562
 GameObject:
   m_ObjectHideFlags: 0
@@ -3880,6 +3958,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1182876563}
   - component: {fileID: 1182876564}
+  - component: {fileID: 1182876565}
   m_Layer: 0
   m_Name: Item
   m_TagString: Untagged
@@ -3957,6 +4036,18 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_IsOn: 1
+--- !u!114 &1182876565
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1182876562}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 61831d83ba5eed043869895f1f0b6d60, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: BORis.Runtime::BORis.UiSoundFeedback
 --- !u!1 &1248711242
 GameObject:
   m_ObjectHideFlags: 0
@@ -4108,6 +4199,7 @@ GameObject:
   - component: {fileID: 1313425545}
   - component: {fileID: 1313425544}
   - component: {fileID: 1313425543}
+  - component: {fileID: 1313425547}
   m_Layer: 0
   m_Name: ScreenMode
   m_TagString: Untagged
@@ -4234,6 +4326,18 @@ RectTransform:
   m_AnchoredPosition: {x: 77, y: 6}
   m_SizeDelta: {x: 250, y: 38}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &1313425547
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1313425542}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 61831d83ba5eed043869895f1f0b6d60, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: BORis.Runtime::BORis.UiSoundFeedback
 --- !u!114 &1332855814
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4468,6 +4572,7 @@ GameObject:
   - component: {fileID: 1532517883}
   - component: {fileID: 1532517882}
   - component: {fileID: 1532517881}
+  - component: {fileID: 1532517885}
   m_Layer: 5
   m_Name: NewGameButton
   m_TagString: Untagged
@@ -4589,6 +4694,18 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 150}
   m_SizeDelta: {x: 124, y: 25}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &1532517885
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1532517880}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 61831d83ba5eed043869895f1f0b6d60, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: BORis.Runtime::BORis.UiSoundFeedback
 --- !u!1 &1548911690
 GameObject:
   m_ObjectHideFlags: 0
@@ -4957,6 +5074,7 @@ GameObject:
   - component: {fileID: 1638242592}
   - component: {fileID: 1638242591}
   - component: {fileID: 1638242590}
+  - component: {fileID: 1638242593}
   m_Layer: 5
   m_Name: ContinueButton
   m_TagString: Untagged
@@ -5068,6 +5186,18 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1638242588}
   m_CullTransparentMesh: 1
+--- !u!114 &1638242593
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1638242588}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 61831d83ba5eed043869895f1f0b6d60, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: BORis.Runtime::BORis.UiSoundFeedback
 --- !u!1 &1709655151
 GameObject:
   m_ObjectHideFlags: 0
@@ -5392,6 +5522,7 @@ GameObject:
   - component: {fileID: 1799172145}
   - component: {fileID: 1799172144}
   - component: {fileID: 1799172143}
+  - component: {fileID: 1799172146}
   m_Layer: 5
   m_Name: CreditsButton
   m_TagString: Untagged
@@ -5503,6 +5634,18 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1799172141}
   m_CullTransparentMesh: 1
+--- !u!114 &1799172146
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1799172141}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 61831d83ba5eed043869895f1f0b6d60, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: BORis.Runtime::BORis.UiSoundFeedback
 --- !u!114 &1806348320
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5776,6 +5919,7 @@ GameObject:
   - component: {fileID: 1890781713}
   - component: {fileID: 1890781712}
   - component: {fileID: 1890781711}
+  - component: {fileID: 1890781714}
   m_Layer: 5
   m_Name: QuitButton
   m_TagString: Untagged
@@ -5897,6 +6041,18 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1890781709}
   m_CullTransparentMesh: 1
+--- !u!114 &1890781714
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1890781709}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 61831d83ba5eed043869895f1f0b6d60, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: BORis.Runtime::BORis.UiSoundFeedback
 --- !u!1 &1896987077
 GameObject:
   m_ObjectHideFlags: 0
@@ -5984,6 +6140,7 @@ GameObject:
   - component: {fileID: 1920917933}
   - component: {fileID: 1920917932}
   - component: {fileID: 1920917931}
+  - component: {fileID: 1920917934}
   m_Layer: 5
   m_Name: ApplyButton
   m_TagString: Untagged
@@ -6105,6 +6262,18 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1920917929}
   m_CullTransparentMesh: 1
+--- !u!114 &1920917934
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1920917929}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 61831d83ba5eed043869895f1f0b6d60, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: BORis.Runtime::BORis.UiSoundFeedback
 --- !u!1 &1932894337
 GameObject:
   m_ObjectHideFlags: 0
@@ -6484,6 +6653,7 @@ GameObject:
   - component: {fileID: 2125483251}
   - component: {fileID: 2125483250}
   - component: {fileID: 2125483249}
+  - component: {fileID: 2125483252}
   m_Layer: 0
   m_Name: Scrollbar
   m_TagString: Untagged
@@ -6598,6 +6768,18 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2125483247}
   m_CullTransparentMesh: 1
+--- !u!114 &2125483252
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2125483247}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 61831d83ba5eed043869895f1f0b6d60, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: BORis.Runtime::BORis.UiSoundFeedback
 --- !u!1 &2137187034
 GameObject:
   m_ObjectHideFlags: 0

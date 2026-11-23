@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using UnityEngine;
 
 namespace BORis
@@ -173,6 +173,7 @@ namespace BORis
             if (Mathf.Abs(applied) > .0001f)
             {
                 if (screw.IsRemoved) ScrewTray.Collect(screw);
+                if (screw.IsRemoved || screw.IsTight) WorkshopAudio.Play(WorkshopSound.ScrewComplete, .18f, screw.transform.position);
                 InvalidateTest();
                 if (cover != null && screw.GetComponentInParent<RepairPart>() == cover) cover.RefreshRelease();
             }
@@ -211,7 +212,12 @@ namespace BORis
         {
             if (!CanSolder(joint, session, out _)) return 0;
             int added = joint.ApplyStroke(from, to);
-            if (added > 0) { JointFaultFound = true; InvalidateTest(); }
+            if (added > 0)
+            {
+                JointFaultFound = true;
+                InvalidateTest();
+                if (joint.IsRepaired) WorkshopAudio.Play(WorkshopSound.SolderComplete, .34f);
+            }
             return added;
         }
 
@@ -267,7 +273,7 @@ namespace BORis
             return true;
         }
 
-        public bool ToggleConnection(RepairConnector target, out string reason)
+        public bool CanToggleConnection(RepairConnector target, out string reason)
         {
             reason = "";
             if (!isActiveAndEnabled || target == null || target != connector || !target.isActiveAndEnabled)
@@ -277,9 +283,15 @@ namespace BORis
             else if (cover.IsInstalled) reason = "Сначала снимите крышку";
             else if (InstalledDrive == null) reason = "Сначала установите привод";
             else if (!connector.IsConnected && !FullyTightened(InstalledDrive)) reason = "Сначала затяните оба винта привода";
-            if (reason.Length > 0) return false;
+            return reason.Length == 0;
+        }
+
+        public bool ToggleConnection(RepairConnector target, out string reason)
+        {
+            if (!CanToggleConnection(target, out reason)) return false;
             InvalidateTest();
             connector.SetConnected(!connector.IsConnected);
+            WorkshopAudio.Play(connector.IsConnected ? WorkshopSound.ConnectorOn : WorkshopSound.ConnectorOff, .3f, connector.transform.position);
             return true;
         }
 
@@ -301,6 +313,7 @@ namespace BORis
         {
             if (!CanRunTest(out reason)) return false;
             InvalidateTest();
+            WorkshopAudio.Play(WorkshopSound.TestStart, .24f);
             testRoutine = StartCoroutine(TestArm());
             return true;
         }
@@ -348,6 +361,7 @@ namespace BORis
             TestResult = functional ? RobotTestResult.Passed : RobotTestResult.Faulty;
             LastArmObservation = functional ? ArmObservation.FullMovement : powered ? ArmObservation.Stuttering : ArmObservation.NoMovement;
             testRoutine = null;
+            if (!functional) WorkshopAudio.Play(WorkshopSound.TestFailed, .26f);
         }
 
         void InvalidateTest()

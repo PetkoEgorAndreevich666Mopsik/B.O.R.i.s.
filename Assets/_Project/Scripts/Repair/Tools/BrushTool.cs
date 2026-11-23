@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace BORis
 {
@@ -31,6 +31,7 @@ namespace BORis
         bool hasSurfaceAnchor;
         float lastDustEmissionTime = float.NegativeInfinity;
         int queryMask;
+        float scrubUntil;
 
         public DirtPatch Target { get; private set; }
         public override bool IsActive => repair != null;
@@ -139,19 +140,26 @@ namespace BORis
             transform.SetPositionAndRotation(
                 hit.point + hitNormal * brushSurfaceOffset,
                 SurfaceRotation(hit.point, hitNormal));
+            bool wasClean = Target == null || Target.IsClean;
             int cleaned = Target != null && Target == previousTarget && hasPrevious
                 ? Target.CleanStroke(surfaceAnchorPoint, hit.point, radius) : 0;
             if (cleaned > 0)
             {
-                audioSource.volume = .28f;
-                if (scrubSound != null && !audioSource.isPlaying) audioSource.Play();
+                scrubUntil = Time.unscaledTime + .1f;
+                if (!wasClean && Target.IsClean) WorkshopAudio.Play(WorkshopSound.CleanComplete, .16f);
+                if (scrubSound != null && !audioSource.isPlaying)
+                {
+                    audioSource.volume = 0f;
+                    audioSource.Play();
+                }
                 UpdateDust(true, hit.point, hitNormal);
             }
             else
             {
-                audioSource.Stop();
                 UpdateDust(false, hit.point, hitNormal);
             }
+            audioSource.volume = Mathf.MoveTowards(audioSource.volume, Time.unscaledTime < scrubUntil ? .18f : 0f, Time.unscaledDeltaTime * 1.5f);
+            if (audioSource.volume <= 0f) audioSource.Stop();
             surfaceAnchorPoint = hit.point;
             surfaceAnchorNormal = hitNormal;
             hasSurfaceAnchor = true;
@@ -162,6 +170,7 @@ namespace BORis
         {
             Target = null;
             repair = null;
+            scrubUntil = 0f;
             hasPrevious = HasContact = hasContactPose = hasSurfaceAnchor = false;
             if (audioSource != null) audioSource.Stop();
             StopDust();

@@ -53,6 +53,7 @@ namespace BORis
 
             operatorBody = body;
             targetOpen = !targetOpen;
+            WorkshopAudio.Play(targetOpen ? WorkshopSound.DoorOpen : WorkshopSound.DoorClose, .25f, transform.position);
             return true;
         }
 

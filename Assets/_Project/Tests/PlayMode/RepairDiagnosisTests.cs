@@ -38,11 +38,11 @@ public sealed class RepairDiagnosisTests
         yield return null;
     }
 
-    IEnumerator EnterOrder(bool cleaning = false, bool independent = false, bool contact = false, bool details = true)
+    IEnumerator EnterOrder(bool cleaning = false, bool independent = false, bool contact = false, bool details = true, string orderId = null)
     {
         var orders = (OrderDefinition[])typeof(WorkshopSession).GetField("orders",
             BindingFlags.Instance | BindingFlags.NonPublic).GetValue(session);
-        int repairIndex = System.Array.FindIndex(orders, o => o.RequiresCleaning == cleaning && o.RequiresSolderingStation == contact);
+        int repairIndex = System.Array.FindIndex(orders, o => orderId != null ? o.OrderId == orderId : o.RequiresCleaning == cleaning && o.RequiresSolderingStation == contact);
         if (contact)
         {
             typeof(WorkshopSession).GetField("<Balance>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(session, WorkshopSession.SolderingStationPrice);
@@ -448,6 +448,120 @@ public sealed class RepairDiagnosisTests
         Assert.That(TextNamed("DiagnosisText").text, Does.Contain("паяльником"));
     }
 
+    [UnityTest] public IEnumerator RealOrderAHintsFollowCompleteRepair() => WalkRealOrder("A-001", false);
+    [UnityTest] public IEnumerator RealOrderBHintsFollowCompleteRepair() => WalkRealOrder("B-001", false);
+    [UnityTest] public IEnumerator RealOrderCHintsFollowCompleteRepair() => WalkRealOrder("C", true);
+    [UnityTest] public IEnumerator RealOrderDHintsFollowCompleteRepair() => WalkRealOrder("D-001", true);
+    [UnityTest] public IEnumerator RealOrderEHintsFollowCompleteRepair() => WalkRealOrder("E-001", true);
+
+    IEnumerator WalkRealOrder(string orderId, bool station)
+    {
+        yield return EnterOrder(contact: station, orderId: orderId);
+        var bench = Object.FindFirstObjectByType<Workbench>();
+        var stand = interaction.DriveStand;
+        var hint = player.GetComponentInChildren<RepairHintView>();
+        Transform Resolve(RepairPart held = null) => RepairHintTarget.Resolve(robot, session.ActiveOrder, held, stand, bench.TestButton.transform);
+        yield return Press(Key.F1);
+        Assert.That(hint.Target, Is.EqualTo(Resolve()), orderId);
+        if (session.ActiveOrder.IndependentDiagnosis)
+        {
+            Assert.That(Resolve(), Is.EqualTo(bench.TestButton.transform));
+            Assert.That(robot.RunTest(out _), Is.True);
+            while (robot.IsTesting) yield return null;
+        }
+        if (session.ActiveOrder.RequiresCleaning)
+            foreach (var patch in robot.DirtPatches)
+                if (robot.CanClean(patch, out _)) patch.CleanStroke(Vector2.zero, Vector2.one, 2f);
+        foreach (var screw in robot.Cover.Screws)
+        {
+            Assert.That(Resolve(), Is.EqualTo(screw.transform));
+            robot.Turn(screw, -10000f);
+        }
+        Assert.That(Resolve(), Is.EqualTo(robot.Cover.transform));
+        Assert.That(robot.TryPlace(robot.Cover, false, out _), Is.True);
+        if (session.ActiveOrder.RequiresCleaning)
+            foreach (var patch in robot.DirtPatches)
+                if (!patch.IsClean)
+                {
+                    Assert.That(Resolve(), Is.EqualTo(patch.transform));
+                    patch.CleanStroke(Vector2.zero, Vector2.one, 2f);
+                }
+        var drive = robot.InstalledDrive;
+        if (drive.Faulty)
+        {
+            if (session.ActiveOrder.IndependentDiagnosis)
+            {
+                Assert.That(Resolve(), Is.EqualTo(drive.transform));
+                robot.InspectDrive(drive);
+            }
+            Assert.That(Resolve(), Is.EqualTo(robot.Connector.transform));
+            Assert.That(robot.ToggleConnection(robot.Connector, out _), Is.True);
+            foreach (var screw in drive.Screws)
+            {
+                Assert.That(Resolve(), Is.EqualTo(screw.transform));
+                robot.Turn(screw, -10000f);
+            }
+            Assert.That(Resolve(), Is.EqualTo(drive.transform));
+            Assert.That(robot.TryPlace(drive, false, out _), Is.True);
+            Assert.That(Resolve(), Is.EqualTo(drive.transform), "Pick up the removed drive before pointing at the stand.");
+            Assert.That(Resolve(drive), Is.EqualTo(stand.Socket));
+            Assert.That(stand.TryLoad(robot, drive, out string reason), Is.True, reason);
+            Assert.That(Resolve(), Is.EqualTo(stand.transform));
+            Assert.That(stand.RunTest(out _), Is.True);
+            while (stand.IsTesting) yield return null;
+            var spare = robot.GetComponentsInChildren<RepairPart>().Single(p => p.Kind == RepairPartKind.Drive && !p.Faulty);
+            Assert.That(Resolve(), Is.EqualTo(spare.transform));
+            Assert.That(Resolve(spare), Is.EqualTo(spare.InstallationAnchor));
+            Assert.That(Resolve(drive), Is.EqualTo(drive.TrayAnchor));
+            Assert.That(robot.TryPlace(spare, true, out reason), Is.True, reason);
+            drive = spare;
+        }
+        if (robot.SolderJoint != null && !robot.SolderJoint.IsRepaired)
+        {
+            if (session.ActiveOrder.IndependentDiagnosis)
+            {
+                Assert.That(Resolve(), Is.EqualTo(robot.SolderJoint.transform));
+                robot.InspectJoint(robot.SolderJoint);
+            }
+            Assert.That(Resolve(), Is.EqualTo(robot.Connector.transform));
+            Assert.That(robot.ToggleConnection(robot.Connector, out _), Is.True);
+            Assert.That(Resolve(), Is.EqualTo(robot.SolderJoint.transform));
+            Assert.That(robot.SolderStroke(robot.SolderJoint, session, 0f, 1f), Is.GreaterThan(0));
+        }
+        foreach (var screw in drive.Screws)
+            if (!screw.IsTight)
+            {
+                Assert.That(Resolve(), Is.EqualTo(screw.transform));
+                if (screw.IsRemoved) Assert.That(robot.TryInsertScrew(screw, out _), Is.True);
+                robot.Turn(screw, 10000f);
+            }
+        if (!robot.Connector.IsConnected)
+        {
+            Assert.That(Resolve(), Is.EqualTo(robot.Connector.transform));
+            Assert.That(robot.ToggleConnection(robot.Connector, out _), Is.True);
+        }
+        Assert.That(Resolve(), Is.EqualTo(robot.Cover.transform));
+        Assert.That(Resolve(robot.Cover), Is.EqualTo(robot.Cover.InstallationAnchor));
+        Assert.That(robot.TryPlace(robot.Cover, true, out _), Is.True);
+        foreach (var screw in robot.Cover.Screws)
+        {
+            Assert.That(Resolve(), Is.EqualTo(screw.transform));
+            if (screw.IsRemoved) Assert.That(robot.TryInsertScrew(screw, out _), Is.True);
+            robot.Turn(screw, 10000f);
+        }
+        Assert.That(Resolve(), Is.EqualTo(bench.TestButton.transform));
+        Assert.That(robot.RunTest(out _), Is.True);
+        while (robot.IsTesting) yield return null;
+        Assert.That(robot.TestResult, Is.EqualTo(RobotTestResult.Passed));
+        yield return null;
+        Assert.That(TextNamed("RepairNotice").gameObject.activeInHierarchy, Is.True);
+        Assert.That(TextNamed("RepairNotice").text, Is.EqualTo("Ремонт завершён"));
+        if (!session.ActiveOrder.RequiresCleaning)
+            Assert.That(TextNamed("AssemblyState").gameObject.activeInHierarchy, Is.False);
+        Assert.That(hint.Target, Is.Null);
+        yield return Press(Key.F1);
+        Assert.That(hint.Target, Is.Null);
+    }
     [UnityTearDown]
     public IEnumerator TearDown()
     {

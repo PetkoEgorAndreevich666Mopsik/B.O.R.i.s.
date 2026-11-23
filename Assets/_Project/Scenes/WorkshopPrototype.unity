@@ -2467,6 +2467,7 @@ GameObject:
   - component: {fileID: 155501908}
   - component: {fileID: 155501907}
   - component: {fileID: 155501906}
+  - component: {fileID: 155501909}
   m_Layer: 0
   m_Name: DiagnosisHelpButton
   m_TagString: Untagged
@@ -2576,6 +2577,18 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 155501904}
   m_CullTransparentMesh: 1
+--- !u!114 &155501909
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 155501904}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 61831d83ba5eed043869895f1f0b6d60, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BORis.Runtime::BORis.UiSoundFeedback
 --- !u!1 &158789852
 GameObject:
   m_ObjectHideFlags: 0
@@ -3510,6 +3523,7 @@ GameObject:
   - component: {fileID: 210378269}
   - component: {fileID: 210378268}
   - component: {fileID: 210378267}
+  - component: {fileID: 210378271}
   m_Layer: 0
   m_Name: CloseOrderButton
   m_TagString: Untagged
@@ -3619,6 +3633,18 @@ RectTransform:
   m_AnchoredPosition: {x: 160, y: 44}
   m_SizeDelta: {x: -384, y: 44}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &210378271
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 210378266}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 61831d83ba5eed043869895f1f0b6d60, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BORis.Runtime::BORis.UiSoundFeedback
 --- !u!1 &217393598
 GameObject:
   m_ObjectHideFlags: 0
@@ -4002,6 +4028,7 @@ GameObject:
   - component: {fileID: 220912503}
   - component: {fileID: 220912502}
   - component: {fileID: 220912501}
+  - component: {fileID: 220912504}
   m_Layer: 0
   m_Name: ToolSlot4
   m_TagString: Untagged
@@ -4124,6 +4151,18 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 220912499}
   m_CullTransparentMesh: 1
+--- !u!114 &220912504
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 220912499}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 61831d83ba5eed043869895f1f0b6d60, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BORis.Runtime::BORis.UiSoundFeedback
 --- !u!1 &221410568
 GameObject:
   m_ObjectHideFlags: 0
@@ -12507,6 +12546,7 @@ GameObject:
   - component: {fileID: 425708298}
   - component: {fileID: 425708297}
   - component: {fileID: 425708299}
+  - component: {fileID: 425708300}
   m_Layer: 0
   m_Name: BuyStationButton
   m_TagString: Untagged
@@ -12616,6 +12656,18 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &425708300
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 425708295}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 61831d83ba5eed043869895f1f0b6d60, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BORis.Runtime::BORis.UiSoundFeedback
 --- !u!1 &436155635
 GameObject:
   m_ObjectHideFlags: 0
@@ -12984,6 +13036,7 @@ GameObject:
   - component: {fileID: 466272415}
   - component: {fileID: 466272414}
   - component: {fileID: 466272413}
+  - component: {fileID: 466272416}
   m_Layer: 0
   m_Name: DiagnosisButton
   m_TagString: Untagged
@@ -13093,6 +13146,18 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 466272411}
   m_CullTransparentMesh: 1
+--- !u!114 &466272416
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 466272411}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 61831d83ba5eed043869895f1f0b6d60, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BORis.Runtime::BORis.UiSoundFeedback
 --- !u!1001 &467614642
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -13707,6 +13772,7 @@ GameObject:
   - component: {fileID: 492983772}
   - component: {fileID: 492983771}
   - component: {fileID: 492983770}
+  - component: {fileID: 492983773}
   m_Layer: 0
   m_Name: AlignInspectionButton
   m_TagString: Untagged
@@ -13816,6 +13882,18 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 492983768}
   m_CullTransparentMesh: 1
+--- !u!114 &492983773
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 492983768}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 61831d83ba5eed043869895f1f0b6d60, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BORis.Runtime::BORis.UiSoundFeedback
 --- !u!1 &511723003
 GameObject:
   m_ObjectHideFlags: 0
@@ -15905,6 +15983,7 @@ GameObject:
   - component: {fileID: 686968350}
   - component: {fileID: 686968349}
   - component: {fileID: 686968348}
+  - component: {fileID: 686968351}
   m_Layer: 0
   m_Name: CloseDiagnosisButton
   m_TagString: Untagged
@@ -16014,6 +16093,18 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 686968346}
   m_CullTransparentMesh: 1
+--- !u!114 &686968351
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 686968346}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 61831d83ba5eed043869895f1f0b6d60, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BORis.Runtime::BORis.UiSoundFeedback
 --- !u!1 &693100817
 GameObject:
   m_ObjectHideFlags: 0
@@ -18298,6 +18389,7 @@ GameObject:
   - component: {fileID: 813399997}
   - component: {fileID: 813399996}
   - component: {fileID: 813399998}
+  - component: {fileID: 813399999}
   m_Layer: 0
   m_Name: AcceptOrderButton
   m_TagString: Untagged
@@ -18407,6 +18499,18 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &813399999
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 813399994}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 61831d83ba5eed043869895f1f0b6d60, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BORis.Runtime::BORis.UiSoundFeedback
 --- !u!1 &817689460
 GameObject:
   m_ObjectHideFlags: 0
@@ -19518,6 +19622,7 @@ GameObject:
   - component: {fileID: 874544960}
   - component: {fileID: 874544959}
   - component: {fileID: 874544958}
+  - component: {fileID: 874544962}
   m_Layer: 0
   m_Name: CloseEquipmentButton
   m_TagString: Untagged
@@ -19627,6 +19732,18 @@ RectTransform:
   m_AnchoredPosition: {x: 230, y: 28}
   m_SizeDelta: {x: 200, y: 54}
   m_Pivot: {x: 0.5, y: 0}
+--- !u!114 &874544962
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 874544957}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 61831d83ba5eed043869895f1f0b6d60, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BORis.Runtime::BORis.UiSoundFeedback
 --- !u!1 &883077384
 GameObject:
   m_ObjectHideFlags: 0
@@ -26057,6 +26174,7 @@ GameObject:
   - component: {fileID: 1365287166}
   - component: {fileID: 1365287165}
   - component: {fileID: 1365287167}
+  - component: {fileID: 1365287168}
   m_Layer: 0
   m_Name: DeliverOrderButton
   m_TagString: Untagged
@@ -26166,6 +26284,18 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &1365287168
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1365287163}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 61831d83ba5eed043869895f1f0b6d60, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BORis.Runtime::BORis.UiSoundFeedback
 --- !u!1001 &1373060023
 PrefabInstance:
   m_ObjectHideFlags: 0

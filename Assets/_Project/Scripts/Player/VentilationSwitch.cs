@@ -16,6 +16,7 @@ namespace BORis
         public void Toggle()
         {
             ventilation.mute = !ventilation.mute;
+            WorkshopAudio.Play(WorkshopSound.ToolPickUp, .18f, transform.position);
             UpdateEffects();
         }
 

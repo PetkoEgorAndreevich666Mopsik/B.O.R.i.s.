@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace BORis
 {
@@ -17,6 +17,19 @@ namespace BORis
         string lastDeliveredInstance;
         OrderDefinition visitorOrder;
         RobotRepair visitorRobot;
+
+        string announcedRepair;
+        public bool IsRepairComplete => ActiveRobot != null && ActiveRobot.TestResult == RobotTestResult.Passed
+            && (!ActiveOrder.RequiresCleaning || ActiveRobot.CheckCleaning(out _));
+
+        void Update()
+        {
+            if (workbench == null || !workbench.RobotOnTable
+                || serviceWindow != null && serviceWindow.Phase == ServiceWindowPhase.Departing
+                || !IsRepairComplete || announcedRepair == ActiveOrderId) return;
+            announcedRepair = ActiveOrderId;
+            WorkshopAudio.Play(WorkshopSound.RepairComplete, .55f);
+        }
 
         public const int SolderingStationPrice = 180;
         public bool HasSolderingStation { get; private set; }
@@ -54,7 +67,11 @@ namespace BORis
         void Start()
         {
             progressStore = new WorkshopProgressStore(WorkshopProgressStore.DefaultPath);
-            if (workbench != null) workbench.ClearRobot();
+            if (workbench != null)
+            {
+                foreach (var tool in workbench.GetComponentsInChildren<SolderingTool>(true)) tool.Bind(this);
+                workbench.ClearRobot();
+            }
             TryReloadProgress(out _);
         }
 
@@ -155,6 +172,7 @@ namespace BORis
             visitorOrder = visitorRobot != null ? offered : null;
             if (visitorRobot == null) { reason = "Не удалось подготовить посетителя"; return false; }
             if (transport != null) transport.ReceiveRobot();
+            WorkshopAudio.Play(WorkshopSound.OrderAccepted, .3f);
             return true;
         }
 
@@ -189,6 +207,7 @@ namespace BORis
             visitorOrder = null;
             visitorRobot = null;
             if (transport != null) transport.ReceiveRobot();
+            WorkshopAudio.Play(WorkshopSound.OrderAccepted, .3f);
             return true;
         }
 
@@ -209,6 +228,7 @@ namespace BORis
             Balance = snapshot.balance;
             SolderingStationOrdered = true;
             EquipmentOfferPending = false;
+            WorkshopAudio.Play(WorkshopSound.Purchase, .4f);
             return true;
         }
 
@@ -288,6 +308,7 @@ namespace BORis
             ActiveOrderId = null;
             ActiveOrderReward = 0;
             nextOrder = followingOrder;
+            WorkshopAudio.Play(WorkshopSound.Payment, .55f);
             return true;
         }
     }

@@ -5,6 +5,10 @@ namespace BORis
     public sealed class RepairHUD : MonoBehaviour
     {
         [SerializeField] UnityEngine.UI.Text hint;
+        [SerializeField] UnityEngine.UI.Text repairNotice;
+        float noticeUntil;
+        bool wasReady;
+        RobotTestResult previousTest;
         [SerializeField] UnityEngine.UI.Text assemblyState;
         [SerializeField] UnityEngine.UI.Image cleaningProgress;
         [SerializeField] UnityEngine.UI.Text symptom;
@@ -47,6 +51,9 @@ namespace BORis
             if (previousRobot != robot)
             {
                 previousRobot = robot;
+                wasReady = false;
+                previousTest = RobotTestResult.NotTested;
+                noticeUntil = 0f;
                 diagnosisHelpLevel = 0;
                 showHelp = showDiagnosis = false;
                 if (cleaningProgress != null) cleaningProgress.fillAmount = CleaningAmount(robot);
@@ -55,7 +62,7 @@ namespace BORis
             if (controls != null) controls.gameObject.SetActive(false);
             if (toolsPanel != null) toolsPanel.SetActive(true);
             if (UnityEngine.InputSystem.Keyboard.current?.f1Key.wasPressedThisFrame == true)
-            { showHelp = !showHelp; showDiagnosis = false; }
+            { showHelp = !showHelp; showDiagnosis = false; WorkshopAudio.Play(WorkshopSound.Hint, .12f); }
             if (UnityEngine.InputSystem.Keyboard.current?.hKey.wasPressedThisFrame == true) ToggleDiagnosis();
             if (helpPanel != null) helpPanel.SetActive(false);
             if (diagnosisButton != null) diagnosisButton.gameObject.SetActive(false);
@@ -86,11 +93,22 @@ namespace BORis
             if (toolsGroup != null) toolsGroup.alpha = robot != null && (robot.IsTesting || robot.IsOnDriveStand) ? .4f : 1f;
 
             if (symptom != null) symptom.gameObject.SetActive(false);
-            if (questPanel != null) questPanel.SetActive(cleaning || ready || robot != null && robot.IsTesting);
+            if (questPanel != null) questPanel.SetActive(cleaning);
+            if (ready && !wasReady || robot != null && robot.TestResult == RobotTestResult.Faulty && previousTest != RobotTestResult.Faulty)
+                noticeUntil = Time.unscaledTime + 2.8f;
+            wasReady = ready;
+            previousTest = robot != null ? robot.TestResult : RobotTestResult.NotTested;
+            if (repairNotice != null)
+            {
+                repairNotice.gameObject.SetActive(robot != null && (robot.IsTesting
+                    || Time.unscaledTime < noticeUntil && (ready || robot.TestResult == RobotTestResult.Faulty)));
+                repairNotice.text = robot != null && robot.IsTesting ? "Проверка…" : ready ? "Ремонт завершён" : "Рука не прошла тест";
+                repairNotice.color = ready ? new Color(.65f, .89f, .8f) : Color.white;
+            }
             float cleanliness = CleaningAmount(robot);
             if (assemblyState != null)
             {
-                assemblyState.text = ready ? "✓" : robot != null && robot.IsTesting ? "…" : $"{Mathf.RoundToInt(cleanliness * 100f)}%";
+                assemblyState.text = $"{Mathf.RoundToInt(cleanliness * 100f)}%";
                 assemblyState.color = ready ? new Color(.65f,.89f,.8f) : Color.white;
             }
             if (cleaningProgress != null)
@@ -116,11 +134,23 @@ namespace BORis
                     || interaction.Soldering != null && interaction.Soldering.IsActive;
                 if (feedback && !working && (interaction.Feedback.StartsWith("Сначала") || interaction.Feedback.Contains("недоступ")
                     || interaction.Feedback.StartsWith("Освободите"))) contextText = interaction.Feedback;
+                float solderProgress = -1f;
+                Transform solderTarget = null;
+                var joint = interaction.Soldering != null && interaction.Soldering.IsActive
+                    ? interaction.Soldering.Target : interaction.PointedJoint;
+                if (joint != null && !joint.IsRepaired && !interaction.BrushSelected && interaction.SolderingAvailable)
+                {
+                    solderTarget = joint.transform;
+                    solderProgress = joint.Progress;
+                    contextText = robot.CanSolder(joint, interaction.Session, out string reason)
+                        ? interaction.Soldering.IsActive ? $"Пайка  {Mathf.RoundToInt(joint.Progress * 100f)}%" : "Зажмите ЛКМ и ведите по шву"
+                        : reason;
+                }
                 if (context != null)
                 {
-                    if (interaction.IsViewMoving || showHelp || showDiagnosis) context.Hide();
-                    else context.Present(contextText, interaction.View, null,
-                        interaction.SolderingSelected && interaction.Soldering.IsActive ? interaction.Soldering.Target.Progress
+                    if (interaction.IsViewMoving || showHelp && solderTarget == null || showDiagnosis) context.Hide();
+                    else context.Present(contextText, interaction.View, solderTarget,
+                        solderProgress >= 0f ? solderProgress
                             : interaction.BrushSelected && interaction.Brush.IsActive && interaction.Brush.Target != null
                                 ? interaction.Brush.Target.Cleanliness : -1f,
                         working || feedback);
@@ -153,45 +183,10 @@ namespace BORis
 
         static Transform NextHintTarget(InteractionController interaction)
         {
-            RobotRepair robot = interaction.Robot;
-            if (robot == null || robot.IsTesting) return null;
-            if (interaction.HeldPart != null) return interaction.DropAnchor != null ? interaction.DropAnchor : interaction.HeldPart.TrayAnchor;
-            if (robot.IsOnDriveStand) return interaction.DriveStand.transform;
-            bool cleaning = interaction.ActiveOrder != null && interaction.ActiveOrder.RequiresCleaning && !robot.CheckCleaning(out _);
-            if (cleaning)
-                foreach (var patch in robot.DirtPatches)
-                    if (!patch.IsClean && robot.CanClean(patch, out _)) return patch.transform;
-            if (robot.TestResult == RobotTestResult.Passed && !cleaning) return null;
-            var cover = robot.Cover;
-            var drive = robot.InstalledDrive;
-            if (cover.IsInstalled)
-            {
-                bool assembling = robot.IsFunctional && !cleaning && robot.Connector.IsConnected;
-                foreach (var screw in cover.Screws)
-                    if (assembling ? !screw.IsTight : !screw.IsRemoved) return screw.transform;
-                return assembling ? interaction.Robot.GetComponentInParent<Workbench>().TestButton.transform : cover.transform;
-            }
-            if (drive == null)
-            {
-                foreach (var part in robot.GetComponentsInChildren<RepairPart>())
-                    if (part.Kind == RepairPartKind.Drive && part.Faulty && part.StandResult == DriveTestResult.NotTested
-                        && interaction.DriveStand != null) return interaction.DriveStand.transform;
-                foreach (var part in robot.GetComponentsInChildren<RepairPart>())
-                    if (part.Kind == RepairPartKind.Drive && !part.Faulty && !part.IsInstalled) return part.transform;
-                return null;
-            }
-            if (drive.Faulty)
-            {
-                if (robot.Connector.IsConnected) return robot.Connector.transform;
-                foreach (var screw in drive.Screws) if (!screw.IsRemoved) return screw.transform;
-                return drive.transform;
-            }
-            if (robot.SolderJoint != null && !robot.SolderJoint.IsRepaired)
-                return robot.Connector.IsConnected ? robot.Connector.transform : robot.SolderJoint.transform;
-            foreach (var screw in drive.Screws) if (!screw.IsTight) return screw.transform;
-            return robot.Connector.IsConnected ? cover.transform : robot.Connector.transform;
+            var bench = interaction.Robot != null ? interaction.Robot.GetComponentInParent<Workbench>() : null;
+            return RepairHintTarget.Resolve(interaction.Robot, interaction.ActiveOrder, interaction.HeldPart,
+                interaction.DriveStand, bench != null ? bench.TestButton.transform : null);
         }
-
         void ToggleDiagnosis() { showDiagnosis = !showDiagnosis; showHelp = false; }
         void RevealDiagnosisHelp() => diagnosisHelpLevel = Mathf.Min(3, diagnosisHelpLevel + 1);
         void CloseDiagnosisPanel() => showDiagnosis = false;
@@ -223,6 +218,7 @@ namespace BORis
 
         public void Hide()
         {
+            if (repairNotice != null) repairNotice.gameObject.SetActive(false);
             if (questPanel != null) questPanel.SetActive(false);
             if (controls != null) controls.gameObject.SetActive(false);
             if (toolsPanel != null) toolsPanel.SetActive(false);

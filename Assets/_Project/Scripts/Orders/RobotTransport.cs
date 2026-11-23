@@ -42,6 +42,7 @@ namespace BORis
             if (reason.Length > 0) return false;
             previousPlace = workbench.RobotOnTable ? null : IsAtDelivery ? deliveryZone.transform : reception;
             workbench.PositionRobot(previousPlace != null ? previousPlace : reception);
+            WorkshopAudio.Play(WorkshopSound.RobotPickUp, .3f);
             IsCarrying = true;
             carryVelocity = Vector3.zero;
             IsAtDelivery = false;
@@ -101,6 +102,7 @@ namespace BORis
                 IsAtDelivery = !onTable;
                 previousPlace = onTable ? null : deliveryZone.transform;
                 workbench.PositionRobot(previousPlace);
+                WorkshopAudio.Play(WorkshopSound.RobotPlace, .32f, Robot.transform.position);
                 return true;
             }
             workbench.PositionRobot(previousPlace);

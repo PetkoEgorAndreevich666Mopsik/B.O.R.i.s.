@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Linq;
 using BORis;
 using NUnit.Framework;
@@ -64,7 +64,8 @@ public sealed class WorkbenchFlowTests
         Assert.That(interaction.IsAtWorkbench, Is.True);
         Assert.That(workbench.IsOccupied, Is.True);
         Assert.That(view.parent, Is.SameAs(player.transform));
-        Assert.That(Cursor.visible, Is.True);
+        Assert.That(Cursor.visible, Is.False);
+        Assert.That(Cursor.lockState, Is.EqualTo(CursorLockMode.Confined));
         Assert.That(workbench.IsFocused, Is.True);
         yield return new WaitForSeconds(1.5f);
         var quest = Object.FindObjectsByType<Image>(FindObjectsInactive.Include, FindObjectsSortMode.None).Single(i => i.name == "RepairQuest");

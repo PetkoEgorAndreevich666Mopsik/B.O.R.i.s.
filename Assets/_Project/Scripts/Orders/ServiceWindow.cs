@@ -271,16 +271,16 @@ namespace BORis
             departing.ShowServiceGesture(0f);
             yield return MoveDoor(true);
             yield return Convey(platform, outside);
+            yield return MoveDoor(false);
             if (session.TryDeliverOrder(instance, out string reason))
             {
                 lastReceipt = $"ОПЛАЧЕНО  +{reward} ед.\nСпасибо за работу!";
-                signal.Play();
-                yield return MoveDoor(false);
                 Phase = ServiceWindowPhase.WaitingForNext;
                 nextArrival = Time.unscaledTime + 3f;
             }
             else
             {
+                yield return MoveDoor(true);
                 yield return Convey(outside, platform);
                 yield return MoveDoor(false);
                 Phase = ServiceWindowPhase.InRepair;
@@ -307,6 +307,7 @@ namespace BORis
 
         IEnumerator MoveDoor(bool open)
         {
+            WorkshopAudio.Play(open ? WorkshopSound.DoorOpen : WorkshopSound.DoorClose, .18f, shutter.position);
             motor.Play();
             float start = DoorOpenness;
             for (float elapsed = 0f; elapsed < doorDuration; elapsed += Time.unscaledDeltaTime)

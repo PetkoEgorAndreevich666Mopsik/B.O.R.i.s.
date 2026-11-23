@@ -145,6 +145,7 @@ GameObject:
   - component: {fileID: 61751226}
   - component: {fileID: 61751225}
   - component: {fileID: 61751227}
+  - component: {fileID: 61751228}
   m_Layer: 0
   m_Name: DiagnosisHelpButton
   m_TagString: Untagged
@@ -254,6 +255,18 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &61751228
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 61751223}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 61831d83ba5eed043869895f1f0b6d60, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BORis.Runtime::BORis.UiSoundFeedback
 --- !u!114 &94616490
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -359,6 +372,7 @@ GameObject:
   - component: {fileID: 351269514}
   - component: {fileID: 351269513}
   - component: {fileID: 351269515}
+  - component: {fileID: 351269516}
   m_Layer: 0
   m_Name: DiagnosisButton
   m_TagString: Untagged
@@ -468,6 +482,18 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &351269516
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 351269511}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 61831d83ba5eed043869895f1f0b6d60, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BORis.Runtime::BORis.UiSoundFeedback
 --- !u!1 &492983768
 GameObject:
   m_ObjectHideFlags: 0
@@ -480,6 +506,7 @@ GameObject:
   - component: {fileID: 492983772}
   - component: {fileID: 492983771}
   - component: {fileID: 492983770}
+  - component: {fileID: 492983773}
   m_Layer: 0
   m_Name: AlignInspectionButton
   m_TagString: Untagged
@@ -589,6 +616,18 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 492983768}
   m_CullTransparentMesh: 1
+--- !u!114 &492983773
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 492983768}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 61831d83ba5eed043869895f1f0b6d60, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BORis.Runtime::BORis.UiSoundFeedback
 --- !u!1 &585079247
 GameObject:
   m_ObjectHideFlags: 0
@@ -1447,6 +1486,7 @@ GameObject:
   - component: {fileID: 1397619068}
   - component: {fileID: 1397619067}
   - component: {fileID: 1397619066}
+  - component: {fileID: 1397619070}
   m_Layer: 0
   m_Name: CloseDiagnosisButton
   m_TagString: Untagged
@@ -1556,6 +1596,18 @@ RectTransform:
   m_AnchoredPosition: {x: -8, y: -4}
   m_SizeDelta: {x: 24, y: 24}
   m_Pivot: {x: 1, y: 1}
+--- !u!114 &1397619070
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1397619065}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 61831d83ba5eed043869895f1f0b6d60, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BORis.Runtime::BORis.UiSoundFeedback
 --- !u!114 &1436253588
 MonoBehaviour:
   m_ObjectHideFlags: 0

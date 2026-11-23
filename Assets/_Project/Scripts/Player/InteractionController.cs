@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
@@ -605,6 +605,7 @@ namespace BORis
         {
             if (!IsAtWorkbench || robot == null || robot.IsTesting || robot.IsOnDriveStand) return;
             SelectTool(BrushSelected ? null : brush);
+            WorkshopAudio.Play(WorkshopSound.ToolPickUp, .2f);
         }
 
         public void AlignInspection()
@@ -751,6 +752,8 @@ namespace BORis
                 if (robot != null) robot.CancelTest();
             }
         }
+
+        public bool IsPointerOverUI => PointerOverUI();
 
         bool PointerOverUI()
         {

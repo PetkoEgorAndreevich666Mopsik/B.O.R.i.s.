@@ -114,6 +114,35 @@ public sealed class SolderingFlowTests
     }
 
     [UnityTest]
+    public IEnumerator SeamExplainsDragAndShowsLiveProgressAndContactSound()
+    {
+        yield return EnterC();
+        OpenCover();
+        yield return WaitForOpenSeam();
+        var label = Object.FindObjectsByType<Text>(FindObjectsInactive.Include).Single(t => t.name == "Hint");
+        yield return Pointer(ScreenPosition(.25f));
+        yield return new WaitForSeconds(.2f);
+        Assert.That(label.text, Does.Contain("разъём"));
+        Assert.That(robot.ToggleConnection(robot.Connector, out _), Is.True);
+        yield return Pointer(ScreenPosition(.02f));
+        yield return new WaitForSeconds(.2f);
+        Assert.That(label.text, Does.Contain("Зажмите ЛКМ"));
+        yield return Pointer(ScreenPosition(.02f), true);
+        yield return Pointer(ScreenPosition(.25f), true);
+        Assert.That(joint.Progress, Is.GreaterThan(0f).And.LessThan(1f));
+        Assert.That(label.text, Does.StartWith("Пайка"));
+        var audio = tool.GetComponent<AudioSource>();
+        Assert.That(audio.clip, Is.EqualTo(Resources.Load<AudioClip>("WorkshopSounds/SolderLoop")));
+        Assert.That(audio.isPlaying, Is.True);
+        var smoke = tool.GetComponentInChildren<ParticleSystem>(true);
+        Assert.That(smoke, Is.Not.Null);
+        Assert.That(smoke.isPlaying, Is.True);
+        yield return Pointer(ScreenPosition(.25f));
+        Assert.That(audio.isPlaying, Is.False);
+        Assert.That(tool.IsActive, Is.False);
+    }
+
+    [UnityTest]
     public IEnumerator SolderingAndConnectorRemainAvailableDuringInspection()
     {
         yield return EnterC();

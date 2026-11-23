@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.IO;
 using System.Linq;
 using BORis;
@@ -33,7 +33,11 @@ public sealed class ServiceWindowTests
     IEnumerator WaitForSequence()
     {
         float deadline = Time.realtimeSinceStartup + 12f;
-        while (window.IsBusy && Time.realtimeSinceStartup < deadline) yield return null;
+        while (window.IsBusy && Time.realtimeSinceStartup < deadline)
+        {
+            if (window.BeltDirection != 0f) Assert.That(window.DoorOpenness, Is.EqualTo(1f));
+            yield return null;
+        }
         Assert.That(window.IsBusy, Is.False);
     }
 
@@ -59,6 +63,7 @@ public sealed class ServiceWindowTests
         while (window.Phase != ServiceWindowPhase.AwaitingConversation && Time.realtimeSinceStartup < deadline)
         {
             sawOpenDoor |= window.DoorOpenness > .1f;
+
             if (window.BeltDirection != 0f)
             {
                 sawMovingBelt = true;
@@ -160,6 +165,8 @@ public sealed class ServiceWindowTests
         Assert.That(session.ActiveRobot.RunTest(out _), Is.True);
         while (session.ActiveRobot.IsTesting) yield return null;
         RobotTransportTestFlow.Deliver(session);
+        var payment = GameObject.Find("Workshop audio")?.transform.Find("Payment")?.GetComponent<AudioSource>();
+        if (payment != null) payment.Stop();
         RobotRepair robot = session.ActiveRobot;
         string instance = session.ActiveOrderId;
         int reward = session.ActiveOrderReward;
@@ -174,6 +181,8 @@ public sealed class ServiceWindowTests
             Assert.That(session.ActiveOrderId, Is.EqualTo(instance));
             Assert.That(session.ActiveRobot, Is.SameAs(robot));
             Assert.That(session.ActiveRobot.TestResult, Is.EqualTo(RobotTestResult.Passed), "The goodbye gesture must not invalidate a repair test.");
+            payment = GameObject.Find("Workshop audio")?.transform.Find("Payment")?.GetComponent<AudioSource>();
+            Assert.That(payment != null && payment.isPlaying, Is.False, "Failed saves must not play a payment reward.");
             Assert.That(session.Balance, Is.Zero);
             Assert.That(File.ReadAllText(session.SavePath), Is.EqualTo(confirmed));
             Assert.That(window.Phase, Is.EqualTo(ServiceWindowPhase.InRepair));
@@ -181,11 +190,22 @@ public sealed class ServiceWindowTests
             Assert.That(window.SpeechText, Does.Contain("сохранить"));
         }
         finally { Directory.Delete(blocked); }
+        foreach (string cue in new[] { "CleanComplete", "RepairComplete" })
+        {
+            var voice = GameObject.Find("Workshop audio")?.transform.Find(cue)?.GetComponent<AudioSource>();
+            if (voice != null) voice.Stop();
+        }
         Assert.That(window.TrySend(out _), Is.True);
         bool sawReverse = false;
         float deadline = Time.realtimeSinceStartup + 10f;
         while (window.IsBusy && Time.realtimeSinceStartup < deadline)
         {
+            foreach (string cue in new[] { "CleanComplete", "RepairComplete" })
+            {
+                var voice = GameObject.Find("Workshop audio")?.transform.Find(cue)?.GetComponent<AudioSource>();
+                Assert.That(voice != null && voice.isPlaying, Is.False, "Dispatch must not replay cleaning or repair completion.");
+            }
+            if (session.ActiveRobot == null) Assert.That(window.DoorOpenness, Is.Zero, "Dispatch must hide the robot before removing it.");
             if (window.BeltDirection != 0f)
             {
                 sawReverse = true;
@@ -198,6 +218,9 @@ public sealed class ServiceWindowTests
         Assert.That(window.IsBusy, Is.False);
         Assert.That(session.ActiveOrder, Is.Null);
         Assert.That(session.Balance, Is.EqualTo(reward));
+        payment = GameObject.Find("Workshop audio").transform.Find("Payment").GetComponent<AudioSource>();
+        Assert.That(payment.isPlaying, Is.True);
+        Assert.That(payment.clip, Is.EqualTo(Resources.Load<AudioClip>("WorkshopSounds/Payment")));
         Assert.That(session.CompletedOrders, Is.EqualTo(1));
         Assert.That(session.TryDeliverOrder(instance, out _), Is.False);
         Assert.That(window.DoorOpenness, Is.Zero);
