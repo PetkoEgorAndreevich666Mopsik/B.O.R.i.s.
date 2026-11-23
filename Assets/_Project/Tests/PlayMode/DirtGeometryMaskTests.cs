@@ -25,6 +25,14 @@ public sealed class DirtGeometryMaskTests
         DirtPatch outer = patches.Single(patch => patch.name == "OuterDirt");
         DirtPatch inner = patches.Single(patch => patch.name == "InnerDirt");
         DirtPatch frame = patches.Single(patch => patch.name == "FrameDirt");
+        Assert.That(frame.ContainsSurfacePoint(frame.transform.TransformPoint(new Vector3(0f, 0f, .025f))), Is.True);
+        Vector3 backFrom = frame.transform.TransformPoint(new Vector3(-.25f, 0f, .699f));
+        Vector3 backTo = frame.transform.TransformPoint(new Vector3(.25f, 0f, .699f));
+        Assert.That(frame.ContainsSurfacePoint(backFrom), Is.False,
+            "The same projected patch must not reach the distant back wall of the body.");
+        float frameBefore = frame.Cleanliness;
+        Assert.That(frame.CleanStroke(backFrom, backTo, .1f), Is.Zero);
+        Assert.That(frame.Cleanliness, Is.EqualTo(frameBefore));
         Vector3 frameNormal = frame.transform.localToWorldMatrix.inverse.transpose
             .MultiplyVector(Vector3.back).normalized;
         Vector3 bendAxis = Vector3.Cross(frameNormal, Vector3.up);

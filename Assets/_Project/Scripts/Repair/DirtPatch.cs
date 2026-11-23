@@ -24,6 +24,7 @@ namespace BORis
         [SerializeField, Tooltip("Эту зону можно чистить только после снятия крышки.")] bool requiresOpenCover;
 
         [Header("Surface projection")]
+        [SerializeField, Min(.001f)] float projectionDepth = .08f;
         [SerializeField, Tooltip("Материал шейдера BORis/RepairDirt.")] Material overlayMaterial;
         [SerializeField, Tooltip("Видимые меши, на геометрию которых проецируется грязь.")] MeshRenderer[] surfaceRenderers;
         [SerializeField, Tooltip("Плоскость проекции: XY для передней/задней стороны, ZY для боковины, XZ для верха/низа.")] DirtProjection projection;
@@ -82,7 +83,19 @@ namespace BORis
             return new Bounds(Vector3.zero, Vector3.one);
         }
 
-        Bounds CenteredProjectionBounds => new(Vector3.zero, localBounds.size);
+        Bounds CenteredProjectionBounds
+        {
+            get
+            {
+                Vector3 size = localBounds.size;
+                int depthAxis = projection == DirtProjection.XY ? 2 : projection == DirtProjection.XZ ? 1 : 0;
+                size[depthAxis] = Mathf.Max(size[depthAxis], projectionDepth);
+                return new Bounds(Vector3.zero, size);
+            }
+        }
+
+        public bool ContainsSurfacePoint(Vector3 worldPoint) =>
+            CenteredProjectionBounds.Contains(GetProjectorLocalToWorld().inverse.MultiplyPoint3x4(worldPoint));
 
         Matrix4x4 GetProjectorLocalToWorld() => transform.localToWorldMatrix
             * Matrix4x4.TRS(localBounds.center, Quaternion.Euler(projectionRotation), Vector3.one);
@@ -318,9 +331,23 @@ namespace BORis
         public bool AcceptsContact(Vector3 worldNormal) =>
             Vector3.Dot(GetProjectorNormalWorld(), worldNormal.normalized) >= normalThreshold;
 
+        public bool MatchesSurfaceHit(RaycastHit hit)
+        {
+            if (!isActiveAndEnabled || surfaceRenderers == null || hit.collider == null
+                || !ContainsSurfacePoint(hit.point) || !AcceptsContact(hit.normal)) return false;
+            var part = hit.collider.GetComponentInParent<RepairPart>();
+            var robot = hit.collider.GetComponentInParent<RobotRepair>();
+            foreach (var source in surfaceRenderers)
+                if (source != null && source.GetComponentInParent<RepairPart>() == part
+                    && (part != null || hit.collider.transform.IsChildOf(source.transform)
+                        || robot != null && source.GetComponentInParent<RobotRepair>() == robot)) return true;
+            return false;
+        }
+
         public int CleanStroke(Vector3 worldFrom, Vector3 worldTo, float radius)
         {
             if (!isActiveAndEnabled || !float.IsFinite(radius) || radius <= 0f) return 0;
+            if (!ContainsSurfacePoint(worldFrom) || !ContainsSurfacePoint(worldTo)) return 0;
             RefreshProjection();
             return CleanStrokeUV(WorldToMask(worldFrom), WorldToMask(worldTo), radius);
         }

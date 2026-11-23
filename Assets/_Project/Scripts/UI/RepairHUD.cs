@@ -16,6 +16,7 @@ namespace BORis
         [SerializeField] UnityEngine.UI.Text cameraHints;
         [SerializeField] UnityEngine.UI.Button collapseButton;
         [SerializeField] GameObject helpPanel;
+        [SerializeField] RepairHintView hintHighlight;
         [SerializeField] UnityEngine.UI.Button diagnosisButton;
         [SerializeField] GameObject diagnosisPanel;
         [SerializeField] UnityEngine.UI.Text diagnosisText;
@@ -56,8 +57,13 @@ namespace BORis
             if (UnityEngine.InputSystem.Keyboard.current?.f1Key.wasPressedThisFrame == true)
             { showHelp = !showHelp; showDiagnosis = false; }
             if (UnityEngine.InputSystem.Keyboard.current?.hKey.wasPressedThisFrame == true) ToggleDiagnosis();
-            if (helpPanel != null) helpPanel.SetActive(showHelp);
-            if (diagnosisButton != null) diagnosisButton.gameObject.SetActive(showHelp);
+            if (helpPanel != null) helpPanel.SetActive(false);
+            if (diagnosisButton != null) diagnosisButton.gameObject.SetActive(false);
+            if (hintHighlight != null)
+            {
+                if (showHelp) hintHighlight.Show(NextHintTarget(interaction), interaction.View);
+                else hintHighlight.Hide();
+            }
             if (collapseButton != null) collapseButton.gameObject.SetActive(false);
             OrderDefinition order = interaction.ActiveOrder;
             if (diagnosisPanel != null) diagnosisPanel.SetActive(showDiagnosis);
@@ -145,6 +151,47 @@ namespace BORis
             return count == 0 ? 0f : total / count;
         }
 
+        static Transform NextHintTarget(InteractionController interaction)
+        {
+            RobotRepair robot = interaction.Robot;
+            if (robot == null || robot.IsTesting) return null;
+            if (interaction.HeldPart != null) return interaction.DropAnchor != null ? interaction.DropAnchor : interaction.HeldPart.TrayAnchor;
+            if (robot.IsOnDriveStand) return interaction.DriveStand.transform;
+            bool cleaning = interaction.ActiveOrder != null && interaction.ActiveOrder.RequiresCleaning && !robot.CheckCleaning(out _);
+            if (cleaning)
+                foreach (var patch in robot.DirtPatches)
+                    if (!patch.IsClean && robot.CanClean(patch, out _)) return patch.transform;
+            if (robot.TestResult == RobotTestResult.Passed && !cleaning) return null;
+            var cover = robot.Cover;
+            var drive = robot.InstalledDrive;
+            if (cover.IsInstalled)
+            {
+                bool assembling = robot.IsFunctional && !cleaning && robot.Connector.IsConnected;
+                foreach (var screw in cover.Screws)
+                    if (assembling ? !screw.IsTight : !screw.IsRemoved) return screw.transform;
+                return assembling ? interaction.Robot.GetComponentInParent<Workbench>().TestButton.transform : cover.transform;
+            }
+            if (drive == null)
+            {
+                foreach (var part in robot.GetComponentsInChildren<RepairPart>())
+                    if (part.Kind == RepairPartKind.Drive && part.Faulty && part.StandResult == DriveTestResult.NotTested
+                        && interaction.DriveStand != null) return interaction.DriveStand.transform;
+                foreach (var part in robot.GetComponentsInChildren<RepairPart>())
+                    if (part.Kind == RepairPartKind.Drive && !part.Faulty && !part.IsInstalled) return part.transform;
+                return null;
+            }
+            if (drive.Faulty)
+            {
+                if (robot.Connector.IsConnected) return robot.Connector.transform;
+                foreach (var screw in drive.Screws) if (!screw.IsRemoved) return screw.transform;
+                return drive.transform;
+            }
+            if (robot.SolderJoint != null && !robot.SolderJoint.IsRepaired)
+                return robot.Connector.IsConnected ? robot.Connector.transform : robot.SolderJoint.transform;
+            foreach (var screw in drive.Screws) if (!screw.IsTight) return screw.transform;
+            return robot.Connector.IsConnected ? cover.transform : robot.Connector.transform;
+        }
+
         void ToggleDiagnosis() { showDiagnosis = !showDiagnosis; showHelp = false; }
         void RevealDiagnosisHelp() => diagnosisHelpLevel = Mathf.Min(3, diagnosisHelpLevel + 1);
         void CloseDiagnosisPanel() => showDiagnosis = false;
@@ -153,6 +200,7 @@ namespace BORis
             if (!showDiagnosis && !showHelp) return false;
             showDiagnosis = false;
             showHelp = false;
+            if (hintHighlight != null) hintHighlight.Hide();
             return true;
         }
 
@@ -180,6 +228,7 @@ namespace BORis
             if (toolsPanel != null) toolsPanel.SetActive(false);
             if (cameraHints != null) cameraHints.gameObject.SetActive(false);
             if (helpPanel != null) helpPanel.SetActive(false);
+            if (hintHighlight != null) hintHighlight.Hide();
             if (diagnosisPanel != null) diagnosisPanel.SetActive(false);
             if (diagnosisButton != null) diagnosisButton.gameObject.SetActive(false);
             showDiagnosis = false;

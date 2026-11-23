@@ -161,7 +161,7 @@ public sealed class OrderCompletionTests
             yield return null;
             Assert.That(card.text, Does.Contain("ОПЛАЧЕНО").And.Contain("+" + reward));
             var progress = Object.FindObjectsByType<Text>(FindObjectsInactive.Include, FindObjectsSortMode.None).Single(t => t.name == "WorkshopProgress");
-            Assert.That(progress.text, Does.Contain(expectedBalance.ToString()));
+            Assert.That(progress.gameObject.activeInHierarchy, Is.False);
             if (session.EquipmentOfferPending)
             {
                 Assert.That(session.Window.CanCallVisitor, Is.True);
@@ -413,6 +413,9 @@ public sealed class OrderCompletionTests
         Assert.That(fill.rectTransform.rect.width, Is.Zero.Within(.01f));
         Assert.That(assembly.text, Does.Contain("0%").Or.Contain("0 %"));
         Assert.That(assembly.text, Does.Not.Contain("СЕЙЧАС"));
+        Assert.That(assembly.rectTransform.anchoredPosition.y - assembly.rectTransform.rect.height,
+            Is.GreaterThan(((RectTransform)fill.transform.parent).anchoredPosition.y),
+            "The percentage must stay above the cleaning bar.");
         DirtPatch outer = session.ActiveRobot.DirtPatches.Single(p => p.name == "OuterDirt");
         outer.CleanStroke(new Vector2(.2f, .5f), new Vector2(.8f, .5f), .035f);
         float progress = outer.Cleanliness;

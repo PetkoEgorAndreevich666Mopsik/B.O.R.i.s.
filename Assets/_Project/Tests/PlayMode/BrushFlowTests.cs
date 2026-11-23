@@ -53,6 +53,13 @@ public sealed class BrushFlowTests
     Vector2 ScreenUV(DirtPatch target, Vector2 uv) => player.View.WorldToScreenPoint(
         target.transform.TransformPoint(new Vector3(uv.x - .5f, uv.y - .5f, 0f)));
 
+    string ContactDetails(DirtPatch target, Vector2 pointer)
+    {
+        Ray ray = player.View.ScreenPointToRay(pointer);
+        Physics.Raycast(ray, out var hit, 10f, ~(1 << player.gameObject.layer), QueryTriggerInteraction.Ignore);
+        return $"hit={hit.collider?.name}, matches={target.MatchesSurfaceHit(hit)}, planeHit={target.GetComponent<Collider>().Raycast(ray, out _, 10f)}, active={brush.IsActive}";
+    }
+
     IEnumerator Pointer(Vector2 position, bool down)
     {
         InputSystem.QueueStateEvent(mouse, new MouseState { position = position, buttons = down ? (ushort)1 : (ushort)0 });
@@ -131,7 +138,8 @@ public sealed class BrushFlowTests
         Assert.That(other.Cleanliness, Is.Zero);
         for (int i = 0; i < 24; i++)
             other.CleanStroke(new Vector2(.2f + i * .025f, .5f), new Vector2(.2f + (i + 1) * .025f, .5f), .035f);
-        Assert.That(other.Cleanliness, Is.EqualTo(cleaned));
+        Assert.That(other.CleanStroke(new Vector2(.2f, .5f), new Vector2(.8f, .5f), .035f), Is.Zero,
+            "Incremental strokes must not leave gaps along the same path, even with a different random dirt mask.");
         Assert.That(patch.CleanStroke(new Vector2(.2f, .5f), new Vector2(.8f, .5f), .035f), Is.Zero);
         Assert.That(patch.CleanStroke(Vector2.one * .5f, Vector2.one * .5f, .1f), Is.Zero);
         Assert.That(patch.CleanStroke(Vector2.zero, new Vector2(float.NaN, .5f), .1f), Is.Zero);
@@ -220,7 +228,7 @@ public sealed class BrushFlowTests
         Assert.That(robot.CanClean(frame, out _), Is.True);
         yield return Press(Key.Digit1);
         yield return Pointer(ScreenUV(frame, new Vector2(.5f, .3f)), true);
-        Assert.That(brush.Target, Is.SameAs(frame));
+        Assert.That(brush.Target, Is.SameAs(frame), ContactDetails(frame, ScreenUV(frame, new Vector2(.5f, .3f))));
         yield return Pointer(ScreenUV(frame, new Vector2(.5f, .7f)), true);
         Assert.That(frame.Cleanliness, Is.GreaterThan(0f));
         Assert.That(robot.Cover.IsInstalled, Is.True);
@@ -260,7 +268,7 @@ public sealed class BrushFlowTests
         var frame = robot.GetComponentsInChildren<DirtPatch>().Single(p => p.name == "FrameDirt");
         yield return Press(Key.Digit1);
         yield return Pointer(ScreenUV(frame, new Vector2(.3f, .5f)), true);
-        Assert.That(brush.Target, Is.SameAs(frame), "Third patch must be physically reachable inside the robot.");
+        Assert.That(brush.Target, Is.SameAs(frame), ContactDetails(frame, ScreenUV(frame, new Vector2(.3f, .5f))));
         yield return Pointer(ScreenUV(frame, new Vector2(.7f, .5f)), true);
         Assert.That(frame.Cleanliness, Is.GreaterThan(0f));
     }

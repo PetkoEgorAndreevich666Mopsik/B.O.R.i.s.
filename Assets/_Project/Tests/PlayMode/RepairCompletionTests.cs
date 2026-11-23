@@ -199,15 +199,12 @@ public sealed class RepairCompletionTests
     }
 
     [UnityTest]
-    public IEnumerator RestartButtonCancelsRunningTestAndNewRobotGetsNoOldResult()
+    public IEnumerator ResetCancelsRunningTestAndNewRobotGetsNoOldResult()
     {
         Repair();
         Assert.That(robot.RunTest(out _), Is.True);
-        yield return Press(Key.F1);
-        var restart = Object.FindObjectsByType<Button>(FindObjectsSortMode.None).Single(b => b.name == "RestartButton");
-        Vector2 pointer = RectTransformUtility.WorldToScreenPoint(null, restart.transform.position);
-        yield return Pointer(pointer, true);
-        yield return Pointer(pointer, false);
+        interaction.ResetRepair();
+        yield return null;
         Assert.That(interaction.Robot, Is.Not.SameAs(robot));
         robot = interaction.Robot;
         yield return new WaitForSecondsRealtime(2f);

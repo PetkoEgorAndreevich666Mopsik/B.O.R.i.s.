@@ -273,11 +273,8 @@ public sealed class RepairAssemblyFlowTests
         Assert.That(robot.Cover.IsInstalled,Is.True);
         yield return TestButton();
         Assert.That(robot.TestResult,Is.EqualTo(RobotTestResult.Passed));
-        yield return KeyPress(Key.F1);
-        var restart=Object.FindObjectsByType<Button>(FindObjectsSortMode.None).Single(b=>b.name=="RestartButton");
-        Vector2 resetPoint=RectTransformUtility.WorldToScreenPoint(null,restart.transform.position);
-        yield return Pointer(resetPoint,true);
-        yield return Pointer(resetPoint,false);
+        interaction.ResetRepair();
+        yield return null;
         robot=interaction.Robot;
         oldDrive=robot.InstalledDrive;
         newDrive=robot.GetComponentsInChildren<RepairPart>().Single(p=>p.Kind==RepairPartKind.Drive && !p.IsInstalled);

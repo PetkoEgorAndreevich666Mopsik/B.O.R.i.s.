@@ -144,11 +144,7 @@ namespace BORis
                 saveStatus.gameObject.SetActive(!session.IsProgressReady && !IsAtWorkbench && !IsAtOrderDesk && !IsAtEquipmentShop);
                 saveStatus.text = session.SaveStatus;
             }
-            if (workshopProgress != null && session != null)
-            {
-                workshopProgress.gameObject.SetActive(!IsAtWorkbench && !IsAtOrderDesk && !IsAtEquipmentShop);
-                workshopProgress.text = $"Баланс: {session.Balance} ед.";
-            }
+            if (workshopProgress != null) workshopProgress.gameObject.SetActive(false);
             if (IsAtEquipmentShop)
             {
                 if (!activeEquipmentShop.IsOpen || cancel.WasPressedThisFrame()) CloseEquipmentShop();
@@ -199,6 +195,7 @@ namespace BORis
                     pointedRobot = hit.collider.GetComponentInParent<RobotRepair>();
                     pointedWindow = hit.collider.GetComponentInParent<ServiceWindow>();
                     pointedDoor = hit.collider.GetComponentInParent<WorkshopDoor>();
+                    if (pointedDoor != null && !pointedDoor.isActiveAndEnabled) pointedDoor = null;
                     pointedVentilationSwitch = hit.collider.GetComponentInParent<VentilationSwitch>();
                     pointedSendButton = pointedWindow != null && hit.collider == pointedWindow.SendButton;
                     if (pointedWindow != null && pointedWindow.IsParcel(hit.collider)) pointedParcel = hit.collider;
@@ -342,9 +339,8 @@ namespace BORis
                 }
             }
             if (exitButton != null) exitButton.gameObject.SetActive(false);
-            bool showHelpActions = IsAtWorkbench && repairHUD != null && repairHUD.IsHelpOpen;
-            if (restartButton != null) restartButton.gameObject.SetActive(showHelpActions);
-            if (alignInspectionButton != null) alignInspectionButton.gameObject.SetActive(showHelpActions);
+            if (restartButton != null) restartButton.gameObject.SetActive(false);
+            if (alignInspectionButton != null) alignInspectionButton.gameObject.SetActive(false);
         }
 
         void TickBench()

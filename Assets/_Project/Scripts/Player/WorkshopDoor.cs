@@ -48,6 +48,7 @@ namespace BORis
 
         public bool TryToggle(CharacterController body)
         {
+            if (!isActiveAndEnabled) return false;
             if ((targetOpen || openAngle != 0f) && travelBounds.Intersects(body.bounds)) return false;
 
             operatorBody = body;

@@ -66,9 +66,10 @@ public sealed class WorkshopControlsTests
     }
 
     [UnityTest]
-    public IEnumerator EntryDoorCanBeOpenedAndClosedFromTheHall()
+    public IEnumerator EntryDoorStaysClosedFromBothSides()
     {
         var door = GameObject.Find("Workshop entry door").GetComponent<WorkshopDoor>();
+        Assert.That(door.enabled, Is.False);
         PlacePlayer(-3.05f, -3.35f, Vector3.left);
         yield return null;
         Assert.That(door.OpenFraction, Is.Zero);
@@ -76,10 +77,9 @@ public sealed class WorkshopControlsTests
         Assert.That(body.transform.position.x, Is.GreaterThan(-4.01f));
 
         yield return PressInteract();
-        Assert.That(door.OpenFraction, Is.EqualTo(1f));
-        body.Move(Vector3.left * 2f);
-        Assert.That(body.transform.position.x, Is.LessThan(-4.55f));
-        Assert.That(door.TryToggle(body), Is.False, "The player is in the swing area.");
+        Assert.That(door.OpenFraction, Is.Zero);
+        Assert.That(door.TryToggle(body), Is.False);
+        Assert.That(body.GetComponent<InteractionController>().CanInteract, Is.False);
 
         PlacePlayer(-5.9f, -3.3f, new Vector3(.6f, 0f, -.72f));
         yield return null;
@@ -88,7 +88,7 @@ public sealed class WorkshopControlsTests
         PlacePlayer(-5.9f, -3.35f, Vector3.right);
         yield return null;
         yield return PressInteract();
-        Assert.That(door.OpenFraction, Is.EqualTo(1f));
+        Assert.That(door.OpenFraction, Is.Zero);
     }
 
     [UnityTest]

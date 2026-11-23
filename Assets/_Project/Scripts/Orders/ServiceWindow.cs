@@ -273,7 +273,7 @@ namespace BORis
             yield return Convey(platform, outside);
             if (session.TryDeliverOrder(instance, out string reason))
             {
-                lastReceipt = $"ОПЛАЧЕНО  +{reward} ед.\nБаланс: {session.Balance} ед.\nСпасибо за работу!";
+                lastReceipt = $"ОПЛАЧЕНО  +{reward} ед.\nСпасибо за работу!";
                 signal.Play();
                 yield return MoveDoor(false);
                 Phase = ServiceWindowPhase.WaitingForNext;

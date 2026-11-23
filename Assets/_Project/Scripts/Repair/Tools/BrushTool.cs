@@ -86,12 +86,18 @@ namespace BORis
             if (repair == null || !repair.isActiveAndEnabled || view == null || repair.IsTesting || repair.IsOnDriveStand) { End(); return; }
             DirtPatch previousTarget = Target;
             Target = null;
-            HasContact = Physics.Raycast(view.ScreenPointToRay(pointer), out RaycastHit hit, Reach,
+            Ray ray = view.ScreenPointToRay(pointer);
+            HasContact = Physics.Raycast(ray, out RaycastHit hit, Reach,
                 queryMask, QueryTriggerInteraction.Ignore)
                 && hit.collider.GetComponentInParent<RobotRepair>() == repair;
             if (HasContact)
             {
                 Target = hit.collider.GetComponent<DirtPatch>();
+                if (Target == null)
+                    foreach (var patch in repair.DirtPatches)
+                        if (patch.MatchesSurfaceHit(hit) && repair.CanClean(patch, out _)
+                            && patch.TryGetComponent(out Collider surface) && surface.Raycast(ray, out var projected, Reach))
+                        { Target = patch; hit = projected; break; }
                 if (Target != null && (!Target.AcceptsContact(hit.normal) || !repair.CanClean(Target, out _))) Target = null;
             }
             if (!HasContact)

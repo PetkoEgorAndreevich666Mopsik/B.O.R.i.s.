@@ -64,8 +64,8 @@ Shader "BORis/RepairDirt"
                 float2 uv = _DirtProjection < .5
                     ? relative.xy
                     : (_DirtProjection < 1.5 ? relative.xz : relative.zy);
-                clip(uv);
-                clip(1 - uv);
+                clip(relative);
+                clip(1 - relative);
                 half4 dirt = SAMPLE_TEXTURE2D(_DirtMask, sampler_DirtMask, uv);
                 dirt.a *= smoothstep(_DirtNormalThreshold, min(1.0, _DirtNormalThreshold + .23), facing);
                 return dirt;

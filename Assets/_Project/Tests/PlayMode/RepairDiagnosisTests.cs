@@ -276,7 +276,8 @@ public sealed class RepairDiagnosisTests
         yield return null; yield return null;
         InputSystem.QueueStateEvent(mouse, new MouseState { position = point });
         yield return null; yield return null;
-        yield return new WaitForSeconds(.15f);
+        float feedbackDeadline = Time.realtimeSinceStartup + 1f;
+        while (group.alpha < .9f && Time.realtimeSinceStartup < feedbackDeadline) yield return null;
         Assert.That(group.alpha, Is.GreaterThan(.9f));
         Assert.That(TextNamed("Hint").text, Does.Contain("винты"));
         Assert.That(group.blocksRaycasts, Is.False);
@@ -289,9 +290,40 @@ public sealed class RepairDiagnosisTests
         Assert.That(screenRect.yMax, Is.LessThanOrEqualTo(Screen.height));
         Assert.That(screenRect.Contains(point), Is.False, "The card must leave the working point clear.");
         yield return Point(new Vector2(Screen.width - 30f, Screen.height * .5f));
-        yield return new WaitForSeconds(.25f);
+        float hideDeadline = Time.realtimeSinceStartup + 1f;
+        while (group.alpha > 0f && Time.realtimeSinceStartup < hideDeadline) yield return null;
         Assert.That(group.alpha, Is.EqualTo(0f));
         Assert.That(TextNamed("Hint").text, Is.Empty);
+    }
+
+    [UnityTest]
+    public IEnumerator F1HighlightsCurrentZoneAndMovesToNextRepairStep()
+    {
+        yield return EnterOrder(cleaning: true);
+        var hint = player.GetComponentInChildren<RepairHintView>();
+        var outer = robot.DirtPatches.Single(p => p.name == "OuterDirt");
+        var frame = robot.DirtPatches.Single(p => p.name == "FrameDirt");
+        var inner = robot.DirtPatches.Single(p => p.name == "InnerDirt");
+        yield return Press(Key.F1);
+        Assert.That(hint.Target, Is.EqualTo(outer.transform));
+        outer.CleanStroke(Vector2.zero, Vector2.one, 2f);
+        yield return null;
+        Assert.That(hint.Target, Is.EqualTo(frame.transform));
+        frame.CleanStroke(Vector2.zero, Vector2.one, 2f);
+        yield return null;
+        Assert.That(hint.Target.GetComponent<ScrewFastener>(), Is.Not.Null);
+        foreach (var screw in robot.Cover.Screws) robot.Turn(screw, -10000f);
+        yield return null;
+        Assert.That(hint.Target, Is.EqualTo(robot.Cover.transform));
+        Assert.That(robot.TryPlace(robot.Cover, false, out _), Is.True);
+        yield return null;
+        Assert.That(hint.Target, Is.EqualTo(inner.transform));
+        inner.CleanStroke(Vector2.zero, Vector2.one, 2f);
+        yield return null;
+        Assert.That(hint.Target, Is.EqualTo(robot.Cover.transform));
+        yield return Press(Key.Escape);
+        Assert.That(hint.Target, Is.Null);
+        Assert.That(interaction.IsAtWorkbench, Is.True);
     }
 
     [UnityTest]
@@ -307,8 +339,13 @@ public sealed class RepairDiagnosisTests
         Assert.That(TextNamed("AssemblyState").text, Does.Not.Contain("Крышка снаружи:"));
         Assert.That(TextNamed("Symptom").gameObject.activeInHierarchy, Is.False);
         yield return Press(Key.F1);
-        Assert.That(TextNamed("HelpText").gameObject.activeInHierarchy, Is.True);
+        Assert.That(TextNamed("HelpText").gameObject.activeInHierarchy, Is.False);
+        var highlight = player.GetComponentInChildren<RepairHintView>();
+        Assert.That(highlight.Target, Is.Not.Null);
+        Assert.That(highlight.raycastTarget, Is.False);
+        Assert.That(highlight.canvasRenderer.GetMesh().vertexCount, Is.GreaterThan(0));
         yield return Press(Key.F1);
+        Assert.That(highlight.Target, Is.Null);
         Assert.That(TextNamed("HelpText").gameObject.activeInHierarchy, Is.False);
         yield return Press(Key.Escape);
         Assert.That(TextNamed("ToolShortcuts").gameObject.activeInHierarchy, Is.False);
@@ -339,9 +376,10 @@ public sealed class RepairDiagnosisTests
         Assert.That(buttons.Single(b => b.name == "ToolSlot2").gameObject.activeInHierarchy, Is.False);
         Assert.That(TextNamed("ToolShortcuts").gameObject.activeInHierarchy, Is.False);
         yield return Press(Key.F1);
-        Assert.That(TextNamed("HelpText").gameObject.activeInHierarchy, Is.True);
-        Assert.That(buttons.Single(b => b.name == "RestartButton").gameObject.activeInHierarchy, Is.True);
-        Assert.That(buttons.Single(b => b.name == "AlignInspectionButton").gameObject.activeInHierarchy, Is.True);
+        Assert.That(TextNamed("HelpText").gameObject.activeInHierarchy, Is.False);
+        Assert.That(player.GetComponentInChildren<RepairHintView>().Target, Is.Not.Null);
+        Assert.That(buttons.Single(b => b.name == "RestartButton").gameObject.activeInHierarchy, Is.False);
+        Assert.That(buttons.Single(b => b.name == "AlignInspectionButton").gameObject.activeInHierarchy, Is.False);
         yield return Press(Key.Escape);
         Assert.That(interaction.IsAtWorkbench, Is.True);
         Assert.That(TextNamed("HelpText").gameObject.activeInHierarchy, Is.False);

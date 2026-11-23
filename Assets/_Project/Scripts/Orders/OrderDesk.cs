@@ -77,7 +77,7 @@ namespace BORis
             }
             OrderDefinition order = displayedOrder;
             if (card != null) card.text = order == null ? "Нет заказов"
-                : showingReceipt ? $"{order.ClientName}\n\n+{displayedReward} ед.\nБаланс: {session.Balance} ед."
+                : showingReceipt ? $"{order.ClientName}\n\n+{displayedReward} ед."
                 : $"{order.ClientName} · {displayedReward} ед.\n\n«{order.Symptom}»";
             if (status != null) status.text = session.IsProgressReady ? message : session.SaveStatus;
             if (acceptButton != null)
