@@ -21,6 +21,7 @@ namespace BORis
         public bool IsRemoved { get; private set; }
         public bool IsLoose => IsRemoved;
         public bool IsTight => !IsRemoved && tightness == 1f;
+        public bool IsTightening { get; private set; }
 
         void Awake()
         {
@@ -39,6 +40,7 @@ namespace BORis
         {
             if (IsRemoved || !float.IsFinite(clockwiseDegrees)) return 0f;
             float previous = tightness;
+            if (clockwiseDegrees != 0f) IsTightening = clockwiseDegrees > 0f;
             tightness = Mathf.Clamp01(tightness + clockwiseDegrees / (turns * 360f));
             if (clockwiseDegrees < 0f && tightness < .03f) tightness = 0f;
             if (clockwiseDegrees > 0f && tightness > .97f) tightness = 1f;
@@ -51,6 +53,7 @@ namespace BORis
         {
             IsRemoved = false;
             tightness = .08f;
+            IsTightening = true;
             hovered = false;
             UpdatePose();
         }

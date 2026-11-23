@@ -22,6 +22,20 @@ public sealed class PhysicalPartsTests
     }
 
     [UnityTest]
+    public IEnumerator StowBlocksPickupUntilCompleteAndDisableCancelsItSafely()
+    {
+        Assert.That(spare.StowOnTray(), Is.True);
+        Assert.That(spare.IsStowing, Is.True);
+        Assert.That(robot.CanMove(spare, out _), Is.False);
+        spare.gameObject.SetActive(false);
+        Assert.That(spare.IsStowing, Is.False);
+        Assert.That(spare.Body.isKinematic, Is.False);
+        spare.gameObject.SetActive(true);
+        yield return null;
+        Assert.That(robot.CanMove(spare, out _), Is.True);
+    }
+
+    [UnityTest]
     public IEnumerator DetachedCoverFallsOntoTableAndRetainsCleaningUVs()
     {
         RepairPart cover = robot.Cover;

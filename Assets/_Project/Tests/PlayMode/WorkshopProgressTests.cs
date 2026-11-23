@@ -119,7 +119,7 @@ public sealed class WorkshopProgressTests
         Assert.That(interaction.IsAtEquipmentShop, Is.True);
         yield return Click("EquipmentTab");
         var card = Object.FindObjectsByType<Text>(FindObjectsSortMode.None).Single(t => t.name == "EquipmentDescription");
-        Assert.That(card.text, Does.Contain("180").And.Contain("40").And.Contain("откроет паяльник"));
+        Assert.That(card.text, Does.Contain("180").And.Contain("40"));
         yield return Click("BuyStationButton");
         Assert.That(session.SolderingStationOrdered, Is.True);
         Assert.That(session.Balance, Is.EqualTo(40));

@@ -52,6 +52,46 @@ public sealed class ScrewdriverFlowTests
 
     Vector2 Center => player.View.WorldToScreenPoint(screw.transform.position);
 
+    [UnityTest]
+    public IEnumerator HoldCompletesUnscrewingAndTighteningWithoutWheel()
+    {
+        yield return Pointer(Center, true);
+        yield return new WaitForSeconds(1.1f);
+        Assert.That(screw.IsRemoved, Is.True);
+        Assert.That(tool.IsTurning, Is.False);
+        yield return new WaitForSeconds(.2f);
+        Assert.That(screw.IsRemoved, Is.True, "Continuing to hold must not reinsert the screw.");
+        yield return Pointer(Center, false);
+        yield return Pointer(Center, true);
+        Assert.That(screw.IsRemoved, Is.False);
+        yield return Pointer(Center, false);
+        yield return Pointer(Center, true);
+        yield return new WaitForSeconds(1.1f);
+        Assert.That(screw.IsTight, Is.True);
+        Assert.That(tool.IsTurning, Is.False);
+    }
+
+    [UnityTest]
+    public IEnumerator ScrewWorksWithoutSelectingToolAndBrushTogglesOff()
+    {
+        Assert.That(tool.IsSelected, Is.False);
+        yield return Pointer(Center, true);
+        Assert.That(tool.Target, Is.SameAs(screw));
+        InputSystem.QueueStateEvent(mouse, new MouseState { position = Center, buttons = 1, scroll = new Vector2(0, -120) });
+        yield return null; yield return null;
+        Assert.That(screw.Tightness, Is.LessThan(1f));
+        yield return Pointer(Center, false);
+        Assert.That(tool.IsTurning, Is.False);
+        yield return Press(Key.B);
+        Assert.That(interaction.BrushSelected, Is.True);
+        yield return Press(Key.B);
+        Assert.That(interaction.BrushSelected, Is.False);
+        yield return Pointer(Center, true);
+        Assert.That(tool.Target, Is.SameAs(screw));
+        interaction.SendMessage("OnApplicationFocus", false);
+        Assert.That(tool.IsTurning, Is.False);
+    }
+
     IEnumerator Pointer(Vector2 position, bool down)
     {
         InputSystem.QueueStateEvent(mouse, new MouseState { position = position, buttons = down ? (ushort)1 : (ushort)0 });

@@ -45,7 +45,7 @@ namespace BORis
         public int Balance { get; private set; }
         public int CompletedOrders { get; private set; }
         public RobotRepair ActiveRobot => ActiveOrder != null && workbench != null ? workbench.Robot : null;
-        public RobotRepair VisitorRobot => ActiveOrder == null ? visitorRobot : null;
+        public RobotRepair VisitorRobot => ActiveOrder == null && visitorRobot != null ? visitorRobot : null;
         public bool IsProgressReady { get; private set; }
         public string SaveStatus { get; private set; } = "Загрузка прогресса…";
         public string SavePath => progressStore != null ? progressStore.FilePath : WorkshopProgressStore.DefaultPath;

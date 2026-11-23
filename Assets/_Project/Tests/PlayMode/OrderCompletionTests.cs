@@ -404,18 +404,15 @@ public sealed class OrderCompletionTests
         Assert.That(interaction.IsAtWorkbench, Is.True);
         var hud = Object.FindAnyObjectByType<RepairHUD>();
         Text assembly = (Text)typeof(RepairHUD).GetField("assemblyState", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(hud);
-        Assert.That(assembly.text, Is.EqualTo("Очистка: 0 / 3"));
-        yield return Click("CollapseOrderButton");
-        Assert.That(assembly.text, Does.Contain("Очистка ≥90%").And.Contain("0 / 3"));
-        Assert.That(assembly.text, Does.Not.Contain("выдайте робота"));
-        Assert.That(assembly.text, Does.Contain("СЕЙЧАС"));
+        Assert.That(assembly.text, Does.Contain("0%").Or.Contain("0 %"));
+        Assert.That(assembly.text, Does.Not.Contain("СЕЙЧАС"));
         DirtPatch outer = session.ActiveRobot.DirtPatches.Single(p => !p.RequiresOpenCover);
         outer.CleanStroke(new Vector2(.2f, .5f), new Vector2(.8f, .5f), .035f);
         float progress = outer.Cleanliness;
         yield return Press(Key.Escape);
         yield return Press(Key.E);
         Assert.That(outer.Cleanliness, Is.EqualTo(progress));
-        Assert.That(assembly.text, Does.Contain(outer.DisplayName).And.Contain(progress.ToString("P0")));
+        Assert.That(assembly.text, Does.Contain(Mathf.RoundToInt(RepairHUD.CleaningAmount(session.ActiveRobot) * 100f) + "%"));
     }
 
     [UnityTearDown]

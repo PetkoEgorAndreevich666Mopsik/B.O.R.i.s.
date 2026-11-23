@@ -89,19 +89,59 @@ public sealed class MainMenuFlowTests
             Assert.That(button.GetComponent<RectTransform>().anchoredPosition.x, Is.Zero);
         Assert.That(Cursor.visible, Is.True);
         Assert.That(Cursor.lockState, Is.EqualTo(CursorLockMode.None));
-        foreach (string name in new[] { "ContinueButton", "SettingsButton", "CreditsButton" })
+        foreach (string name in new[] { "ContinueButton", "CreditsButton" })
         {
             var button = ButtonNamed(name);
             Assert.That(button.interactable, Is.False);
-            Assert.That(button.GetComponentInChildren<RawImage>().texture, Is.Not.Null);
+            Assert.That(button.GetComponentInChildren<Text>().text, Does.Not.Contain("РАЗРАБОТКЕ"));
             Click(button);
         }
+        Assert.That(ButtonNamed("SettingsButton").interactable, Is.True);
         yield return null;
         Assert.That(SceneManager.GetActiveScene().name, Is.EqualTo("main_menu"));
         var store = new WorkshopProgressStore(WorkshopProgressStore.DefaultPath);
         Assert.That(store.TryLoad(out var progress, out _), Is.True);
         Assert.That(progress.balance, Is.EqualTo(999));
         Assert.That(ButtonNamed("QuitButton").onClick.GetPersistentMethodName(0), Is.EqualTo(nameof(MainMenu.Quit)));
+    }
+
+    [UnityTest]
+    public IEnumerator SettingsPreviewCancelAndApplyRememberVolume()
+    {
+        const string key = "BORis.Audio.Volume";
+        bool hadVolume = PlayerPrefs.HasKey(key);
+        float originalVolume = PlayerPrefs.GetFloat(key, 1f);
+        float listenerVolume = AudioListener.volume;
+        string[] displayKeys = { "BORis.Display.Width", "BORis.Display.Height", "BORis.Display.Mode" };
+        bool[] existed = displayKeys.Select(PlayerPrefs.HasKey).ToArray();
+        int[] previous = displayKeys.Select(k => PlayerPrefs.GetInt(k)).ToArray();
+        try
+        {
+            Click(ButtonNamed("SettingsButton"));
+            yield return null;
+            var slider = Object.FindAnyObjectByType<Slider>();
+            Assert.That(slider, Is.Not.Null);
+            Assert.That(Object.FindObjectsByType<Dropdown>().Length, Is.EqualTo(2));
+            slider.value = .35f;
+            Assert.That(AudioListener.volume, Is.EqualTo(.35f).Within(.001f));
+            Click(ButtonNamed("BackButton"));
+            Assert.That(AudioListener.volume, Is.EqualTo(originalVolume).Within(.001f));
+            Click(ButtonNamed("SettingsButton"));
+            slider.value = .6f;
+            Click(ButtonNamed("ApplyButton"));
+            Assert.That(PlayerPrefs.GetFloat(key), Is.EqualTo(.6f).Within(.001f));
+            Click(ButtonNamed("SettingsButton"));
+            Assert.That(slider.value, Is.EqualTo(.6f).Within(.001f));
+            Click(ButtonNamed("BackButton"));
+        }
+        finally
+        {
+            if (hadVolume) PlayerPrefs.SetFloat(key, originalVolume); else PlayerPrefs.DeleteKey(key);
+            for (int i = 0; i < displayKeys.Length; i++)
+                if (existed[i]) PlayerPrefs.SetInt(displayKeys[i], previous[i]); else PlayerPrefs.DeleteKey(displayKeys[i]);
+            PlayerPrefs.Save();
+            AudioListener.volume = listenerVolume;
+        }
     }
 
     [UnityTest]

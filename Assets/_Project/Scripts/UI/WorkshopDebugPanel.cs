@@ -100,9 +100,6 @@ namespace BORis
             scaler.referenceResolution = new Vector2(1920, 1080);
             scaler.matchWidthOrHeight = .5f;
             Font font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            var launcher = Button(canvasObject.transform, "DeveloperToggle", "DEV · F8", new Vector2(0, -28), new Vector2(150, 36), font);
-            launcher.GetComponent<RectTransform>().anchorMin = launcher.GetComponent<RectTransform>().anchorMax = new Vector2(.5f, 1f);
-            launcher.onClick.AddListener(() => SetOpen(!IsOpen));
             panel = Image(canvasObject.transform, "DeveloperPanel", new Color(0f, 0f, 0f, .72f), Vector2.zero, Vector2.zero);
             var backdrop = panel.GetComponent<RectTransform>();
             backdrop.anchorMin = Vector2.zero;

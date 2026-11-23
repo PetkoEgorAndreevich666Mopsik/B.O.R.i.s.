@@ -113,7 +113,6 @@ namespace BORis
             if (showingEquipment)
             {
                 description.text = "<b>ПАЯЛЬНАЯ СТАНЦИЯ</b>\n\nВосстанавливает повреждённые контакты."
-                    + (session.SolderingRepairsReady ? "\nПосле установки откроет паяльник и заказы на пайку." : "")
                     + (owned ? "\n\n<b>Установлена на верстаке</b>"
                         : ordered ? "\n\n<b>Посылка оплачена</b>"
                         : $"\n\nСтоимость  <b>{WorkshopSession.SolderingStationPrice} ед.</b>"
@@ -121,11 +120,10 @@ namespace BORis
                 buyButton.interactable = session.IsProgressReady && !owned && !ordered && missing == 0;
                 buyLabel.text = owned ? "Установлена" : ordered ? "Оплачено" : missing > 0 ? $"Нужно ещё {missing} ед." : "Заказать · 180 ед.";
                 status.text = feedback.Length > 0 ? feedback : !session.IsProgressReady ? session.SaveStatus
-                    : owned ? "Станция справа на верстаке." : ordered ? window.ParcelStatus
-                    : missing > 0 ? "Выполните заказы, чтобы накопить на станцию."
-                    : "Заберите коробку с ленты и поставьте справа на верстаке.";
+                    : owned ? "" : ordered ? window.ParcelStatus
+                    : "";
                 projection.Show(installedStation.transform);
-                projectionLabel.text = "ПРОЕКЦИЯ / ОБОРУДОВАНИЕ";
+                projectionLabel.text = "";
             }
             else
             {
@@ -136,22 +134,14 @@ namespace BORis
                 {
                     brief.Append($"<b>{order.ClientName.ToUpperInvariant()}  /  {order.Reward} ед.</b>\n");
                     if (session.ActiveOrder != null || window.HasHeardRequest)
-                        brief.Append($"\n{order.Symptom}\n{order.Requirements}");
+                        brief.Append($"\n{order.Symptom}");
                     else brief.Append("\nПоговорите с роботом у окна.");
-                }
-                brief.Append("\n\n<b>ЛИНЕЙНАЯ ОЧЕРЕДЬ</b>\n");
-                foreach (OrderDefinition item in session.Orders)
-                {
-                    if (item == null) continue;
-                    string state = item == order ? session.ActiveOrder == item ? "в работе" : "у окна"
-                        : item.RequiresSolderingStation && !session.CanOfferSolderingOrders ? "требует пайку" : "по очереди";
-                    brief.Append($"{item.OrderId}   {item.ClientName}  ·  {state}\n");
                 }
                 description.text = brief.ToString();
                 status.text = !session.IsProgressReady ? session.SaveStatus : ordered ? window.ParcelStatus
-                    : session.EquipmentOfferPending ? "Хватает на станцию · вкладка «Оборудование»" : window.StatusText;
+                    : "";
                 projection.Show(order != null ? order.RobotPrefab.transform : null);
-                projectionLabel.text = order != null ? "ПРОЕКЦИЯ / ПОСЕТИТЕЛЬ" : "ПРОЕКЦИЯ / НЕТ ПОСЕТИТЕЛЯ";
+                projectionLabel.text = "";
             }
         }
 

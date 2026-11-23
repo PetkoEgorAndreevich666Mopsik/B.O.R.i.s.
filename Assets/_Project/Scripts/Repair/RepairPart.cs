@@ -35,6 +35,7 @@ namespace BORis
         public bool IsReleased { get; private set; }
         public bool IsDragging { get; private set; }
         public bool IsSupported { get; private set; }
+        public bool IsStowing { get; private set; }
         public Rigidbody Body => body;
         internal float ExtractionDistance => kind == RepairPartKind.Cover ? .34f : .28f;
         internal Pose PickupPose { get; private set; }
@@ -196,6 +197,45 @@ namespace BORis
             Physics.SyncTransforms();
         }
 
+        public bool StowOnTray()
+        {
+            if (installed || trayAnchor == null || IsStowing) return false;
+            StartCoroutine(Stow());
+            return true;
+        }
+
+        System.Collections.IEnumerator Stow()
+        {
+            IsStowing = true;
+            SetSupported(true);
+            Vector3 start = transform.position;
+            Quaternion rotation = transform.rotation;
+            Vector3 destination = trayAnchor.position + Vector3.up * .06f;
+            for (float t = 0f; t < 1f; t += Time.deltaTime / .28f)
+            {
+                float eased = 1f - Mathf.Pow(1f - t, 3f);
+                transform.SetPositionAndRotation(Vector3.Lerp(start, destination, eased)
+                    + Vector3.up * (Mathf.Sin(t * Mathf.PI) * .12f), Quaternion.Slerp(rotation, trayAnchor.rotation, eased));
+                SynchronizePhysicsPose();
+                yield return null;
+            }
+            transform.SetPositionAndRotation(destination, trayAnchor.rotation);
+            SynchronizePhysicsPose();
+            SetSupported(false);
+            IsStowing = false;
+            AudioClip sound = releaseSound;
+            if (sound == null) sound = GetComponentInParent<RobotRepair>()?.Cover?.releaseSound;
+            if (sound != null) audioSource.PlayOneShot(sound, .4f);
+        }
+
+        void OnDisable()
+        {
+            if (!IsStowing) return;
+            StopAllCoroutines();
+            IsStowing = false;
+            SetSupported(false);
+        }
+
         void OnCollisionEnter(Collision collision)
         {
             float speed = collision.relativeVelocity.magnitude;
@@ -212,6 +252,7 @@ namespace BORis
         internal void Place(bool inRobot)
         {
             bool extracted = installed && !inRobot;
+            bool inserted = !installed && inRobot;
             installed = inRobot;
             IsReleased = false;
             if (extracted && installationAnchor != null)
@@ -222,6 +263,12 @@ namespace BORis
                     transform.rotation = Quaternion.AngleAxis(-12f, installationAnchor.right) * transform.rotation;
             }
             RestorePose();
+            if (inserted)
+            {
+                AudioClip sound = releaseSound;
+                if (sound == null) sound = GetComponentInParent<RobotRepair>()?.Cover?.releaseSound;
+                if (sound != null) audioSource.PlayOneShot(sound, .45f);
+            }
         }
 
         internal void RefreshRelease()

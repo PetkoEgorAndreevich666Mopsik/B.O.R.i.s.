@@ -236,12 +236,21 @@ namespace BORis
                 yield break;
             }
             displayedOrder = session.OfferedOrder;
+            RobotRepair arriving = Robot;
             workbench.PositionRobot(outside);
             signal.Play();
             yield return MoveDoor(true);
+            if (arriving == null || Robot != arriving)
+            {
+                yield return MoveDoor(false);
+                Phase = session.ActiveOrder != null ? ServiceWindowPhase.InRepair : ServiceWindowPhase.Loading;
+                nextArrival = Time.unscaledTime + 2f;
+                sequence = null;
+                yield break;
+            }
             yield return Convey(outside, platform);
             yield return MoveDoor(false);
-            Phase = ServiceWindowPhase.AwaitingConversation;
+            Phase = arriving != null && Robot == arriving ? ServiceWindowPhase.AwaitingConversation : ServiceWindowPhase.Loading;
             gestureStarted = Time.unscaledTime;
             sequence = null;
             RefreshDisplay();
@@ -314,6 +323,7 @@ namespace BORis
             bool movingRobot = cargo == null;
             if (movingRobot)
             {
+                if (Robot == null) yield break;
                 workbench.PositionRobot(from);
                 cargo = Robot.transform;
             }
@@ -323,15 +333,19 @@ namespace BORis
             motor.Play();
             for (float elapsed = 0f; elapsed < transitDuration; elapsed += Time.unscaledDeltaTime)
             {
+                if (cargo == null) { BeltDirection = 0f; motor.Stop(); yield break; }
                 Vector3 position = start + travel * Mathf.SmoothStep(0f, 1f, elapsed / transitDuration);
                 MoveBelt(Vector3.Dot(position - cargo.position, transform.forward));
                 cargo.position = position;
                 if (movingRobot) workbench.SynchronizeRobotPhysics();
                 yield return null;
             }
-            MoveBelt(Vector3.Dot(start + travel - cargo.position, transform.forward));
-            if (movingRobot) workbench.PositionRobot(to);
-            else cargo.position = start + travel;
+            if (cargo != null)
+            {
+                MoveBelt(Vector3.Dot(start + travel - cargo.position, transform.forward));
+                if (movingRobot) workbench.PositionRobot(to);
+                else cargo.position = start + travel;
+            }
             BeltDirection = 0f;
             motor.Stop();
         }
@@ -373,7 +387,7 @@ namespace BORis
             else if (Phase == ServiceWindowPhase.Arriving || Phase == ServiceWindowPhase.Departing)
             {
                 state = Phase == ServiceWindowPhase.Arriving ? "ПРИБЫВАЕТ ПОСЕТИТЕЛЬ" : "СЧАСТЛИВОГО ПУТИ!";
-                details = "Дождитесь остановки ленты\nи закрытия двери";
+                details = "";
                 light = new Color(1f, .6f, .15f);
             }
             else if (Phase == ServiceWindowPhase.ParcelArriving || Phase == ServiceWindowPhase.ParcelReady || IsCarryingParcel)
@@ -386,8 +400,8 @@ namespace BORis
             {
                 state = "ОКНО СВОБОДНО";
                 details = session.EquipmentOfferPending
-                    ? lastReceipt + "\n\nХватает на станцию.\nE на терминале — оборудование.\nКнопка у ленты — следующий посетитель."
-                    : lastReceipt + "\n\nE на терминале — заказы и оборудование";
+                    ? lastReceipt + "\nДоступна паяльная станция"
+                    : lastReceipt;
             }
             else
             {
@@ -395,10 +409,10 @@ namespace BORis
                 bool ready = session.CanDeliverOrder(out string reason);
                 state = session.ActiveOrder == null ? "ПОСЕТИТЕЛЬ ЖДЁТ" : ready ? "ГОТОВ К ВЫДАЧЕ" : "НА ОБСЛУЖИВАНИИ";
                 details = displayedOrder == null ? "" : $"{displayedOrder.ClientName}  /  {displayedOrder.Reward} ед.\n\n"
-                    + (HasHeardRequest ? displayedOrder.Symptom + "\n\n" + displayedOrder.Requirements
-                        : "Кликните по роботу,\nчтобы выслушать просьбу.");
-                if (onPlatform) details = ready ? "Робот собран и проверен.\nНажмите кнопку ОТПРАВИТЬ."
-                    : reason + "\n\nЗаберите робота и завершите работу.";
+                    + (HasHeardRequest ? displayedOrder.Symptom
+                        : "ЛКМ · Разговор");
+                if (onPlatform) details = ready ? "Готов к выдаче"
+                    : reason;
                 if (ready) light = new Color(.35f, 1f, .5f);
             }
             if (stateLabel.text != state) stateLabel.text = state;

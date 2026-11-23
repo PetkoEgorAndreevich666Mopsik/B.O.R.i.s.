@@ -224,6 +224,7 @@ namespace BORis
         {
             reason = "";
             if (!Owns(part)) reason = "Деталь недоступна";
+            else if (part.IsStowing) reason = "Дождитесь укладки детали";
             else if (IsTesting) reason = "Дождитесь окончания теста руки";
             else if (IsOnDriveStand) reason = "Сначала верните привод со стенда · ESC";
             else if (part.IsInstalled && part.Kind == RepairPartKind.Drive && cover.IsInstalled) reason = "Сначала снимите крышку";

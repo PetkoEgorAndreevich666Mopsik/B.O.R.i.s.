@@ -66,6 +66,41 @@ public sealed class PhysicalInputTests
     }
 
     [UnityTest]
+    public IEnumerator HoldReleasedCoverStowsItOnTrayWithoutDragging()
+    {
+        foreach (var screw in robot.Cover.Screws) robot.Turn(screw, -10000f);
+        var cover = robot.Cover;
+        var surfaces = cover.GetComponentsInChildren<DirtPatch>();
+        yield return Pointer(Screen(cover.transform.position), 1);
+        Assert.That(interaction.HeldPart, Is.SameAs(cover));
+        yield return new WaitForSeconds(.85f);
+        Assert.That(interaction.HeldPart, Is.Null);
+        Assert.That(cover.IsInstalled || cover.IsDragging || cover.IsStowing, Is.False);
+        Assert.That(Vector3.Distance(cover.transform.position, cover.TrayAnchor.position), Is.LessThan(.2f));
+        Assert.That(cover.GetComponentsInChildren<DirtPatch>(), Is.EquivalentTo(surfaces));
+        yield return Pointer(Screen(cover.transform.position), 0);
+    }
+
+    [UnityTest]
+    public IEnumerator ActionFeedbackConfirmsWithoutBlockingMouseAndThenDisappears()
+    {
+        yield return Pointer(new Vector2(8f, 8f), 0);
+        var feedback = player.GetComponent<RepairFeedback>();
+        Assert.That(feedback, Is.Not.Null);
+        feedback.Pulse(robot.Cover.transform, true);
+        yield return new WaitForSeconds(.15f);
+        var ring = Object.FindAnyObjectByType<InteractionRing>();
+        var group = ring.GetComponent<CanvasGroup>();
+        Assert.That(group.blocksRaycasts || ring.raycastTarget, Is.False);
+        Assert.That(group.alpha, Is.GreaterThan(.9f));
+        Assert.That(ring.Progress, Is.EqualTo(1f));
+        Assert.That(ring.GetComponent<CanvasRenderer>(), Is.Not.Null);
+        Assert.That(ring.canvasRenderer.GetMesh().vertexCount, Is.GreaterThan(0));
+        yield return new WaitForSeconds(.7f);
+        Assert.That(group.alpha, Is.Zero);
+    }
+
+    [UnityTest]
     public IEnumerator RightMouseRotatesHeldPartWithoutDraggingItsPosition()
     {
         spare.SetSupported(true);

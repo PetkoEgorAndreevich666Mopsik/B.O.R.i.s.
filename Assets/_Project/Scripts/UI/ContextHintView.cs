@@ -41,7 +41,7 @@ namespace BORis
             {
                 previousText = message;
                 label.text = message;
-                float width = Mathf.Clamp(label.preferredWidth + 32f, 190f, 380f);
+                float width = Mathf.Clamp(label.preferredWidth + 32f, 112f, 380f);
                 label.rectTransform.sizeDelta = new Vector2(width - 32f, 100f);
                 float height = label.preferredHeight;
                 label.rectTransform.sizeDelta = new Vector2(width - 32f, height);
