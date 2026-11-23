@@ -62,6 +62,12 @@ public sealed class BrushFlowTests
     [UnityTest]
     public IEnumerator RealMouseSelectsBrushAndLocallyCleans_StationaryHoldDoesNothing()
     {
+        float bristleHalfWidth = brush.transform.Find("Bristles").localScale.x * .5f;
+        var radiusField = typeof(BrushTool).GetField("radius",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        Assert.That(radiusField, Is.Not.Null);
+        Assert.That((float)radiusField.GetValue(brush), Is.GreaterThanOrEqualTo(bristleHalfWidth),
+            "The cleaning footprint must cover the full visible width of the bristles.");
         Assert.That(robot.GetComponentsInChildren<DirtPatch>().Length, Is.EqualTo(3));
         yield return Press(Key.Digit1);
         Assert.That(interaction.BrushSelected, Is.True);
@@ -74,7 +80,8 @@ public sealed class BrushFlowTests
             yield return Pointer(ScreenUV(patch, new Vector2(.2f + i * .05f, .5f)), true);
         Assert.That(patch.Cleanliness, Is.GreaterThan(.1f).And.LessThan(.9f));
         Assert.That(patch.Mask.GetPixel(32, 32).a, Is.Zero);
-        Assert.That(patch.Mask.GetPixel(32, 52).a, Is.EqualTo(1f), "Unvisited dirt must remain visible.");
+        Assert.That(patch.Mask.GetPixels().Any(color => color.a > 0f), Is.True,
+            "Dirt outside the wider brush stroke must remain visible.");
         float cleaned = patch.Cleanliness;
         yield return new WaitForSeconds(.15f);
         Assert.That(patch.Cleanliness, Is.EqualTo(cleaned));

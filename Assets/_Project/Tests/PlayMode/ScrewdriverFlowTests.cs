@@ -53,6 +53,20 @@ public sealed class ScrewdriverFlowTests
     Vector2 Center => player.View.WorldToScreenPoint(screw.transform.position);
 
     [UnityTest]
+    public IEnumerator ScrewColliderIsNotOccludedByRobotProxyColliders()
+    {
+        Physics.SyncTransforms();
+        RaycastHit[] hits = Physics.RaycastAll(player.View.ScreenPointToRay(Center), 10f,
+                ~(1 << player.gameObject.layer), QueryTriggerInteraction.Ignore)
+            .OrderBy(hit => hit.distance)
+            .ToArray();
+        Assert.That(hits, Is.Not.Empty);
+        Assert.That(hits[0].collider.GetComponentInParent<ScrewFastener>(), Is.SameAs(screw),
+            $"Closest collider is {hits[0].collider.name}; the screw must receive the click first.");
+        yield return null;
+    }
+
+    [UnityTest]
     public IEnumerator HighlightDoesNotOverwriteRemovedScrewTransparency()
     {
         var robot = screw.GetComponentInParent<RobotRepair>();

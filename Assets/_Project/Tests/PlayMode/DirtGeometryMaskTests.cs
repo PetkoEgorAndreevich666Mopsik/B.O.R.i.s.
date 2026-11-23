@@ -24,6 +24,14 @@ public sealed class DirtGeometryMaskTests
 
         DirtPatch outer = patches.Single(patch => patch.name == "OuterDirt");
         DirtPatch inner = patches.Single(patch => patch.name == "InnerDirt");
+        DirtPatch frame = patches.Single(patch => patch.name == "FrameDirt");
+        Vector3 frameNormal = frame.transform.localToWorldMatrix.inverse.transpose
+            .MultiplyVector(Vector3.back).normalized;
+        Vector3 bendAxis = Vector3.Cross(frameNormal, Vector3.up);
+        if (bendAxis.sqrMagnitude < .0001f) bendAxis = Vector3.Cross(frameNormal, Vector3.right);
+        Vector3 curvedNormal = Quaternion.AngleAxis(70f, bendAxis.normalized) * frameNormal;
+        Assert.That(frame.AcceptsContact(curvedNormal), Is.True,
+            "Frame dirt must remain cleanable across the rounded normals of the replacement body.");
         foreach (DirtPatch patch in new[] { outer, inner })
         {
             MeshRenderer proxy = patch.GetComponent<MeshRenderer>();

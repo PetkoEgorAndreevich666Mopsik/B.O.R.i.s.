@@ -5868,7 +5868,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bcf3420c65dca964b9da5bbc4a0698d7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: BORis.Runtime::BORis.BrushTool
-  radius: 0.035
+  radius: 0.052
   scrubSound: {fileID: 8300000, guid: 11cac8053fca91e41be850e1a39ce0f1, type: 3}
   dustCleaning: {fileID: 1147773318981174247}
   dustStopDelay: 0.08

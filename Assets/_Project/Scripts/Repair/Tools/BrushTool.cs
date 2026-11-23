@@ -5,7 +5,7 @@ namespace BORis
     [RequireComponent(typeof(AudioSource))]
     public sealed class BrushTool : RepairTool
     {
-        [SerializeField, Min(.001f)] float radius = .035f;
+        [SerializeField, Min(.001f), Tooltip("Половина ширины очищаемого следа в мировых единицах. Должна быть не меньше половины ширины щетины.")] float radius = .052f;
         [SerializeField] AudioClip scrubSound;
         [SerializeField] Transform dustCleaning;
         [SerializeField, Min(0f)] float dustStopDelay = .08f;

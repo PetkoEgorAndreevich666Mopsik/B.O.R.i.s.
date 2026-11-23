@@ -29,7 +29,7 @@ namespace BORis
         [SerializeField, Tooltip("Плоскость проекции: XY для передней/задней стороны, ZY для боковины, XZ для верха/низа.")] DirtProjection projection;
         [SerializeField, Tooltip("Локальный поворот проектора. В плоскости XY рисунок вращает Z, в XZ — Y, в ZY — X; остальные углы наклоняют проектор на диагональную поверхность.")] Vector3 projectionRotation;
         [SerializeField, Tooltip("Локальное направление наружной нормали загрязнённой стороны.")] Vector3 surfaceDirection = Vector3.back;
-        [SerializeField, Range(.1f, .99f), Tooltip("Насколько строго нормаль полигона должна смотреть в Surface Direction.")] float normalThreshold = .72f;
+        [SerializeField, Range(.1f, .99f), Tooltip("Насколько строго нормаль полигона должна смотреть в Surface Direction. Для округлых поверхностей ставьте 0.1–0.25, чтобы грязь и очистка не обрывались на изгибах.")] float normalThreshold = .72f;
 
         [Header("Mask shape (normalized 0..1)")]
         [SerializeField, Tooltip("Центр пятна внутри проекционной области.")] Vector2 maskCenter = new(.5f, .5f);
