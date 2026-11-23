@@ -22,7 +22,6 @@ namespace BORis
         ParticleSystemRenderer dustRenderer;
         Camera view;
         RobotRepair repair;
-        Vector2 previousUV;
         bool hasPrevious;
         Vector3 previousContactPoint;
         Vector3 brushUp;
@@ -93,7 +92,7 @@ namespace BORis
             if (HasContact)
             {
                 Target = hit.collider.GetComponent<DirtPatch>();
-                if (Target != null && !repair.CanClean(Target, out _)) { Target = null; HasContact = false; }
+                if (Target != null && (!Target.AcceptsContact(hit.normal) || !repair.CanClean(Target, out _))) Target = null;
             }
             if (!HasContact)
             {
@@ -135,7 +134,7 @@ namespace BORis
                 hit.point + hitNormal * brushSurfaceOffset,
                 SurfaceRotation(hit.point, hitNormal));
             int cleaned = Target != null && Target == previousTarget && hasPrevious
-                ? Target.CleanStroke(previousUV, hit.textureCoord, radius) : 0;
+                ? Target.CleanStroke(surfaceAnchorPoint, hit.point, radius) : 0;
             if (cleaned > 0)
             {
                 audioSource.volume = .28f;
@@ -150,7 +149,6 @@ namespace BORis
             surfaceAnchorPoint = hit.point;
             surfaceAnchorNormal = hitNormal;
             hasSurfaceAnchor = true;
-            previousUV = hit.textureCoord;
             hasPrevious = true;
         }
 

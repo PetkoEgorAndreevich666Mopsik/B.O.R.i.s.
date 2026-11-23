@@ -5070,7 +5070,6 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1448392718035689401}
-  - {fileID: 3396011204542596842}
   - {fileID: 3303027963716856361}
   - {fileID: 2965562193766483730}
   - {fileID: 5905859303041138725}
@@ -7734,7 +7733,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4927257504396551550}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
@@ -7812,6 +7811,25 @@ MonoBehaviour:
   m_EditorClassIdentifier: BORis.Runtime::BORis.DirtPatch
   displayName: "\u041A\u0440\u044B\u0448\u043A\u0430 \u0441\u043D\u0430\u0440\u0443\u0436\u0438"
   requiresOpenCover: 0
+  overlayMaterial: {fileID: 0}
+  surfaceRenderers:
+  - {fileID: 1467921981730877066}
+  projection: 0
+  projectionRotation: {x: 0, y: 0, z: 0}
+  surfaceDirection: {x: 0, y: 0, z: -1}
+  normalThreshold: 0.45
+  maskCenter: {x: 0.5, y: 0.5}
+  maskSize: {x: 1, y: 1}
+  dirtColor: {r: 0.44, g: 0.31, b: 0.16, a: 0.9}
+  colorVariation: 0.25
+  edgeNoise: 0.16
+  maskResolution: 256
+  patternMode: 0
+  dirtPatterns: []
+  fixedPatternIndex: 0
+  patternChannel: 0
+  invertPattern: 0
+  patternSeed: 0
 --- !u!1 &4975711309841658759
 GameObject:
   m_ObjectHideFlags: 0
@@ -7923,7 +7941,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3c52fdb73ea4d95478d55f0daf0c5a30, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: BORis.Runtime::BORis.ScrewTray
   floor: {fileID: 4177137529782796309}
   impactSound: {fileID: 8300000, guid: 6fab35604f305ca4ca74915d06df6173, type: 3}
@@ -12033,109 +12051,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
---- !u!1 &7183167847185673242
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 3396011204542596842}
-  - component: {fileID: 169772320984885739}
-  - component: {fileID: 7136164548023799813}
-  - component: {fileID: 226166662808034734}
-  m_Layer: 0
-  m_Name: InnerFace
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &3396011204542596842
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7183167847185673242}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0.042}
-  m_LocalScale: {x: 0.68, y: 0.5, z: 0.008}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 6117966873240765096}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!33 &169772320984885739
-MeshFilter:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7183167847185673242}
-  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
---- !u!23 &7136164548023799813
-MeshRenderer:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7183167847185673242}
-  m_Enabled: 1
-  m_CastShadows: 1
-  m_ReceiveShadows: 1
-  m_DynamicOccludee: 1
-  m_StaticShadowCaster: 0
-  m_MotionVectors: 1
-  m_LightProbeUsage: 1
-  m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
-  m_RayTraceProcedural: 0
-  m_RayTracingAccelStructBuildFlagsOverride: 0
-  m_RayTracingAccelStructBuildFlags: 1
-  m_SmallMeshCulling: 1
-  m_ForceMeshLod: -1
-  m_MeshLodSelectionBias: 0
-  m_RenderingLayerMask: 1
-  m_RendererPriority: 0
-  m_Materials:
-  - {fileID: 2100000, guid: 032d1d851ccff404994baabe556fb490, type: 2}
-  m_StaticBatchInfo:
-    firstSubMesh: 0
-    subMeshCount: 0
-  m_StaticBatchRoot: {fileID: 0}
-  m_ProbeAnchor: {fileID: 0}
-  m_LightProbeVolumeOverride: {fileID: 0}
-  m_ScaleInLightmap: 1
-  m_ReceiveGI: 1
-  m_PreserveUVs: 1
-  m_IgnoreNormalsForChartDetection: 0
-  m_ImportantGI: 0
-  m_StitchLightmapSeams: 1
-  m_SelectedEditorRenderState: 3
-  m_MinimumChartSize: 4
-  m_AutoUVMaxDistance: 0.5
-  m_AutoUVMaxAngle: 89
-  m_LightmapParameters: {fileID: 0}
-  m_GlobalIlluminationMeshLod: 0
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
-  m_SortingOrder: 0
-  m_MaskInteraction: 0
-  m_AdditionalVertexStreams: {fileID: 0}
---- !u!114 &226166662808034734
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7183167847185673242}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
 --- !u!1 &7237586117962775507
 GameObject:
   m_ObjectHideFlags: 0
@@ -12848,7 +12763,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f24510129ff64c2b8d812350671a6fe7, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OutlineTarget
 --- !u!1 &7911732935310515682
 GameObject:
@@ -13140,7 +13055,7 @@ Transform:
   m_GameObject: {fileID: 8186828776806012991}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 1, z: 0, w: -0.00000004371139}
-  m_LocalPosition: {x: 0, y: 0, z: 0.052}
+  m_LocalPosition: {x: 0.082, y: 0, z: 0.0431}
   m_LocalScale: {x: 0.4, y: 0.25, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -13161,7 +13076,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8186828776806012991}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
@@ -13239,6 +13154,25 @@ MonoBehaviour:
   m_EditorClassIdentifier: BORis.Runtime::BORis.DirtPatch
   displayName: "\u041A\u0440\u044B\u0448\u043A\u0430 \u0438\u0437\u043D\u0443\u0442\u0440\u0438"
   requiresOpenCover: 1
+  overlayMaterial: {fileID: 0}
+  surfaceRenderers:
+  - {fileID: 1467921981730877066}
+  projection: 0
+  projectionRotation: {x: 0, y: 0, z: 0}
+  surfaceDirection: {x: 0, y: 0, z: -1}
+  normalThreshold: 0.45
+  maskCenter: {x: 0.5, y: 0.5}
+  maskSize: {x: 1, y: 1}
+  dirtColor: {r: 0.44, g: 0.31, b: 0.16, a: 0.9}
+  colorVariation: 0.25
+  edgeNoise: 0.16
+  maskResolution: 256
+  patternMode: 0
+  dirtPatterns: []
+  fixedPatternIndex: 0
+  patternChannel: 0
+  invertPattern: 0
+  patternSeed: 0
 --- !u!1 &8262856370893721578
 GameObject:
   m_ObjectHideFlags: 0
@@ -13528,13 +13462,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8372006155710104411}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.435, y: -0.07, z: -0.195}
-  m_LocalScale: {x: 0.045, y: 0.25, z: 1}
+  m_LocalRotation: {x: -0, y: 0.35329443, z: -0, w: 0.9355122}
+  m_LocalPosition: {x: -0.4586, y: -0.06999993, z: -0.1929}
+  m_LocalScale: {x: 0.13914251, y: 0.422775, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 7420487347467776955}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 41.378, z: 0}
 --- !u!33 &1831954217334654474
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -13628,6 +13562,25 @@ MonoBehaviour:
   m_EditorClassIdentifier: BORis.Runtime::BORis.DirtPatch
   displayName: "\u0420\u0430\u043C\u043A\u0430 \u043A\u043E\u0440\u043F\u0443\u0441\u0430"
   requiresOpenCover: 0
+  overlayMaterial: {fileID: 0}
+  surfaceRenderers:
+  - {fileID: 4199555511665250876}
+  projection: 0
+  projectionRotation: {x: 0, y: 0, z: 0}
+  surfaceDirection: {x: 0, y: 0, z: -1}
+  normalThreshold: 0.187
+  maskCenter: {x: 0.5, y: 0.5}
+  maskSize: {x: 0.82, y: 0.84}
+  dirtColor: {r: 0.44, g: 0.31, b: 0.16, a: 0.9}
+  colorVariation: 0.25
+  edgeNoise: 0.16
+  maskResolution: 256
+  patternMode: 0
+  dirtPatterns: []
+  fixedPatternIndex: 0
+  patternChannel: 0
+  invertPattern: 0
+  patternSeed: 0
 --- !u!1 &8377435692456704488
 GameObject:
   m_ObjectHideFlags: 0
