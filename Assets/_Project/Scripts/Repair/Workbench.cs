@@ -32,6 +32,9 @@ namespace BORis
         Vector3 inspectionStartPosition, inspectionCenterLocal;
         Quaternion inspectionStartRotation, inspectionDisplayRotation;
         Pose robotRestPose;
+        Vector3 robotDisplayPosition;
+        Quaternion robotDisplayRotation;
+        bool hasRobotDisplayPosition;
         float inspectionDistance, minimumDistance;
         float initialDistance, maximumDistance;
         readonly List<GameObject> transportHidden = new();
@@ -137,6 +140,7 @@ namespace BORis
             if (DriveStand != null) DriveStand.Cancel();
             ReturnToOverview(true);
             var oldRobot = robot;
+            hasRobotDisplayPosition = false;
             oldRobot.gameObject.SetActive(false);
             SpawnRobot();
             Destroy(oldRobot.gameObject);
@@ -149,6 +153,7 @@ namespace BORis
             if (!HasRobot || IsOccupied || cameraAnchor == null || camera == null) return false;
             view = camera.transform;
             robotRestPose = new Pose(robot.InspectionPivot.position, robot.InspectionPivot.rotation);
+            hasRobotDisplayPosition = false;
             previousPosition = view.localPosition;
             previousRotation = view.localRotation;
             // Keep the camera under the player so disabling the table never reparents an inactive hierarchy.
@@ -208,7 +213,7 @@ namespace BORis
                                 if (hasBounds) bounds.Encapsulate(renderer.bounds);
                                 else { bounds = renderer.bounds; hasBounds = true; }
                             }
-            inspectionPivot = bounds.center;
+            inspectionPivot = liftedPart != null ? bounds.center : inspectionRoot.position;
 
             float halfFov = Mathf.Atan(Mathf.Tan(inspectionFieldOfView * Mathf.Deg2Rad * .5f)
                 * Mathf.Min(1f, inspectionCamera.aspect));
@@ -236,10 +241,24 @@ namespace BORis
             }
             else
             {
-                inspectionPivot += transform.up * -.25f;
                 inspectionDisplayRotation = Quaternion.AngleAxis(repairTilt, transform.right) * inspectionStartRotation;
+                Vector3 frameCenter = inspectionRoot.InverseTransformPoint(bounds.center);
                 inspectionRoot.rotation = inspectionDisplayRotation;
-                inspectionRoot.position += inspectionPivot - inspectionRoot.TransformPoint(inspectionCenterLocal);
+                if (!hasRobotDisplayPosition)
+                {
+                    inspectionRoot.position += bounds.center - transform.up * .25f - inspectionRoot.TransformPoint(frameCenter);
+                    robotDisplayPosition = inspectionRoot.position;
+                    robotDisplayRotation = inspectionDisplayRotation;
+                    hasRobotDisplayPosition = true;
+                }
+                inspectionRoot.rotation = robotDisplayRotation;
+                inspectionPivot = robotDisplayPosition;
+                inspectionRoot.position = inspectionPivot;
+                initialDistance = Mathf.Max(.1f, Vector3.Distance(cameraAnchor.position, inspectionPivot));
+                inspectionDistance = initialDistance;
+                maximumDistance = initialDistance + .55f;
+                minimumDistance = Mathf.Min(initialDistance,
+                    Mathf.Max(bounds.extents.magnitude + inspectionCamera.nearClipPlane + .05f, initialDistance * .25f));
                 SynchronizeRobotPhysics();
             }
             IsFocused = true;
@@ -274,11 +293,25 @@ namespace BORis
             Focus(null);
         }
 
+        internal Pose BeginPlacement(RepairPart part)
+        {
+            Pose rest = new(part.transform.position, part.transform.rotation);
+            if (part != liftedPart) return rest;
+            rest = new Pose(inspectionStartPosition, inspectionStartRotation);
+            inspectionRoot = null;
+            liftedPart = null;
+            framingPart = null;
+            IsFocused = false;
+            part.SetSupported(true);
+            return rest;
+        }
+
         public void AlignInspection()
         {
             if (!IsFocused || inspectionRoot == null) return;
             inspectionDistance = initialDistance;
             inspectionRoot.SetPositionAndRotation(inspectionStartPosition, inspectionDisplayRotation);
+            if (liftedPart == null) robotDisplayRotation = inspectionDisplayRotation;
             SynchronizeRobotPhysics();
         }
 
@@ -294,9 +327,10 @@ namespace BORis
             {
                 if (orbitDelta.sqrMagnitude > 0f)
                 {
-                    Quaternion turn = Quaternion.AngleAxis(-orbitDelta.x * .35f, liftedPart != null ? view.up : Vector3.up)
+                    Quaternion turn = Quaternion.AngleAxis(-orbitDelta.x * .35f, view.up)
                         * Quaternion.AngleAxis(orbitDelta.y * .35f, view.right);
                     inspectionRoot.rotation = turn * inspectionRoot.rotation;
+                    if (liftedPart == null) robotDisplayRotation = inspectionRoot.rotation;
                     changed = true;
                 }
                 if (zoom != 0f)

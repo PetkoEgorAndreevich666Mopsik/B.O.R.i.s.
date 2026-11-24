@@ -244,9 +244,13 @@ public sealed class DriveTestStandTests
             Vector2 source = interaction.View.WorldToScreenPoint(part.transform.position);
             yield return Pointer(source, true);
             Assert.That(interaction.HeldPart, Is.SameAs(part), interaction.Feedback);
+            yield return Pointer(source, false);
+            yield return new WaitForSeconds(.7f);
+            Vector2 picked = interaction.View.WorldToScreenPoint(part.Body.worldCenterOfMass);
             Vector2 target = interaction.View.WorldToScreenPoint(stand.Socket.position);
-            yield return Pointer(target, false);
-            yield return new WaitForSeconds(.5f);
+            yield return Pointer(picked, true);
+            yield return Pointer(picked + Vector2.right * 36f, true);
+            yield return Pointer(target, true);
             Assert.That(interaction.DropAnchor, Is.SameAs(stand.Socket), StandDropDiagnostic(part, target));
             yield return Pointer(target, true);
             yield return Pointer(target, false);

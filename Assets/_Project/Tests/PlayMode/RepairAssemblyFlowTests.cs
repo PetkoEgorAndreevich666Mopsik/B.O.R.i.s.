@@ -140,9 +140,13 @@ public sealed class RepairAssemblyFlowTests
         if (install)
         {
             Assert.That(interaction.HeldPart, Is.SameAs(part), interaction.Feedback);
+            yield return new WaitForSeconds(.7f);
+            Vector2 picked = VisiblePartScreen(part);
             Vector2 target = Screen(part.InstallationAnchor);
-            yield return Pointer(target, false);
+            yield return Pointer(picked, true);
+            yield return Pointer(picked + Vector2.right * 36f, true);
             yield return Pointer(target, true);
+            Assert.That(interaction.DropAnchor, Is.SameAs(part.InstallationAnchor), interaction.Feedback);
             yield return Pointer(target, false);
         }
         else yield return new WaitForSeconds(.6f);
@@ -223,6 +227,7 @@ public sealed class RepairAssemblyFlowTests
     }
 
     [UnityTest]
+    [Category("WorkbenchRepair")]
     public IEnumerator FullRepairUsesMouseForEveryScrewConnectorAndPart()
     {
         Assert.That(robot.Cover.Screws.Length,Is.EqualTo(4));
@@ -403,8 +408,13 @@ public sealed class RepairAssemblyFlowTests
         yield return new WaitForSeconds(.3f);
         yield return Pointer(VisiblePartScreen(robot.Cover),true);
         Assert.That(interaction.HeldPart,Is.SameAs(robot.Cover));
+        yield return Pointer(Vector2.zero,false);
+        yield return new WaitForSeconds(.7f);
+        Vector2 picked = VisiblePartScreen(robot.Cover);
+        yield return Pointer(picked,true);
+        yield return Pointer(picked + Vector2.right * 36f,true);
         Vector2 installationPoint = Screen(robot.Cover.InstallationAnchor);
-        yield return Pointer(installationPoint,false);
+        yield return Pointer(installationPoint,true);
         float deadline = Time.realtimeSinceStartup + 2f;
         while (interaction.DropAnchor != robot.Cover.InstallationAnchor && Time.realtimeSinceStartup < deadline)
             yield return null;

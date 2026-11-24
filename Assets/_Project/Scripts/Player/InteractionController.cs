@@ -44,6 +44,12 @@ namespace BORis
         SolderingTool soldering;
         RepairTool selectedTool;
         RobotRepair robot;
+        bool placementArmed, placementDragging, placementReturnOnClick;
+        Vector2 placementPointer;
+        Pose placementRestPose;
+        Plane placementPlane;
+        Vector3 placementOffset;
+        Quaternion placementRotation;
         string feedback;
         float feedbackUntil;
         RepairPart inspectionTarget;
@@ -51,7 +57,7 @@ namespace BORis
         float observationTime;
         const float ObservationDuration = .5f;
         readonly List<RaycastResult> uiHits = new();
-        readonly List<Renderer> socketPreview = new();
+        readonly List<RepairHintView> placementZones = new();
 
         public bool IsAtWorkbench => activeWorkbench != null && bench != null && bench.enabled;
         public bool IsAtOrderDesk => activeOrderDesk != null;
@@ -79,6 +85,7 @@ namespace BORis
         public DirtPatch PointedDirt { get; private set; }
         public RobotRepair Robot => robot;
         public RepairPart HeldPart { get; private set; }
+        public bool IsPlacingPart => placementDragging;
         public float StowProgress => 0f;
         public RepairPart PointedPart { get; private set; }
         public RepairConnector PointedConnector { get; private set; }
@@ -370,7 +377,7 @@ namespace BORis
                 }
                 return;
             }
-            if (!activeWorkbench.IsFocused) activeWorkbench.Focus(null);
+            if (!activeWorkbench.IsFocused && !placementDragging) activeWorkbench.Focus(null);
             if (selectBrush.WasPressedThisFrame() && brush != null) ToggleBrush();
             if (Keyboard.current?.gKey.wasPressedThisFrame == true) RecoverLooseParts();
             Vector2 pointer = point.ReadValue<Vector2>();
@@ -486,6 +493,7 @@ namespace BORis
                     {
                         HeldPart = PointedPart;
                         activeWorkbench.Focus(HeldPart);
+                        ArmPlacement(pointer, false);
                     }
                     Say("");
                 }
@@ -521,6 +529,8 @@ namespace BORis
 
         void SelectTool(RepairTool tool)
         {
+            if (placementDragging) CancelPart();
+            placementArmed = false;
             if (screwdriver != null) screwdriver.End();
             if (soldering != null) soldering.End();
             if (PointedScrew != null) PointedScrew.SetHovered(false);
@@ -548,9 +558,12 @@ namespace BORis
 
         Transform FindDropAnchor(Ray ray)
         {
-            Transform target = CaptureAnchor(HeldPart.InstallationAnchor, ray, out float installDistance)
+            float installDistance = float.PositiveInfinity;
+            Transform target = CanPlaceHeld(HeldPart.InstallationAnchor)
+                && CaptureAnchor(HeldPart.InstallationAnchor, ray, out installDistance)
                 ? HeldPart.InstallationAnchor : null;
             if (DriveStand != null && HeldPart.Kind == RepairPartKind.Drive
+                && CanPlaceHeld(DriveStand.Socket)
                 && CaptureAnchor(DriveStand.Socket, ray, out float standDistance)
                 && (target == null || standDistance < installDistance)) target = DriveStand.Socket;
             return target;
@@ -561,8 +574,13 @@ namespace BORis
             distance = 0f;
             if (anchor == null) return false;
             Collider collider = anchor.GetComponent<Collider>();
-            Bounds bounds = collider != null ? collider.bounds : new Bounds(anchor.position, Vector3.one * .18f);
-            bounds.Expand(.12f);
+            if (collider != null)
+            {
+                if (!collider.Raycast(ray, out RaycastHit hit, RepairReach)) return false;
+                distance = hit.distance;
+                return !DropIsBlocked(anchor, ray);
+            }
+            Bounds bounds = new(anchor.position, Vector3.one * .18f);
             return bounds.IntersectRay(ray, out distance) && distance <= RepairReach && !DropIsBlocked(anchor, ray);
         }
 
@@ -593,74 +611,153 @@ namespace BORis
         void SetDropAnchor(Transform anchor)
         {
             if (DropAnchor == anchor) return;
-            foreach (Renderer renderer in socketPreview) if (renderer != null) renderer.enabled = false;
-            socketPreview.Clear();
             DropAnchor = anchor;
-            if (anchor == null || HeldPart == null) return;
-            if (!CanPlaceHeld(anchor)) return;
-            foreach (Renderer renderer in anchor.GetComponentsInChildren<Renderer>())
-                if (!renderer.enabled && renderer.name.EndsWith("Rim"))
-                { renderer.enabled = true; socketPreview.Add(renderer); }
+            foreach (var zone in placementZones)
+                if (zone != null) zone.Tint = zone.Target == anchor
+                    ? new Color(.36f, 1f, .65f) : new Color(1f, .76f, .3f);
+        }
+
+        void ShowPlacementTarget(Transform anchor)
+        {
+            if (anchor == null || !CanPlaceHeld(anchor)) return;
+            Canvas owner = hint != null ? hint.canvas : GetComponentInChildren<Canvas>();
+            if (owner == null) return;
+            var marker = new GameObject("PlacementZonePreview", typeof(RectTransform), typeof(CanvasRenderer), typeof(RepairHintView));
+            marker.transform.SetParent(owner.transform, false);
+            var zone = marker.GetComponent<RepairHintView>();
+            zone.Tint = new Color(1f, .76f, .3f);
+            zone.Show(anchor, player.View, 0f, .18f);
+            placementZones.Add(zone);
+        }
+
+        void HidePlacementTargets()
+        {
+            foreach (var zone in placementZones)
+                if (zone != null) { zone.Hide(); Destroy(zone.gameObject); }
+            placementZones.Clear();
+        }
+
+        void ArmPlacement(Vector2 pointer, bool returnOnClick)
+        {
+            placementArmed = true;
+            placementReturnOnClick = returnOnClick;
+            placementPointer = pointer;
         }
 
         void TickSelectedPart(Vector2 pointer, bool overUI)
         {
             ClearObservation();
+            Ray ray = player.View.ScreenPointToRay(pointer);
+            if (placementArmed)
+            {
+                if (overUI) { CancelPart(); return; }
+                if (!placementDragging && primary.IsPressed() && Vector2.Distance(pointer, placementPointer) > 12f)
+                {
+                    placementRestPose = activeWorkbench.BeginPlacement(HeldPart);
+                    placementDragging = true;
+                    placementRotation = HeldPart.transform.rotation;
+                    placementPlane = new Plane(player.View.transform.forward, HeldPart.transform.position);
+                    Ray start = player.View.ScreenPointToRay(placementPointer);
+                    placementOffset = placementPlane.Raycast(start, out float distance)
+                        ? HeldPart.transform.position - start.GetPoint(distance) : Vector3.zero;
+                    ShowPlacementTarget(HeldPart.InstallationAnchor);
+                    if (HeldPart.Kind == RepairPartKind.Drive && DriveStand != null) ShowPlacementTarget(DriveStand.Socket);
+                }
+                if (placementDragging)
+                {
+                    IsViewMoving = activeWorkbench.UpdateView(Vector2.zero, 0f);
+                    SetDropAnchor(FindDropAnchor(ray));
+                    if (DropAnchor != null)
+                        HeldPart.transform.SetPositionAndRotation(DropAnchor.position, DropAnchor.rotation);
+                    else if (placementPlane.Raycast(ray, out float distance))
+                        HeldPart.transform.SetPositionAndRotation(ray.GetPoint(distance) + placementOffset, placementRotation);
+                    HeldPart.SynchronizePhysicsPose();
+                    Physics.SyncTransforms();
+                    if (!primary.IsPressed()) FinishPlacement(ray);
+                    return;
+                }
+                if (primary.IsPressed())
+                {
+                    return;
+                }
+                placementArmed = false;
+                if (placementReturnOnClick) CancelPart();
+            }
+            if (HeldPart == null) return;
             bool rotating = !overUI && orbit.IsPressed();
             IsViewMoving = activeWorkbench.UpdateView(rotating ? orbitDelta.ReadValue<Vector2>() : Vector2.zero,
                 !overUI ? scroll.ReadValue<Vector2>().y : 0f) || rotating;
             if (alignInspection.WasPressedThisFrame()) activeWorkbench.AlignInspection();
-            Ray ray = player.View.ScreenPointToRay(pointer);
-            SetDropAnchor(!overUI && !rotating ? FindDropAnchor(ray) : null);
             if (overUI || rotating || !primary.WasPressedThisFrame()) return;
-            RepairPart part = HeldPart;
+            if (Physics.Raycast(ray, out RaycastHit front, RepairReach, ~(1 << gameObject.layer), QueryTriggerInteraction.Ignore)
+                && front.collider.GetComponentInParent<RepairPart>() == HeldPart)
+            {
+                ArmPlacement(pointer, true);
+                return;
+            }
             if (RaycastWithoutHeld(ray, out RaycastHit toolHit)
                 && brush != null && toolHit.collider.GetComponentInParent<BrushTool>() == brush)
             {
                 ToggleBrush();
                 return;
             }
-            if (DropAnchor != null)
+            PutPartDown(ray);
+        }
+
+        void FinishPlacement(Ray ray)
+        {
+            Transform destination = DropAnchor;
+            if (destination == null || !CanPlaceHeld(destination)) { PutPartDown(ray); return; }
+            RepairPart part = HeldPart;
+            part.transform.SetPositionAndRotation(placementRestPose.position, placementRestPose.rotation);
+            part.SynchronizePhysicsPose();
+            bool placed = DriveStand != null && destination == DriveStand.Socket
+                ? DriveStand.TryLoad(robot, part, out string reason)
+                : robot.TryPlace(part, true, out reason);
+            if (!placed)
             {
-                Transform destination = DropAnchor;
-                activeWorkbench.ReturnToOverview(true);
-                bool placed = DriveStand != null && destination == DriveStand.Socket
-                    ? DriveStand.TryLoad(robot, part, out string reason)
-                    : robot.TryPlace(part, true, out reason);
-                if (!placed)
-                {
-                    activeWorkbench.Focus(part);
-                    Say(reason);
-                    GetComponent<RepairFeedback>()?.Pulse(part.transform, false);
-                    return;
-                }
-                HeldPart = null;
-                SetDropAnchor(null);
-                activeWorkbench.Focus(null);
-                GetComponent<RepairFeedback>()?.Pulse(part.transform, true);
-                Say("");
+                CancelPart();
+                Say(reason);
+                GetComponent<RepairFeedback>()?.Pulse(part.transform, false);
                 return;
             }
-            if (RaycastWithoutHeld(ray, out RaycastHit hit)
+            placementArmed = placementDragging = false;
+            HeldPart = null;
+            SetDropAnchor(null);
+            HidePlacementTargets();
+            activeWorkbench.Focus(null);
+            GetComponent<RepairFeedback>()?.Pulse(part.transform, true);
+            Say("");
+        }
+
+        void PutPartDown(Ray ray)
+        {
+            RepairPart part = HeldPart;
+            bool onTable = RaycastWithoutHeld(ray, out RaycastHit hit)
                 && hit.collider.GetComponentInParent<Workbench>() == activeWorkbench
-                && (hit.collider.name == "TableTop" || hit.collider.name == "ServiceMat"))
-            {
-                Vector3 destination = hit.point;
-                CancelPart();
-                part.PlaceOnTable(destination);
-            }
-            else CancelPart();
+                && (hit.collider.name == "TableTop" || hit.collider.name == "ServiceMat");
+            Vector3 point = hit.point;
+            CancelPart();
+            if (onTable) part.PlaceOnTable(point);
         }
 
         void CancelPart()
         {
             if (HeldPart != null)
             {
+                if (placementDragging)
+                {
+                    HeldPart.transform.SetPositionAndRotation(placementRestPose.position, placementRestPose.rotation);
+                    HeldPart.SetSupported(true);
+                    HeldPart.SynchronizePhysicsPose();
+                }
                 activeWorkbench?.ReturnToOverview(true);
                 HeldPart = null;
                 if (activeWorkbench != null && activeWorkbench.IsOccupied) activeWorkbench.Focus(null);
             }
+            placementArmed = placementDragging = false;
             SetDropAnchor(null);
+            HidePlacementTargets();
         }
 
         public void RecoverLooseParts()

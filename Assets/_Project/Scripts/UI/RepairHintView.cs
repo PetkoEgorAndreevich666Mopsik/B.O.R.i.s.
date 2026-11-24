@@ -7,8 +7,10 @@ namespace BORis
     public sealed class RepairHintView : MaskableGraphic
     {
         public Transform Target { get; private set; }
+        public Color Tint { get; set; } = new(.4f, .96f, .82f);
         Camera view;
         RectTransform canvas;
+        float padding = 16f, fallbackSize = .08f;
 
         protected override void Awake()
         {
@@ -17,10 +19,12 @@ namespace BORis
             canvasRenderer.SetAlpha(0f);
         }
 
-        public void Show(Transform target, Camera camera)
+        public void Show(Transform target, Camera camera, float border = 16f, float emptySize = .08f)
         {
             Target = target;
             view = camera;
+            padding = border;
+            fallbackSize = emptySize;
         }
 
         public void Hide()
@@ -38,7 +42,7 @@ namespace BORis
                 if (owner == null) return;
                 canvas = owner.GetComponent<RectTransform>();
             }
-            Bounds bounds = Target.TryGetComponent(out Collider collider) ? collider.bounds : new Bounds(Target.position, Vector3.one * .08f);
+            Bounds bounds = Target.TryGetComponent(out Collider collider) ? collider.bounds : new Bounds(Target.position, Vector3.one * fallbackSize);
             if (collider == null)
             {
                 bool first = true;
@@ -61,8 +65,8 @@ namespace BORis
                 maximum = Vector2.Max(maximum, point);
             }
             rectTransform.anchoredPosition = (minimum + maximum) * .5f;
-            rectTransform.sizeDelta = Vector2.Max(maximum - minimum + Vector2.one * 16f, Vector2.one * 38f);
-            color = new Color(.4f, .96f, .82f, .65f + Mathf.Sin(Time.unscaledTime * 4f) * .2f);
+            rectTransform.sizeDelta = Vector2.Max(maximum - minimum + Vector2.one * padding, Vector2.one * 38f);
+            color = new Color(Tint.r, Tint.g, Tint.b, .65f + Mathf.Sin(Time.unscaledTime * 4f) * .2f);
             canvasRenderer.SetAlpha(1f);
         }
 
