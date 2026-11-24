@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Linq;
 using System.Reflection;
 using BORis;
@@ -220,7 +220,7 @@ public sealed class RepairDiagnosisTests
         yield return Point(point);
         InputSystem.QueueStateEvent(mouse, new MouseState { position = point, buttons = 1 });
         yield return null; yield return null;
-        Assert.That(interaction.HeldPart, Is.Not.Null);
+        Assert.That(robot.InstalledDrive == null, Is.True);
         Assert.That(TextNamed("Hint").text, Does.Not.Contain("Неисправный"));
         InputSystem.QueueStateEvent(mouse, new MouseState { position = point });
         yield return null; yield return null;
@@ -318,6 +318,9 @@ public sealed class RepairDiagnosisTests
         Assert.That(robot.TryPlace(robot.Cover, false, out _), Is.True);
         yield return null;
         Assert.That(hint.Target, Is.EqualTo(inner.transform));
+        var bench = Object.FindFirstObjectByType<Workbench>();
+        Assert.That(RepairHintTarget.Resolve(robot, session.ActiveOrder, robot.Cover,
+            bench.DriveStand, bench.TestButton.transform), Is.EqualTo(inner.transform));
         inner.CleanStroke(Vector2.zero, Vector2.one, 2f);
         yield return null;
         Assert.That(hint.Target, Is.EqualTo(robot.Cover.transform));
@@ -554,8 +557,7 @@ public sealed class RepairDiagnosisTests
         while (robot.IsTesting) yield return null;
         Assert.That(robot.TestResult, Is.EqualTo(RobotTestResult.Passed));
         yield return null;
-        Assert.That(TextNamed("RepairNotice").gameObject.activeInHierarchy, Is.True);
-        Assert.That(TextNamed("RepairNotice").text, Is.EqualTo("Ремонт завершён"));
+        Assert.That(TextNamed("RepairNotice").gameObject.activeInHierarchy, Is.False);
         if (!session.ActiveOrder.RequiresCleaning)
             Assert.That(TextNamed("AssemblyState").gameObject.activeInHierarchy, Is.False);
         Assert.That(hint.Target, Is.Null);

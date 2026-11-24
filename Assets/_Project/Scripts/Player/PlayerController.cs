@@ -15,6 +15,7 @@ namespace BORis
         Coroutine cameraReturn;
         Vector3 returnPosition;
         Quaternion returnRotation;
+        float returnFieldOfView;
 
         public Camera View => view;
         public bool IsReturning => cameraReturn != null;
@@ -33,12 +34,13 @@ namespace BORis
             body.Move(velocity * Time.deltaTime);
         }
 
-        public void ReturnView(Vector3 position, Quaternion rotation, bool smooth)
+        public void ReturnView(Vector3 position, Quaternion rotation, bool smooth, float? fieldOfView = null)
         {
             if (cameraReturn != null) StopCoroutine(cameraReturn);
             cameraReturn = null;
             returnPosition = position;
             returnRotation = rotation;
+            returnFieldOfView = fieldOfView ?? view.fieldOfView;
             if (smooth && isActiveAndEnabled) cameraReturn = StartCoroutine(AnimateReturn());
             else FinishReturn();
         }
@@ -47,11 +49,13 @@ namespace BORis
         {
             Vector3 startPosition = view.transform.localPosition;
             Quaternion startRotation = view.transform.localRotation;
+            float startFieldOfView = view.fieldOfView;
             for (float elapsed = 0f; elapsed < .45f; elapsed += Time.unscaledDeltaTime)
             {
                 float t = Mathf.SmoothStep(0f, 1f, elapsed / .45f);
                 view.transform.SetLocalPositionAndRotation(Vector3.Lerp(startPosition, returnPosition, t),
                     Quaternion.Slerp(startRotation, returnRotation, t));
+                view.fieldOfView = Mathf.Lerp(startFieldOfView, returnFieldOfView, t);
                 yield return null;
             }
             FinishReturn();
@@ -60,6 +64,7 @@ namespace BORis
         void FinishReturn()
         {
             if (view != null) view.transform.SetLocalPositionAndRotation(returnPosition, returnRotation);
+            if (view != null) view.fieldOfView = returnFieldOfView;
             cameraReturn = null;
         }
 

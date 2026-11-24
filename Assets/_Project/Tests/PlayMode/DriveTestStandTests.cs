@@ -245,9 +245,10 @@ public sealed class DriveTestStandTests
             yield return Pointer(source, true);
             Assert.That(interaction.HeldPart, Is.SameAs(part), interaction.Feedback);
             Vector2 target = interaction.View.WorldToScreenPoint(stand.Socket.position);
-            yield return Pointer(target, true);
+            yield return Pointer(target, false);
             yield return new WaitForSeconds(.5f);
             Assert.That(interaction.DropAnchor, Is.SameAs(stand.Socket), StandDropDiagnostic(part, target));
+            yield return Pointer(target, true);
             yield return Pointer(target, false);
             Assert.That(stand.Part, Is.SameAs(part), interaction.Feedback);
             Assert.That(stand.IsTesting, Is.False, "Loading alone does not start the test.");

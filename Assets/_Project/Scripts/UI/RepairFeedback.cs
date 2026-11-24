@@ -91,6 +91,7 @@ namespace BORis
             group.alpha = Mathf.MoveTowards(group.alpha, visible ? 1f : 0f, Time.unscaledDeltaTime * 12f);
             if (!visible) return;
             if (pulse) Highlight(null);
+            ring.enabled = !pulse;
             ring.color = pulse ? successful ? Good : Blocked : allowed ? Warm : Blocked;
             ring.Progress = pulse ? 1f : screw != null ? driver.ActionProgress
                 : brushing ? interaction.Brush.Target.Cleanliness : soldering ? interaction.Soldering.Target.Progress : interaction.StowProgress;

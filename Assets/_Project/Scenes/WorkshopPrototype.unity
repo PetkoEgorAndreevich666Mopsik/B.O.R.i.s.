@@ -11973,6 +11973,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 1396896906927265569, guid: e663b0dc6645d6d4b9cca736d6b97c35, type: 3}
+      propertyPath: 'inspectionOccluders.Array.data[0]'
+      value:
+      objectReference: {fileID: 524617566}
+    - target: {fileID: 1396896906927265569, guid: e663b0dc6645d6d4b9cca736d6b97c35, type: 3}
+      propertyPath: 'inspectionOccluders.Array.data[1]'
+      value:
+      objectReference: {fileID: 523744617}
     - target: {fileID: 2594442750621766525, guid: e663b0dc6645d6d4b9cca736d6b97c35, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0

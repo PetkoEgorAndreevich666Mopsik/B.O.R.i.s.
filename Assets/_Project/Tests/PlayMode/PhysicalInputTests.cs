@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Linq;
 using BORis;
 using NUnit.Framework;
@@ -64,108 +64,133 @@ public sealed class PhysicalInputTests
         Assert.That(interaction.HeldPart, Is.SameAs(part), interaction.Feedback);
     }
 
+    IEnumerator Click(Vector2 position)
+    {
+        yield return Pointer(position, 0);
+        yield return Pointer(position, 1);
+        yield return Pointer(position, 0);
+    }
+
     [UnityTest]
-    public IEnumerator HoldReleasedCoverStowsItOnTrayWithoutDragging()
+    public IEnumerator ClickSelectsPartAndReleaseKeepsItForInspection()
+    {
+        yield return Click(Screen(spare.transform.position));
+        Assert.That(interaction.HeldPart, Is.SameAs(spare));
+        Assert.That(spare.IsDragging, Is.False);
+        Assert.That(spare.Body.isKinematic, Is.True);
+        yield return new WaitForSeconds(.7f);
+        Vector3 position = spare.transform.position;
+        yield return Pointer(Vector2.one * 10f, 0);
+        yield return new WaitForSeconds(.2f);
+        Assert.That(Vector3.Distance(position, spare.transform.position), Is.LessThan(.02f));
+    }
+
+    [UnityTest]
+    public IEnumerator ClickRemovesUnlockedCoverAndPutsItOnTray()
     {
         foreach (var screw in robot.Cover.Screws) robot.Turn(screw, -10000f);
-        var cover = robot.Cover;
-        var surfaces = cover.GetComponentsInChildren<DirtPatch>();
-        yield return Pointer(Screen(cover.transform.position), 1);
-        Assert.That(interaction.HeldPart, Is.SameAs(cover));
-        yield return new WaitForSeconds(.85f);
+        yield return Click(Screen(robot.Cover.transform.position));
+        yield return new WaitForSeconds(.6f);
+        Assert.That(robot.Cover.IsInstalled, Is.False);
         Assert.That(interaction.HeldPart, Is.Null);
-        Assert.That(cover.IsInstalled || cover.IsDragging || cover.IsStowing, Is.False);
-        Assert.That(Vector3.Distance(cover.transform.position, cover.TrayAnchor.position), Is.LessThan(.2f));
-        Assert.That(cover.GetComponentsInChildren<DirtPatch>(), Is.EquivalentTo(surfaces));
-        yield return Pointer(Screen(cover.transform.position), 0);
+        Assert.That(Vector3.Distance(robot.Cover.transform.position, robot.Cover.TrayAnchor.position), Is.LessThan(.2f));
+    }
+
+    [UnityTest]
+    public IEnumerator SelectedPartRotatesFullyWithoutMovingCamera()
+    {
+        yield return Click(Screen(spare.transform.position));
+        yield return new WaitForSeconds(.7f);
+        Quaternion rotation = spare.transform.rotation;
+        Vector3 camera = player.View.transform.position;
+        for (int i = 0; i < 20; i++) bench.UpdateView(new Vector2(18f / .35f, 0f), 0f);
+        Assert.That(Quaternion.Angle(rotation, spare.transform.rotation), Is.LessThan(.05f));
+        Assert.That(Vector3.Distance(camera, player.View.transform.position), Is.LessThan(.001f));
+        yield return Press(Key.Escape);
+        Assert.That(interaction.HeldPart, Is.Null);
+        Assert.That(interaction.IsAtWorkbench, Is.True);
+    }
+
+    [UnityTest]
+    public IEnumerator ClickLoadsDriveOnStandWithoutDragging()
+    {
+        Vector3 position = spare.transform.position;
+        yield return Click(Screen(position));
+        Vector2 target = Screen(bench.DriveStand.Socket.position);
+        yield return Pointer(target, 0);
+        Assert.That(interaction.DropAnchor, Is.SameAs(bench.DriveStand.Socket));
+        yield return Click(target);
+        Assert.That(bench.DriveStand.Part, Is.SameAs(spare), interaction.Feedback);
+        Assert.That(interaction.HeldPart, Is.Null);
+        bench.DriveStand.Cancel();
+        Assert.That(Vector3.Distance(position, spare.transform.position), Is.LessThan(.05f));
+    }
+
+    [UnityTest]
+    public IEnumerator SelectedDriveCannotBypassBlockedInstallation()
+    {
+        yield return Click(Screen(spare.transform.position));
+        yield return Click(Screen(spare.InstallationAnchor.position));
+        Assert.That(spare.IsInstalled, Is.False);
+        Assert.That(robot.Cover.IsInstalled, Is.True);
+    }
+
+    [UnityTest]
+    public IEnumerator SecondClickInstallsReplacementIntoEmptySocket()
+    {
+        foreach (var screw in robot.Cover.Screws) robot.Turn(screw, -10000f);
+        Assert.That(robot.TryPlace(robot.Cover, false, out _), Is.True);
+        robot.Cover.RecoverToTable();
+        Assert.That(robot.ToggleConnection(robot.Connector, out _), Is.True);
+        RepairPart original = robot.InstalledDrive;
+        foreach (var screw in original.Screws) robot.Turn(screw, -10000f);
+        Assert.That(robot.TryPlace(original, false, out _), Is.True);
+        original.RecoverToTable();
+        yield return new WaitForSeconds(.5f);
+        yield return Click(Screen(spare.transform.position));
+        Assert.That(interaction.HeldPart, Is.SameAs(spare));
+        yield return Click(Screen(spare.InstallationAnchor.position));
+        Assert.That(spare.IsInstalled, Is.True, interaction.Feedback);
+        Assert.That(interaction.HeldPart, Is.Null);
+    }
+
+    [UnityTest]
+    public IEnumerator TableClickPlacesSelectedPartWithoutDroppingOrHoldingMouse()
+    {
+        yield return Click(Screen(spare.transform.position));
+        var table = bench.transform.Find("TableTop").GetComponent<Collider>().bounds;
+        Vector3 target = new(table.min.x + .35f, table.max.y + .015f, table.center.z);
+        yield return Click(Screen(target));
+        Assert.That(interaction.HeldPart, Is.Null);
+        Assert.That(spare.IsSupported, Is.True);
+        Assert.That(spare.transform.position.x, Is.EqualTo(target.x).Within(.04f));
+        Assert.That(spare.transform.position.z, Is.EqualTo(target.z).Within(.04f));
     }
 
     [UnityTest]
     public IEnumerator ActionFeedbackConfirmsWithoutBlockingMouseAndThenDisappears()
     {
         yield return Pointer(new Vector2(8f, 8f), 0);
+        float deadline = Time.realtimeSinceStartup + 3f;
+        while (interaction.IsViewMoving && Time.realtimeSinceStartup < deadline) yield return null;
+        Assert.That(interaction.IsViewMoving, Is.False);
         var feedback = player.GetComponent<RepairFeedback>();
         Assert.That(feedback, Is.Not.Null);
-        feedback.Pulse(robot.Cover.transform, true);
-        yield return new WaitForSeconds(.15f);
         var ring = Object.FindAnyObjectByType<InteractionRing>();
         var group = ring.GetComponent<CanvasGroup>();
+        deadline = Time.realtimeSinceStartup + 2f;
+        while (group.alpha < .9f && Time.realtimeSinceStartup < deadline)
+        {
+            feedback.Pulse(robot.Cover.transform, true);
+            yield return null;
+        }
         Assert.That(group.blocksRaycasts || ring.raycastTarget, Is.False);
         Assert.That(group.alpha, Is.GreaterThan(.9f));
         Assert.That(ring.Progress, Is.EqualTo(1f));
         Assert.That(ring.GetComponent<CanvasRenderer>(), Is.Not.Null);
-        Assert.That(ring.canvasRenderer.GetMesh().vertexCount, Is.GreaterThan(0));
+        Assert.That(ring.enabled, Is.False, "Completion uses a check mark without the progress circle.");
         yield return new WaitForSeconds(.7f);
         Assert.That(group.alpha, Is.Zero);
-    }
-
-    [UnityTest]
-    public IEnumerator RightMouseRotatesHeldPartWithoutDraggingItsPosition()
-    {
-        spare.SetSupported(true);
-        spare.transform.position += Vector3.up * .35f;
-        spare.Body.position = spare.transform.position;
-        Physics.SyncTransforms();
-        yield return Grab(spare);
-        yield return new WaitForSeconds(.4f);
-        Vector3 source = spare.Body.position;
-        Quaternion rotation = spare.Body.rotation;
-        Vector2 pointer = mouse.position.ReadValue() + Vector2.left * 80f;
-        yield return Pointer(pointer, 3, Vector2.left * 80f);
-        yield return new WaitForSeconds(.5f);
-        Assert.That(Vector3.Distance(spare.Body.position, source), Is.LessThan(.05f),
-            "Mouse movement used to rotate the held module must not drag it across the table.");
-        Assert.That(Quaternion.Angle(spare.Body.rotation, rotation), Is.GreaterThan(5f));
-        yield return Pointer(pointer, 1);
-        yield return new WaitForSeconds(.2f);
-        Assert.That(Vector3.Distance(spare.Body.position, source), Is.LessThan(.05f),
-            "Releasing RMB must resume translation without a jump to the displaced cursor.");
-    }
-
-    [UnityTest]
-    public IEnumerator DistantPhysicalPartCannotSnapIntoSocketByCursorAlone()
-    {
-        foreach (ScrewFastener screw in robot.Cover.Screws) robot.Turn(screw, -10000f);
-        Assert.That(robot.TryPlace(robot.Cover, false, out _), Is.True);
-        robot.Cover.RecoverToTable();
-        Assert.That(robot.ToggleConnection(robot.Connector, out _), Is.True);
-        RepairPart original = robot.InstalledDrive;
-        foreach (ScrewFastener screw in original.Screws) robot.Turn(screw, -10000f);
-        Assert.That(robot.TryPlace(original, false, out _), Is.True);
-        original.RecoverToTable();
-        yield return new WaitForSeconds(.4f);
-        yield return Grab(spare);
-        spare.Body.constraints = RigidbodyConstraints.FreezeAll;
-        Assert.That(Vector3.Distance(spare.Body.position, spare.InstallationAnchor.position), Is.GreaterThan(.5f));
-        Vector2 socket = Screen(spare.InstallationAnchor.position);
-        yield return Pointer(socket, 1);
-        yield return new WaitForSeconds(.5f);
-        Assert.That(interaction.DropAnchor, Is.Null, "A blocked or lagging body is not yet ready to install.");
-        yield return Pointer(socket, 0);
-        Assert.That(spare.IsInstalled, Is.False);
-        Assert.That(Vector3.Distance(spare.Body.position, spare.InstallationAnchor.position), Is.GreaterThan(.5f),
-            "Releasing over the socket must not teleport a distant body through physical obstacles.");
-        spare.Body.constraints = RigidbodyConstraints.None;
-    }
-
-    [UnityTest]
-    public IEnumerator OccludedStandDoesNotOfferOrAcceptPlacement()
-    {
-        yield return Grab(spare);
-        Vector2 socket = Screen(bench.DriveStand.Socket.position);
-        yield return Pointer(socket, 1);
-        yield return new WaitForSeconds(.5f);
-        Assert.That(interaction.DropAnchor, Is.SameAs(bench.DriveStand.Socket), "The unobstructed fixture must offer placement first.");
-        Ray ray = player.View.ScreenPointToRay(socket);
-        wall = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        wall.transform.position = ray.GetPoint(.35f);
-        wall.transform.localScale = Vector3.one * .15f;
-        Physics.SyncTransforms();
-        yield return Pointer(socket, 1);
-        Assert.That(interaction.DropAnchor, Is.Null, "An obstructed destination must not promise installation in the HUD.");
-        yield return Pointer(socket, 0);
-        Assert.That(bench.DriveStand.Part, Is.Null);
-        Assert.That(spare.IsDragging, Is.False);
     }
 
     [UnityTest]

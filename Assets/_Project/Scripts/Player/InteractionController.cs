@@ -44,16 +44,6 @@ namespace BORis
         SolderingTool soldering;
         RepairTool selectedTool;
         RobotRepair robot;
-        Plane dragPlane;
-        Vector3 grabOffset;
-        Vector2 grabPointer;
-        Vector3 heldTarget;
-        Quaternion heldRotation;
-        float holdHeight;
-        bool dragged, rotatingPart;
-        bool stowCandidate;
-        float partPressedAt;
-        const float PlacementTolerance = .5f;
         string feedback;
         float feedbackUntil;
         RepairPart inspectionTarget;
@@ -89,8 +79,7 @@ namespace BORis
         public DirtPatch PointedDirt { get; private set; }
         public RobotRepair Robot => robot;
         public RepairPart HeldPart { get; private set; }
-        public float StowProgress => HeldPart != null && stowCandidate && !dragged
-            ? Mathf.Clamp01((Time.unscaledTime - partPressedAt) / .38f) : 0f;
+        public float StowProgress => 0f;
         public RepairPart PointedPart { get; private set; }
         public RepairConnector PointedConnector { get; private set; }
         public RepairTool PointedTool { get; private set; }
@@ -381,6 +370,7 @@ namespace BORis
                 }
                 return;
             }
+            if (!activeWorkbench.IsFocused) activeWorkbench.Focus(null);
             if (selectBrush.WasPressedThisFrame() && brush != null) ToggleBrush();
             if (Keyboard.current?.gKey.wasPressedThisFrame == true) RecoverLooseParts();
             Vector2 pointer = point.ReadValue<Vector2>();
@@ -390,61 +380,6 @@ namespace BORis
             PointedJoint = null;
             bool overUI = PointerOverUI();
             PointedTool = null;
-            if (HeldPart != null)
-            {
-                ClearObservation();
-                dragged |= Vector2.Distance(pointer, grabPointer) > 12f;
-                if (orbit.IsPressed() || scroll.ReadValue<Vector2>().y != 0f) stowCandidate = false;
-                if (stowCandidate && !dragged && !orbit.IsPressed() && primary.IsPressed() && !overUI && StowProgress >= 1f)
-                {
-                    RepairPart part = HeldPart;
-                    HeldPart = null;
-                    SetDropAnchor(null);
-                    part.StowOnTray();
-                    GetComponent<RepairFeedback>()?.Pulse(part.transform, true);
-                    return;
-                }
-                if (overUI) { CancelPart(); Say("Деталь отпущена"); }
-                else
-                {
-                    Ray ray = player.View.ScreenPointToRay(pointer);
-                    bool rotate = orbit.IsPressed();
-                    if (rotatingPart && !rotate && dragPlane.Raycast(ray, out float resumedDistance))
-                        grabOffset = heldTarget - ray.GetPoint(resumedDistance);
-                    rotatingPart = rotate;
-                    if (!rotate)
-                    {
-                        dragged |= Vector2.Distance(pointer, grabPointer) > 12f;
-                        float wheel = scroll.ReadValue<Vector2>().y;
-                        if (wheel != 0f)
-                        {
-                            holdHeight = Mathf.Clamp(holdHeight + Mathf.Sign(wheel) * .05f,
-                                activeWorkbench.transform.position.y + .15f, activeWorkbench.transform.position.y + 2.5f);
-                            dragPlane = new Plane(Vector3.up, new Vector3(0f, holdHeight, 0f));
-                        }
-                        if (dragPlane.Raycast(ray, out float distance) && distance <= RepairReach * 1.5f)
-                            heldTarget = ray.GetPoint(distance) + grabOffset;
-                    }
-                    else
-                    {
-                        Vector2 delta = orbitDelta.ReadValue<Vector2>();
-                        heldRotation = Quaternion.AngleAxis(-delta.x * .35f, Vector3.up)
-                            * Quaternion.AngleAxis(delta.y * .35f, player.View.transform.right) * heldRotation;
-                    }
-                    Transform candidate = dragged && !rotate ? FindDropAnchor(ray) : null;
-                    if (candidate != null && CanPlaceHeld(candidate))
-                    {
-                        heldTarget = candidate == HeldPart.InstallationAnchor
-                            ? candidate.position - candidate.forward * HeldPart.ExtractionDistance + Vector3.up * .18f
-                            : candidate.position;
-                        heldRotation = candidate.rotation;
-                    }
-                    HeldPart.MoveHeld(heldTarget, heldRotation);
-                    SetDropAnchor(candidate != null && CloseToAnchor(candidate) ? candidate : null);
-                    if (!primary.IsPressed()) FinishPart(ray);
-                }
-                return;
-            }
             RepairTool activeTool = screwdriver != null && screwdriver.IsTurning ? screwdriver
                 : soldering != null && soldering.IsActive ? soldering : selectedTool;
             if (activeTool != null && activeTool.IsActive)
@@ -454,6 +389,11 @@ namespace BORis
                 else if (activeTool == screwdriver) screwdriver.Hold(Time.deltaTime);
                 else activeTool.Drag(pointer);
                 if (!activeTool.IsActive) activeTool.FollowPointer(pointer);
+                return;
+            }
+            if (HeldPart != null && selectedTool == null)
+            {
+                TickSelectedPart(pointer, overUI);
                 return;
             }
             bool canMoveView = !overUI && !primary.IsPressed();
@@ -494,7 +434,7 @@ namespace BORis
                 if (!robot.RunTest(out string reason)) Say(reason);
                 else Say("");
             }
-            else if (PointedStand != null) Say("Рукой перенесите снятый привод в гнездо стенда, затем нажмите на стенд");
+            else if (PointedStand != null) Say("Выберите снятый привод, затем нажмите на стенд");
             else if (hit.collider.GetComponentInParent<BrushTool>() == brush && brush != null)
                 ToggleBrush();
             else if (!BrushSelected && PointedJoint != null && SolderingAvailable)
@@ -537,23 +477,16 @@ namespace BORis
                 else if (PointedPart != null)
                 {
                     if (!robot.CanMove(PointedPart, out string reason)) { Say(reason); return; }
-                    stowCandidate = PointedPart.IsInstalled;
-                    partPressedAt = Time.unscaledTime;
-                    activeWorkbench.ReleaseInspectionPart(PointedPart);
-                    if (PointedPart.IsInstalled && !robot.TryPlace(PointedPart, false, out reason))
-                    { Say(reason); return; }
-                    HeldPart = PointedPart;
-                    grabPointer = pointer;
-                    dragged = false;
-                    rotatingPart = false;
-                    heldTarget = HeldPart.transform.position;
-                    heldRotation = HeldPart.transform.rotation;
-                    holdHeight = heldTarget.y;
-                    dragPlane = new Plane(Vector3.up, heldTarget);
-                    Ray ray = player.View.ScreenPointToRay(pointer);
-                    grabOffset = dragPlane.Raycast(ray, out float distance) ? HeldPart.transform.position - ray.GetPoint(distance) : Vector3.zero;
-                    HeldPart.SetDragging(true);
-                    HeldPart.MoveHeld(heldTarget, heldRotation);
+                    if (PointedPart.IsInstalled)
+                    {
+                        if (!robot.TryPlace(PointedPart, false, out reason)) { Say(reason); return; }
+                        PointedPart.StowOnTray();
+                    }
+                    else
+                    {
+                        HeldPart = PointedPart;
+                        activeWorkbench.Focus(HeldPart);
+                    }
                     Say("");
                 }
             }
@@ -591,7 +524,6 @@ namespace BORis
             if (screwdriver != null) screwdriver.End();
             if (soldering != null) soldering.End();
             if (PointedScrew != null) PointedScrew.SetHovered(false);
-            CancelPart();
             if (selectedTool != null) selectedTool.Select(null);
             selectedTool = tool;
             if (selectedTool != null)
@@ -610,7 +542,7 @@ namespace BORis
 
         public void AlignInspection()
         {
-            if (IsInspecting && HeldPart == null && (selectedTool == null || !selectedTool.IsActive))
+            if (IsInspecting && (selectedTool == null || !selectedTool.IsActive))
                 activeWorkbench.AlignInspection();
         }
 
@@ -655,9 +587,6 @@ namespace BORis
             return !targetHit && obstacle.distance < Vector3.Dot(anchor.position - ray.origin, ray.direction) - .12f;
         }
 
-        bool CloseToAnchor(Transform anchor) => HeldPart != null
-            && Vector3.Distance(HeldPart.Body.position, anchor.position) <= PlacementTolerance;
-
         bool CanPlaceHeld(Transform anchor) => DriveStand != null && anchor == DriveStand.Socket
             ? DriveStand.CanLoad(robot, HeldPart, out _) : robot.CanPlace(HeldPart, true, out _);
 
@@ -674,43 +603,63 @@ namespace BORis
                 { renderer.enabled = true; socketPreview.Add(renderer); }
         }
 
-        void FinishPart(Ray ray)
+        void TickSelectedPart(Vector2 pointer, bool overUI)
         {
-            if (DropAnchor != null && DropIsBlocked(DropAnchor, ray))
+            ClearObservation();
+            bool rotating = !overUI && orbit.IsPressed();
+            IsViewMoving = activeWorkbench.UpdateView(rotating ? orbitDelta.ReadValue<Vector2>() : Vector2.zero,
+                !overUI ? scroll.ReadValue<Vector2>().y : 0f) || rotating;
+            if (alignInspection.WasPressedThisFrame()) activeWorkbench.AlignInspection();
+            Ray ray = player.View.ScreenPointToRay(pointer);
+            SetDropAnchor(!overUI && !rotating ? FindDropAnchor(ray) : null);
+            if (overUI || rotating || !primary.WasPressedThisFrame()) return;
+            RepairPart part = HeldPart;
+            if (RaycastWithoutHeld(ray, out RaycastHit toolHit)
+                && brush != null && toolHit.collider.GetComponentInParent<BrushTool>() == brush)
             {
-                GetComponent<RepairFeedback>()?.Pulse(HeldPart.transform, false);
-                CancelPart(); Say("Посадочное место перекрыто предметом"); return;
-            }
-            if (DropAnchor != null && !CloseToAnchor(DropAnchor)) SetDropAnchor(null);
-            if (DriveStand != null && DropAnchor == DriveStand.Socket)
-            {
-                RepairPart part = HeldPart;
-                SetDropAnchor(null);
-                HeldPart = null;
-                if (!DriveStand.TryLoad(robot, part, out string reason)) { part.RestorePose(); Say(reason); }
-                else Say("");
-                GetComponent<RepairFeedback>()?.Pulse(part.transform, part.IsSupported);
+                ToggleBrush();
                 return;
             }
-            bool placed = true;
-            Transform finished = HeldPart.transform;
-            if (DropAnchor == null) Say("Деталь отпущена");
-            else
+            if (DropAnchor != null)
             {
-                if (robot.TryPlace(HeldPart, true, out string reason)) Say("Деталь установлена");
-                else { Say(reason); placed = false; }
+                Transform destination = DropAnchor;
+                activeWorkbench.ReturnToOverview(true);
+                bool placed = DriveStand != null && destination == DriveStand.Socket
+                    ? DriveStand.TryLoad(robot, part, out string reason)
+                    : robot.TryPlace(part, true, out reason);
+                if (!placed)
+                {
+                    activeWorkbench.Focus(part);
+                    Say(reason);
+                    GetComponent<RepairFeedback>()?.Pulse(part.transform, false);
+                    return;
+                }
+                HeldPart = null;
+                SetDropAnchor(null);
+                activeWorkbench.Focus(null);
+                GetComponent<RepairFeedback>()?.Pulse(part.transform, true);
+                Say("");
+                return;
             }
-            CancelPart();
-            GetComponent<RepairFeedback>()?.Pulse(finished, placed);
+            if (RaycastWithoutHeld(ray, out RaycastHit hit)
+                && hit.collider.GetComponentInParent<Workbench>() == activeWorkbench
+                && (hit.collider.name == "TableTop" || hit.collider.name == "ServiceMat"))
+            {
+                Vector3 destination = hit.point;
+                CancelPart();
+                part.PlaceOnTable(destination);
+            }
+            else CancelPart();
         }
 
         void CancelPart()
         {
             if (HeldPart != null)
             {
-                HeldPart.RestorePose();
+                activeWorkbench?.ReturnToOverview(true);
+                HeldPart = null;
+                if (activeWorkbench != null && activeWorkbench.IsOccupied) activeWorkbench.Focus(null);
             }
-            HeldPart = null;
             SetDropAnchor(null);
         }
 
@@ -773,6 +722,7 @@ namespace BORis
             PointedObject = null;
             IsViewMoving = false;
             ClearObservation();
+            CancelPart();
             SelectTool(null);
             if (robot != null) robot.CancelTest();
             screwdriver = null;
@@ -799,6 +749,7 @@ namespace BORis
             if (!IsAtWorkbench || activeWorkbench == null) return;
             PointedStand = null;
             ClearObservation();
+            CancelPart();
             SelectTool(null);
             RobotRepair replacement = activeWorkbench.ResetRobot();
             if (replacement == null) { Say("Повторение недоступно: отсутствует исходный робот"); return; }

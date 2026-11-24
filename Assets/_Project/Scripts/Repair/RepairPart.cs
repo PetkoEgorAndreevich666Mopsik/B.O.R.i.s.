@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace BORis
 {
@@ -118,16 +118,21 @@ namespace BORis
         void UpdatePhysics()
         {
             if (body == null) return;
-            bool fixedPose = installed || IsSupported;
+            bool fixedPose = installed || IsSupported || IsDragging;
             if (!body.isKinematic)
             {
                 body.linearVelocity = Vector3.zero;
                 body.angularVelocity = Vector3.zero;
             }
             body.isKinematic = fixedPose;
-            body.interpolation = fixedPose ? RigidbodyInterpolation.None : RigidbodyInterpolation.Interpolate;
+            body.interpolation = installed || IsSupported ? RigidbodyInterpolation.None : RigidbodyInterpolation.Interpolate;
             body.useGravity = !fixedPose && !IsDragging;
-            if (!fixedPose) body.WakeUp();
+            if (!fixedPose)
+            {
+                body.linearVelocity = Vector3.zero;
+                body.angularVelocity = Vector3.zero;
+                body.WakeUp();
+            }
         }
 
         void FixedUpdate()
@@ -145,14 +150,20 @@ namespace BORis
                 }
             }
             if (!IsDragging) return;
-            Vector3 acceleration = (holdPosition - body.position) * 180f - body.linearVelocity * 26f;
-            body.AddForce(Vector3.ClampMagnitude(acceleration, 70f), ForceMode.Acceleration);
-            Quaternion delta = holdRotation * Quaternion.Inverse(body.rotation);
-            if (delta.w < 0f) delta = new Quaternion(-delta.x, -delta.y, -delta.z, -delta.w);
-            delta.ToAngleAxis(out float angle, out Vector3 axis);
-            if (angle > .01f && float.IsFinite(axis.x))
-                body.AddTorque(Vector3.ClampMagnitude(axis * (angle * Mathf.Deg2Rad * 100f)
-                    - body.angularVelocity * 20f, 60f), ForceMode.Acceleration);
+            Vector3 travel = Vector3.MoveTowards(body.position, holdPosition, 8f * Time.fixedDeltaTime) - body.position;
+            float distance = travel.magnitude;
+            if (distance > .0001f)
+            {
+                foreach (var hit in body.SweepTestAll(travel / distance, distance + .01f, QueryTriggerInteraction.Ignore))
+                {
+                    if (hit.collider.GetComponentInParent<RobotRepair>() == GetComponentInParent<RobotRepair>()
+                        || hit.collider.GetComponentInParent<DriveTestStand>() != null
+                        || Vector3.Dot(travel.normalized, hit.normal) >= -.0001f) continue;
+                    distance = Mathf.Min(distance, Mathf.Max(0f, hit.distance - .005f));
+                }
+                body.MovePosition(body.position + travel.normalized * distance);
+            }
+            body.MoveRotation(Quaternion.Slerp(body.rotation, holdRotation, 1f - Mathf.Exp(-35f * Time.fixedDeltaTime)));
         }
 
         void LateUpdate() => SynchronizePhysicsPose();
@@ -202,6 +213,20 @@ namespace BORis
             if (installed || trayAnchor == null || IsStowing) return false;
             StartCoroutine(Stow());
             return true;
+        }
+
+        public void PlaceOnTable(Vector3 point)
+        {
+            if (installed || IsStowing || tableSurface == null) return;
+            SetSupported(true);
+            transform.SetPositionAndRotation(point, trayAnchor != null ? trayAnchor.rotation : Quaternion.identity);
+            SynchronizePhysicsPose();
+            Bounds bounds = new(transform.position, Vector3.zero);
+            foreach (Collider collider in GetComponentsInChildren<Collider>())
+                if (collider.enabled && !collider.isTrigger) bounds.Encapsulate(collider.bounds);
+            transform.position += Vector3.up * (tableSurface.bounds.max.y + .006f - bounds.min.y);
+            SynchronizePhysicsPose();
+            Physics.SyncTransforms();
         }
 
         System.Collections.IEnumerator Stow()
@@ -290,9 +315,20 @@ namespace BORis
 
         public void RestorePose()
         {
+            bool released = IsDragging && !installed;
             IsDragging = false;
             IsSupported = false;
             if (installed) AlignWithAnchor();
+            else if (released && tableSurface != null)
+            {
+                Bounds table = tableSurface.bounds;
+                Bounds bounds = new(transform.position, Vector3.zero);
+                foreach (Collider collider in GetComponentsInChildren<Collider>())
+                    if (collider.enabled && !collider.isTrigger) bounds.Encapsulate(collider.bounds);
+                if (bounds.max.x >= table.min.x && bounds.min.x <= table.max.x
+                    && bounds.max.z >= table.min.z && bounds.min.z <= table.max.z)
+                    transform.position += Vector3.up * Mathf.Max(0f, table.max.y + .006f - bounds.min.y);
+            }
             body.position = transform.position;
             body.rotation = transform.rotation;
             UpdatePhysics();

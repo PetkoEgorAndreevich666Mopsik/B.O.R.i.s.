@@ -19,6 +19,9 @@ namespace BORis
 
             if (held != null)
             {
+                if (cleaning)
+                    foreach (var patch in held.GetComponentsInChildren<DirtPatch>())
+                        if (!patch.IsClean && robot.CanClean(patch, out _)) return patch.transform;
                 if (held.Kind == RepairPartKind.Drive && held.StandResult == DriveTestResult.NotTested
                     && (held.Faulty || diagnosis && held.WasInitiallyInstalled) && stand != null
                     && stand.CanLoad(robot, held, out _)) return stand.Socket;

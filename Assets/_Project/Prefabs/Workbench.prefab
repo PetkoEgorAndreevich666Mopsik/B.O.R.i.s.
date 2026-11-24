@@ -1839,8 +1839,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2483456932434441049}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.1305262, y: 0, z: 0, w: 0.9914449}
-  m_LocalPosition: {x: 0, y: 1.65, z: -1.85}
+  m_LocalRotation: {x: 0.53729963, y: 0, z: 0, w: 0.8433914}
+  m_LocalPosition: {x: 0, y: 3.1, z: -0.85}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -3978,6 +3978,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: BORis.Runtime::BORis.Workbench
   cameraAnchor: {fileID: 8564423846161642852}
+  inspectionFieldOfView: 58
+  repairTilt: 60
+  inspectionOccluders:
+  - {fileID: 0}
+  - {fileID: 0}
   testButton: {fileID: 7733137057241281886}
   robotPrefab: {fileID: 8821392132348913897, guid: ad3ae9dec408c3b47916b2c390571936, type: 3}
   emptyIndicator: {fileID: 7403840637082399333}

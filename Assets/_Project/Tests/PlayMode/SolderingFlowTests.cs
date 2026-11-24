@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -173,7 +173,7 @@ public sealed class SolderingFlowTests
     }
 
     [UnityTest]
-    public IEnumerator InspectionOrbitsCameraAroundFixedBoardAndReturnsBeforeSoldering()
+    public IEnumerator InspectionRotatesBoardInFrontOfFixedCameraAndResetsBeforeSoldering()
     {
         yield return EnterC();
         var workbench = Object.FindFirstObjectByType<Workbench>();
@@ -189,10 +189,9 @@ public sealed class SolderingFlowTests
         yield return null; yield return null;
         yield return Pointer(new Vector2(Screen.width * .5f, Screen.height * .5f));
         yield return new WaitForSeconds(.6f);
-        Assert.That(Quaternion.Angle(cameraRotation, interaction.View.transform.rotation), Is.GreaterThan(20f));
-        Assert.That(Vector3.Distance(cameraPosition, interaction.View.transform.position), Is.GreaterThan(.05f));
-        Assert.That(Vector3.Distance(joint.transform.position, position), Is.LessThan(.0001f));
-        Assert.That(Quaternion.Angle(joint.transform.rotation, rotation), Is.LessThan(.01f));
+        Assert.That(Quaternion.Angle(cameraRotation, interaction.View.transform.rotation), Is.LessThan(.1f));
+        Assert.That(Vector3.Distance(cameraPosition, interaction.View.transform.position), Is.LessThan(.001f));
+        Assert.That(Quaternion.Angle(joint.transform.rotation, rotation), Is.GreaterThan(20f));
         Assert.That(joint.Progress, Is.Zero);
         yield return Press(Key.R);
         Assert.That(interaction.IsAtWorkbench, Is.True);

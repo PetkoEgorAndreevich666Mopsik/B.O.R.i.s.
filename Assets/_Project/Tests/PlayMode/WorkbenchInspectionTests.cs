@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Linq;
 using BORis;
 using NUnit.Framework;
@@ -18,6 +18,7 @@ public sealed class WorkbenchInspectionTests
     InteractionController interaction;
     Workbench workbench;
     RobotRepair robot;
+    Vector3 robotRestPosition;
     Vector2 Center => new(Screen.width * .5f, Screen.height * .5f);
 
     [UnitySetUp]
@@ -35,6 +36,7 @@ public sealed class WorkbenchInspectionTests
         Assert.That(session.TryAcceptOrder(out _), Is.True);
         Object.FindFirstObjectByType<Workbench>().PositionRobot(null);
         robot = workbench.Robot;
+        robotRestPosition = robot.InspectionPivot.position;
         var body = player.GetComponent<CharacterController>();
         body.enabled = false;
         Vector3 standing = workbench.transform.TransformPoint(new Vector3(0f, 0f, -2.2f));
@@ -91,7 +93,7 @@ public sealed class WorkbenchInspectionTests
     }
 
     [UnityTest]
-    public IEnumerator OrbitMovesCameraAndLeavesRobotAndSupportedPartsFixed()
+    public IEnumerator OrbitRotatesRobotFullyWhileCameraAndLoosePartsStayFixed()
     {
         yield return new WaitForSeconds(1.5f);
         Transform root = robot.InspectionPivot;
@@ -105,10 +107,10 @@ public sealed class WorkbenchInspectionTests
         Vector3 sparePosition = spare.transform.position;
         workbench.UpdateView(new Vector2(200f, 100f), 0f);
         yield return new WaitForSeconds(1f);
-        Assert.That(Vector3.Distance(cameraPosition, player.View.transform.position), Is.GreaterThan(.05f));
-        Assert.That(Quaternion.Angle(cameraRotation, player.View.transform.rotation), Is.GreaterThan(10f));
-        Assert.That(Vector3.Distance(rootPosition, root.position), Is.LessThan(.001f));
-        Assert.That(Quaternion.Angle(initial, root.rotation), Is.LessThan(.01f));
+        Assert.That(Vector3.Distance(cameraPosition, player.View.transform.position), Is.LessThan(.001f));
+        Assert.That(Quaternion.Angle(cameraRotation, player.View.transform.rotation), Is.LessThan(.1f));
+        Assert.That(Vector3.Distance(rootPosition, root.position), Is.GreaterThan(.001f));
+        Assert.That(Quaternion.Angle(initial, root.rotation), Is.GreaterThan(10f));
         Assert.That(Vector3.Distance(trayPosition, robot.Cover.TrayAnchor.position), Is.LessThan(.001f));
         Assert.That(Vector3.Distance(sparePosition, spare.transform.position), Is.LessThan(.001f));
         yield return Press(Key.R);
@@ -116,6 +118,21 @@ public sealed class WorkbenchInspectionTests
         Assert.That(Vector3.Distance(cameraPosition, player.View.transform.position), Is.LessThan(.01f));
         Assert.That(Quaternion.Angle(cameraRotation, player.View.transform.rotation), Is.LessThan(.1f));
         Assert.That(Quaternion.Angle(initial, root.rotation), Is.LessThan(.01f));
+        float tilt = Vector3.Angle(root.up, Vector3.up);
+        workbench.UpdateView(new Vector2(150f, 0f), 0f);
+        Assert.That(Mathf.Abs(Vector3.Angle(root.up, Vector3.up) - tilt), Is.LessThan(.01f));
+        for (int axis = 0; axis < 2; axis++)
+        {
+            workbench.AlignInspection();
+            for (int step = 0; step < 20; step++)
+            {
+                workbench.UpdateView(axis == 0 ? new Vector2(18f / .35f, 0f) : new Vector2(0f, 18f / .35f), 0f);
+                yield return null;
+            }
+            Assert.That(Quaternion.Angle(initial, root.rotation), Is.LessThan(.05f));
+            Assert.That(Vector3.Distance(rootPosition, root.position), Is.LessThan(.001f));
+            Assert.That(Vector3.Distance(cameraPosition, player.View.transform.position), Is.LessThan(.001f));
+        }
         spare.SetSupported(false);
         interaction.ResetRepair();
         Assert.That(workbench.IsFocused, Is.True);
@@ -123,7 +140,7 @@ public sealed class WorkbenchInspectionTests
     }
 
     [UnityTest]
-    public IEnumerator ZoomMovesCameraAndKeepsRobotAndTraysFixed()
+    public IEnumerator ZoomMovesRobotWhileCameraAndTraysStayFixed()
     {
         yield return new WaitForSeconds(1.5f);
         Vector3 cameraPosition = player.View.transform.position;
@@ -133,8 +150,8 @@ public sealed class WorkbenchInspectionTests
         yield return Pointer(Center, wheel: 120f);
         yield return Pointer(Center);
         yield return new WaitForSeconds(.5f);
-        Assert.That(Vector3.Dot(player.View.transform.position - cameraPosition, player.View.transform.forward), Is.GreaterThan(.01f));
-        Assert.That(Vector3.Distance(original, robot.InspectionPivot.position), Is.LessThan(.001f));
+        Assert.That(Vector3.Distance(player.View.transform.position, cameraPosition), Is.LessThan(.001f));
+        Assert.That(Vector3.Dot(robot.InspectionPivot.position - original, player.View.transform.forward), Is.LessThan(-.01f));
         Assert.That(Quaternion.Angle(cameraRotation, player.View.transform.rotation), Is.LessThan(.1f));
         Assert.That(Vector3.Distance(tray, robot.Cover.TrayAnchor.position), Is.LessThan(.001f));
         Assert.That(Vector3.Distance(robot.InstalledDrive.transform.position, robot.InstalledDrive.InstallationAnchor.position), Is.LessThan(.001f));
@@ -145,30 +162,34 @@ public sealed class WorkbenchInspectionTests
         yield return Pointer(Center, wheel: -120f);
         yield return Pointer(Center);
         yield return new WaitForSeconds(.5f);
-        Assert.That(Vector3.Dot(player.View.transform.position - cameraPosition, -player.View.transform.forward), Is.GreaterThan(.01f));
+        Assert.That(Vector3.Dot(robot.InspectionPivot.position - original, player.View.transform.forward), Is.GreaterThan(.01f));
         for (int step = 0; step < 20; step++) workbench.UpdateView(Vector2.zero, -1f);
         yield return new WaitForSeconds(1f);
         Assert.That(3f + workbench.CameraOffset,
             Is.GreaterThanOrEqualTo(Vector3.Distance(player.View.transform.position, robot.InspectionPivot.position)),
             "Zooming out must not put the robot beyond tool reach.");
         yield return Press(Key.Escape);
-        Assert.That(Vector3.Distance(original, robot.InspectionPivot.position), Is.LessThan(.001f));
+        Assert.That(Vector3.Distance(robotRestPosition, robot.InspectionPivot.position), Is.LessThan(.001f));
     }
 
     [UnityTest]
-    public IEnumerator LoosePartInspectionFreezesPhysicsWithoutMovingItOrReturningToTray()
+    public IEnumerator LoosePartInspectionCentersPartAndRestoresItsTablePose()
     {
         foreach (ScrewFastener screw in robot.Cover.Screws) robot.Turn(screw, -10000f);
         Assert.That(robot.TryPlace(robot.Cover, false, out _), Is.True);
         RepairPart cover = robot.Cover;
-        workbench.Focus(cover);
         Vector3 position = cover.transform.position;
         Quaternion rotation = cover.transform.rotation;
+        workbench.Focus(cover);
         Assert.That(cover.Body.isKinematic, Is.True);
-        workbench.UpdateView(new Vector2(180f, 80f), 120f);
+        yield return new WaitForSeconds(1f);
+        var bounds = cover.GetComponentInChildren<Renderer>().bounds;
+        Vector3 screen = player.View.WorldToViewportPoint(bounds.center);
+        Assert.That(screen.x, Is.EqualTo(.5f).Within(.03f));
+        Assert.That(screen.y, Is.EqualTo(.5f).Within(.03f));
+        workbench.UpdateView(new Vector2(180f, 80f), 0f);
         yield return new WaitForSeconds(.7f);
-        Assert.That(Vector3.Distance(position, cover.transform.position), Is.LessThan(.001f));
-        Assert.That(Quaternion.Angle(rotation, cover.transform.rotation), Is.LessThan(.01f));
+        Assert.That(Quaternion.Angle(rotation, cover.transform.rotation), Is.GreaterThan(20f));
         workbench.ReturnToOverview(true);
         Assert.That(Vector3.Distance(position, cover.transform.position), Is.LessThan(.001f));
         Assert.That(cover.Body.isKinematic, Is.False);

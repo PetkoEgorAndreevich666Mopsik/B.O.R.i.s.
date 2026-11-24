@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace BORis
 {
@@ -7,7 +7,6 @@ namespace BORis
         [SerializeField] UnityEngine.UI.Text hint;
         [SerializeField] UnityEngine.UI.Text repairNotice;
         float noticeUntil;
-        bool wasReady;
         RobotTestResult previousTest;
         [SerializeField] UnityEngine.UI.Text assemblyState;
         [SerializeField] UnityEngine.UI.Image cleaningProgress;
@@ -51,7 +50,6 @@ namespace BORis
             if (previousRobot != robot)
             {
                 previousRobot = robot;
-                wasReady = false;
                 previousTest = RobotTestResult.NotTested;
                 noticeUntil = 0f;
                 diagnosisHelpLevel = 0;
@@ -94,15 +92,14 @@ namespace BORis
 
             if (symptom != null) symptom.gameObject.SetActive(false);
             if (questPanel != null) questPanel.SetActive(cleaning);
-            if (ready && !wasReady || robot != null && robot.TestResult == RobotTestResult.Faulty && previousTest != RobotTestResult.Faulty)
+            if (robot != null && robot.TestResult == RobotTestResult.Faulty && previousTest != RobotTestResult.Faulty)
                 noticeUntil = Time.unscaledTime + 2.8f;
-            wasReady = ready;
             previousTest = robot != null ? robot.TestResult : RobotTestResult.NotTested;
             if (repairNotice != null)
             {
                 repairNotice.gameObject.SetActive(robot != null && (robot.IsTesting
-                    || Time.unscaledTime < noticeUntil && (ready || robot.TestResult == RobotTestResult.Faulty)));
-                repairNotice.text = robot != null && robot.IsTesting ? "Проверка…" : ready ? "Ремонт завершён" : "Рука не прошла тест";
+                    || Time.unscaledTime < noticeUntil && robot.TestResult == RobotTestResult.Faulty));
+                repairNotice.text = robot != null && robot.IsTesting ? "Проверка…" : "Рука не прошла тест";
                 repairNotice.color = ready ? new Color(.65f, .89f, .8f) : Color.white;
             }
             float cleanliness = CleaningAmount(robot);
